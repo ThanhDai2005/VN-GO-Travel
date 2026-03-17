@@ -20,17 +20,22 @@ public class PoiDatabase
 
         await _db.CreateTableAsync<Poi>();
 
+        // Ensure new columns exist for flattened model. ALTER TABLE is no-op if column exists.
         try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN Code TEXT"); } catch { }
-        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN LocalizedNamesJson TEXT"); } catch { }
-        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN LocalizedDescriptionsJson TEXT"); } catch { }
+        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN LanguageCode TEXT"); } catch { }
+        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN Name TEXT"); } catch { }
+        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN Summary TEXT"); } catch { }
+        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN NarrationShort TEXT"); } catch { }
 
+        // Keep unique index on Code (Code is primary key in model)
         await _db.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_pois_Code ON pois(Code)");
 
         _inited = true;
     }
 
-    public Task<List<Poi>> GetAllAsync()
+    public Task<List<Poi>> GetAllAsync(string langCode)
         => _db.Table<Poi>()
+              .Where(p => p.LanguageCode == langCode)
               .OrderByDescending(p => p.Priority)
               .ToListAsync();
 
@@ -58,7 +63,7 @@ public class PoiDatabase
             return;
         }
 
-        poi.Id = existing.Id;
+        // Update existing record (Code is primary key in model)
         await _db.UpdateAsync(poi);
     }
 

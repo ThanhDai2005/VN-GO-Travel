@@ -23,24 +23,47 @@ public partial class MapPage : ContentPage
     {
         InitializeComponent();
         BindingContext = _vm = vm;
-
-        _vm.SetLanguage("vi");
     }
 
+    // Sự kiện 1: Khi bấm vào Cây ghim đỏ trên bản đồ
     private async void OnPinMarkerClicked(object? sender, PinClickedEventArgs e)
     {
         if (sender is not Pin pin) return;
 
         if (_pinToPoi.TryGetValue(pin, out var poi))
         {
+            // 1. Zoom bản đồ tới điểm đó
             Map.MoveToRegion(
                 MapSpan.FromCenterAndRadius(pin.Location, Distance.FromMeters(200)));
 
-            await _vm.PlayPoiAsync(poi, _vm.CurrentLanguage);
-
+            // 2. Chặn không cho hiện cái bong bóng mặc định cũ nữa
             e.HideInfoWindow = true;
+
+            // 3. Báo cho ViewModel biết điểm nào đang được chọn để bật Bảng thông tin (Bottom Panel) lên
+            _vm.SelectedPoi = poi;
+
+            // 4. Vẫn đọc bài ngắn giới thiệu khi vừa bấm
+            await _vm.PlayPoiAsync(poi, _vm.CurrentLanguage);
         }
     }
+
+    // --- 2 HÀM MỚI CHO BẢNG THÔNG TIN ---
+    // Khi bấm nút "Nghe chi tiết" màu xanh
+    private async void OnListenDetailedClicked(object sender, EventArgs e)
+    {
+        if (_vm.SelectedPoi != null)
+        {
+            await _vm.PlayPoiDetailedAsync(_vm.SelectedPoi, _vm.CurrentLanguage);
+        }
+    }
+
+    // Khi bấm nút "Đóng"
+    private void OnClosePanelClicked(object sender, EventArgs e)
+    {
+        // Gán bằng null để bảng thông tin tự động trượt xuống/biến mất
+        _vm.SelectedPoi = null;
+    }
+    // ------------------------------------
 
     protected override void OnAppearing()
     {
@@ -52,7 +75,10 @@ public partial class MapPage : ContentPage
     {
         if (_isTracking) return;
 
+        // 1. Chờ ông Database nạp xong danh sách các điểm
         await _vm.LoadPoisAsync();
+        // 2. Ép định vị check ngay lập tức xem mình có đang đứng trong điểm nào không
+        await _vm.UpdateLocationAsync();
 
         _isTracking = true;
 
@@ -99,8 +125,11 @@ public partial class MapPage : ContentPage
                 {
                     DrawPois();
 
-                    Map.MoveToRegion(
-                        MapSpan.FromCenterAndRadius(center, Distance.FromMeters(500)));
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        Map.MoveToRegion(
+                            MapSpan.FromCenterAndRadius(center, Distance.FromMeters(500)));
+                    });
 
                     _poisDrawn = true;
                 }
@@ -113,52 +142,67 @@ public partial class MapPage : ContentPage
 
     private void DrawUserLocation(Location location)
     {
-        if (_userPin == null)
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            _userPin = new Pin
+            if (_userPin == null)
             {
-                Label = "Bạn đang ở đây",
-                Location = location,
-                Type = PinType.Generic
-            };
+                _userPin = new Pin
+                {
+                    Label = "Bạn đang ở đây",
+                    Location = location,
+                    Type = PinType.Generic
+                };
 
-            Map.Pins.Add(_userPin);
-        }
-        else
-        {
-            _userPin.Location = location;
-        }
+                Map.Pins.Add(_userPin);
+            }
+            else
+            {
+                _userPin.Location = location;
+            }
+        });
     }
 
     private void DrawPois()
     {
-        Map.MapElements.Clear();
-        _pinToPoi.Clear();
-
-        foreach (var poi in _vm.Pois)
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            var pin = new Pin
+            // 1. Xóa các điểm cũ 
+            var pinsToRemove = Map.Pins.Where(p => p != _userPin).ToList();
+            foreach (var p in pinsToRemove)
             {
-                Label = poi.GetName(_vm.CurrentLanguage),
-                Address = poi.GetDescription(_vm.CurrentLanguage),
-                Location = new Location(poi.Latitude, poi.Longitude),
-                Type = PinType.Place
-            };
+                Map.Pins.Remove(p);
+            }
 
-            pin.MarkerClicked += OnPinMarkerClicked;
+            Map.MapElements.Clear();
+            _pinToPoi.Clear();
 
-            Map.Pins.Add(pin);
-
-            _pinToPoi[pin] = poi;
-
-            Map.MapElements.Add(new Circle
+            // 2. Vẽ lại các điểm mới
+            foreach (var poi in _vm.Pois)
             {
-                Center = pin.Location,
-                Radius = Distance.FromMeters(poi.Radius),
-                StrokeColor = Colors.Blue,
-                FillColor = Colors.LightBlue.WithAlpha(0.3f),
-                StrokeWidth = 2
-            });
-        }
+                var pin = new Pin
+                {
+                    Label = poi.Name,
+                    Address = poi.Summary, // Đã xóa chữ "(Chạm để nghe chi tiết)" vì không còn dùng bong bóng nữa
+                    Location = new Location(poi.Latitude, poi.Longitude),
+                    Type = PinType.Place
+                };
+
+                // Gắn 1 sự kiện duy nhất cho ghim
+                pin.MarkerClicked += OnPinMarkerClicked;
+
+                Map.Pins.Add(pin);
+                _pinToPoi[pin] = poi;
+
+                // 3. Vẽ vòng tròn bán kính
+                Map.MapElements.Add(new Circle
+                {
+                    Center = pin.Location,
+                    Radius = Distance.FromMeters(poi.Radius),
+                    StrokeColor = Colors.Blue,
+                    FillColor = Colors.LightBlue.WithAlpha(0.3f),
+                    StrokeWidth = 2
+                });
+            }
+        });
     }
 }

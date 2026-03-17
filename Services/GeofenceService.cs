@@ -7,7 +7,7 @@ public class GeofenceService
 {
     private readonly AudioService _audioService;
     private List<Poi> _pois = new();
-    private readonly HashSet<int> _alreadyTriggered = new();
+    private readonly HashSet<string> _alreadyTriggered = new();
     private readonly SemaphoreSlim _gate = new(1, 1);
     public string CurrentLanguage { get; set; } = "vi";
 
@@ -36,18 +36,19 @@ public class GeofenceService
 
                 if (distanceMeters <= poi.Radius)
                 {
-                    if (_alreadyTriggered.Contains(poi.Id)) continue;
+                    if (_alreadyTriggered.Contains(poi.Code)) continue;
 
-                    var text = poi.GetDescription(CurrentLanguage);
-                    if (string.IsNullOrWhiteSpace(text))
-                        text = poi.GetName(CurrentLanguage);
+                    // Use flattened NarrationShort for geofence-triggered audio, fallback to Name
+                    var text = !string.IsNullOrWhiteSpace(poi.NarrationShort) ? poi.NarrationShort : poi.Name;
 
-                    await _audioService.SpeakAsync(text, CurrentLanguage);
-                    _alreadyTriggered.Add(poi.Id);
+                    if (!string.IsNullOrWhiteSpace(text))
+                        await _audioService.SpeakAsync(text, CurrentLanguage);
+
+                    _alreadyTriggered.Add(poi.Code);
                 }
                 else if (distanceMeters > poi.Radius * 1.2)
                 {
-                    _alreadyTriggered.Remove(poi.Id);
+                    _alreadyTriggered.Remove(poi.Code);
                 }
             }
         }

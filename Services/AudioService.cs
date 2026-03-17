@@ -4,28 +4,43 @@ namespace MauiApp1.Services;
 
 public class AudioService
 {
-    private readonly SemaphoreSlim _audioGate = new(1, 1);
+    // Khai báo đèn giao thông (chỉ cho phép 1 luồng âm thanh chạy tại 1 thời điểm)
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
-    public async Task SpeakAsync(string text, string languageCode = "vi")
+    public async Task SpeakAsync(string text, string languageCode)
     {
-        if (!await _audioGate.WaitAsync(0)) return;
+        // Bắt đầu xếp hàng chờ tới lượt đọc
+        await _semaphore.WaitAsync();
 
         try
         {
-            var locales = await TextToSpeech.GetLocalesAsync();
-            var locale = locales.FirstOrDefault(l =>
-                string.Equals(l.Language, languageCode, StringComparison.OrdinalIgnoreCase));
+            // Lấy danh sách tất cả các giọng đọc trong điện thoại
+            var locales = await TextToSpeech.Default.GetLocalesAsync();
 
-            var options = new SpeechOptions
+            // Tự động tìm giọng đọc khớp với languageCode truyền vào (vd: "vi" hoặc "en")
+            var selectedLocale = locales.FirstOrDefault(l =>
+                l.Language.Equals(languageCode, StringComparison.OrdinalIgnoreCase));
+
+            // Cấu hình tùy chọn đọc
+            var options = new SpeechOptions()
             {
-                Locale = locale
+                Locale = selectedLocale, // Truyền đúng giọng vào đây
+                Volume = 1.0f,
+                Pitch = 1.0f
             };
 
-            await TextToSpeech.SpeakAsync(text, options);
+            // Tiến hành đọc văn bản
+            await TextToSpeech.Default.SpeakAsync(text, options);
+        }
+        catch (Exception ex)
+        {
+            // Bắt lỗi nếu máy người dùng không hỗ trợ TTS hoặc bị lỗi phần cứng
+            Console.WriteLine($"Lỗi TTS: {ex.Message}");
         }
         finally
         {
-            _audioGate.Release();
+            // Đọc xong thì nhả đèn xanh cho câu tiếp theo chạy
+            _semaphore.Release();
         }
     }
 }
