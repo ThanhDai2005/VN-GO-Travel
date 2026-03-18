@@ -1,4 +1,5 @@
 ﻿using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.ApplicationModel;
 
 namespace MauiApp1.Services;
 
@@ -15,14 +16,18 @@ public class LocationService
             {
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    await Application.Current.MainPage.DisplayAlert(
-                        "Permission",
-                        "Cần cấp quyền vị trí để sử dụng app",
-                        "OK");
+                    if (Application.Current?.MainPage != null)
+                    {
+                        await Application.Current.MainPage.DisplayAlertAsync(
+                            "Permission",
+                            "Cần cấp quyền vị trí để sử dụng app",
+                            "OK");
+                    }
                 });
 
                 return null;
             }
+
             _permissionGranted = true;
         }
 

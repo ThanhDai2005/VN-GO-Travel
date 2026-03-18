@@ -7,9 +7,9 @@ public class GeofenceService
 {
     private readonly AudioService _audioService;
     private List<Poi> _pois = new();
-    private readonly HashSet<string> _alreadyTriggered = new();
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string? _currentActivePoiId;
+
     public string CurrentLanguage { get; set; } = "vi";
 
     public GeofenceService(AudioService audioService)
@@ -20,7 +20,7 @@ public class GeofenceService
     public void UpdatePois(IEnumerable<Poi> pois)
     {
         _pois = pois.ToList();
-        _alreadyTriggered.Clear();
+        _currentActivePoiId = null;
     }
 
     public async Task CheckLocationAsync(Location location)
@@ -29,7 +29,7 @@ public class GeofenceService
 
         try
         {
-            var candidates = _pois
+            var best = _pois
                 .Select(p => new
                 {
                     Poi = p,
@@ -37,15 +37,10 @@ public class GeofenceService
                         location.Latitude, location.Longitude,
                         p.Latitude, p.Longitude)
                 })
-                // chỉ lấy những POI trong vùng
                 .Where(x => x.Distance <= x.Poi.Radius)
-                // ưu tiên cao trước
                 .OrderByDescending(x => x.Poi.Priority)
-                // nếu cùng priority thì lấy gần nhất
                 .ThenBy(x => x.Distance)
-                .ToList();
-
-            var best = candidates.FirstOrDefault();
+                .FirstOrDefault();
 
             if (best != null)
             {
@@ -66,19 +61,6 @@ public class GeofenceService
             {
                 _currentActivePoiId = null;
             }
-
-            // reset trigger khi ra xa
-            foreach (var poi in _pois)
-            {
-                var distance = DistanceInMeters(
-                    location.Latitude, location.Longitude,
-                    poi.Latitude, poi.Longitude);
-
-                if (distance > poi.Radius * 1.2)
-                {
-                    _alreadyTriggered.Remove(poi.Id);
-                }
-            }
         }
         finally
         {
@@ -86,16 +68,16 @@ public class GeofenceService
         }
     }
 
-
-    // Haversine formula
     private static double DistanceInMeters(double lat1, double lon1, double lat2, double lon2)
     {
-        double R = 6371000; // radius earth meters
+        double R = 6371000;
         double dLat = ToRad(lat2 - lat1);
         double dLon = ToRad(lon2 - lon1);
+
         double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
                    Math.Cos(ToRad(lat1)) * Math.Cos(ToRad(lat2)) *
                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+
         double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
         return R * c;
     }

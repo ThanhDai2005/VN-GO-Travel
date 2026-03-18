@@ -4,7 +4,7 @@ namespace MauiApp1.Services;
 
 public class AudioService
 {
-    private readonly SemaphoreSlim _speakGate = new(1, 1);
+    private readonly object _syncLock = new();
     private CancellationTokenSource? _currentCts;
 
     public async Task SpeakAsync(string text, string languageCode)
@@ -12,18 +12,19 @@ public class AudioService
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        if (!await _speakGate.WaitAsync(0))
+        CancellationTokenSource cts;
+
+        lock (_syncLock)
         {
-            Stop(); // dừng cái cũ
-            await _speakGate.WaitAsync();
+            _currentCts?.Cancel();
+            _currentCts?.Dispose();
+
+            _currentCts = new CancellationTokenSource();
+            cts = _currentCts;
         }
 
         try
         {
-            _currentCts?.Cancel();
-            _currentCts?.Dispose();
-            _currentCts = new CancellationTokenSource();
-
             var locales = await TextToSpeech.Default.GetLocalesAsync();
 
             var selectedLocale = locales.FirstOrDefault(l =>
@@ -40,30 +41,23 @@ public class AudioService
             if (selectedLocale != null)
                 options.Locale = selectedLocale;
 
-            await TextToSpeech.Default.SpeakAsync(text, options, _currentCts.Token);
+            await TextToSpeech.Default.SpeakAsync(text, options, cts.Token);
         }
         catch (OperationCanceledException)
         {
-            // bình thường khi bị stop hoặc thay audio mới
+            // bình thường khi audio bị thay thế hoặc stop
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"TTS error: {ex.Message}");
         }
-        finally
-        {
-            _speakGate.Release();
-        }
     }
 
     public void Stop()
     {
-        try
+        lock (_syncLock)
         {
             _currentCts?.Cancel();
-        }
-        catch
-        {
         }
     }
 }

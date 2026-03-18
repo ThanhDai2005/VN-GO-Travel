@@ -14,8 +14,6 @@ public partial class MapPage : ContentPage
     private CancellationTokenSource? _cts;
     private readonly Dictionary<Pin, Poi> _pinToPoi = new();
     private Pin? _userPin;
-
-    // 🔥 chống spam auto audio
     private string? _lastAutoPoiId;
 
     public MapPage(MapViewModel vm)
@@ -59,7 +57,7 @@ public partial class MapPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", ex.Message, "OK");
+            await DisplayAlertAsync("Error", ex.Message, "OK");
         }
     }
 
@@ -69,6 +67,8 @@ public partial class MapPage : ContentPage
 
         _isTracking = false;
         _poisDrawn = false;
+        _lastAutoPoiId = null;
+        _vm.SelectedPoi = null;
 
         _cts?.Cancel();
         _cts?.Dispose();
@@ -95,9 +95,11 @@ public partial class MapPage : ContentPage
 
                 var center = new Location(location.Latitude, location.Longitude);
 
-                DrawUserLocation(center);
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    DrawUserLocation(center);
+                });
 
-                // 🔥 FIND NEAREST POI
                 var nearest = _vm.Pois
                     .Select(p => new
                     {
@@ -105,14 +107,13 @@ public partial class MapPage : ContentPage
                         Distance = Location.CalculateDistance(
                             location,
                             new Location(p.Latitude, p.Longitude),
-                            DistanceUnits.Meters)
+                            DistanceUnits.Kilometers) * 1000
                     })
                     .Where(x => x.Distance <= x.Poi.Radius)
                     .OrderByDescending(x => x.Poi.Priority)
                     .ThenBy(x => x.Distance)
                     .FirstOrDefault();
 
-                // 🔥 VÀO POI
                 if (nearest != null && _lastAutoPoiId != nearest.Poi.Id)
                 {
                     _lastAutoPoiId = nearest.Poi.Id;
@@ -121,11 +122,15 @@ public partial class MapPage : ContentPage
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         await ShowBottomPanelAsync();
+
+                        Map.MoveToRegion(
+                            MapSpan.FromCenterAndRadius(
+                                new Location(nearest.Poi.Latitude, nearest.Poi.Longitude),
+                                Distance.FromMeters(220)));
+
                         await _vm.PlayPoiAsync(nearest.Poi, _vm.CurrentLanguage);
                     });
                 }
-
-                // 🔥 RA KHỎI POI
                 else if (nearest == null && _vm.SelectedPoi != null)
                 {
                     _lastAutoPoiId = null;
@@ -154,7 +159,6 @@ public partial class MapPage : ContentPage
         }
         catch (OperationCanceledException)
         {
-            // OK
         }
     }
 
@@ -180,11 +184,8 @@ public partial class MapPage : ContentPage
 
     private void DrawPois()
     {
-        // 🔥 REMOVE EVENT TRƯỚC
         foreach (var pin in Map.Pins)
-        {
             pin.MarkerClicked -= OnPinMarkerClicked;
-        }
 
         Map.Pins.Clear();
         Map.MapElements.Clear();
@@ -226,8 +227,11 @@ public partial class MapPage : ContentPage
 
         e.HideInfoWindow = true;
 
-        Map.MoveToRegion(
-            MapSpan.FromCenterAndRadius(pin.Location, Distance.FromMeters(220)));
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Map.MoveToRegion(
+                MapSpan.FromCenterAndRadius(pin.Location, Distance.FromMeters(220)));
+        });
 
         _vm.SelectedPoi = poi;
         _lastAutoPoiId = poi.Id;
