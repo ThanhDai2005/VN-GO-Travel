@@ -24,6 +24,14 @@ public partial class AppShell : Shell
             ContentTemplate = new DataTemplate(() => services.GetRequiredService<MapPage>())
         });
 
+        // QR tab
+        tabBar.Items.Add(new ShellContent
+        {
+            Title = "QR",
+            Route = "qrscan",
+            ContentTemplate = new DataTemplate(() => services.GetRequiredService<QrScannerPage>())
+        });
+
         tabBar.Items.Add(new ShellContent
         {
             Title = "Giới thiệu",
@@ -32,5 +40,9 @@ public partial class AppShell : Shell
         });
 
         Items.Add(tabBar);
+
+        // Register QR routes (Phase-1A)
+        Routing.RegisterRoute("qrscan", typeof(QrScannerPage));
+        Routing.RegisterRoute("poidetail", typeof(PoiDetailPage));
     }
 }

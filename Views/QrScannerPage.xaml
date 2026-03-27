@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="MauiApp1.Views.QrScannerPage"
+    Title="Quét mã"
+    BackgroundColor="{StaticResource SurfaceBackground}">
+
+    <VerticalStackLayout Padding="16" Spacing="12">
+
+        <Label Text="Paste QR text (format: poi:CODE)" FontAttributes="Bold" />
+
+        <Editor Text="{Binding InputText}" HeightRequest="120" />
+
+        <Label Text="{Binding Message}" TextColor="Red" IsVisible="{Binding Message, Converter={StaticResource StringNotNullOrEmptyConverter}}" />
+
+        <HorizontalStackLayout Spacing="10">
+            <Button Text="Scan" Command="{Binding ScanCommand}" />
+            <Button Text="Cancel" Command="{Binding CancelCommand}" />
+        </HorizontalStackLayout>
+
+    </VerticalStackLayout>
+</ContentPage>

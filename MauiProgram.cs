@@ -38,6 +38,12 @@ public static class MauiProgram
         builder.Services.AddTransient<AboutPage>();
         builder.Services.AddTransient<MapPage>();
 
+        // QR pages and viewmodels for Phase-1A
+        builder.Services.AddTransient<QrScannerPage>();
+        builder.Services.AddTransient<ViewModels.QrScannerViewModel>();
+        builder.Services.AddTransient<PoiDetailPage>();
+        builder.Services.AddTransient<ViewModels.PoiDetailViewModel>();
+
         return builder.Build();
     }
 }

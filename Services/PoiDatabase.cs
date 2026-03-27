@@ -74,4 +74,46 @@ public class PoiDatabase
             await UpsertAsync(poi);
         }
     }
+
+    // New helper: get POI by Code with language preference and fallbacks.
+    public async Task<Poi?> GetByCodeAsync(string code, string? lang = null)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return null;
+
+        code = code.Trim();
+
+        // Normalize language
+        var requested = string.IsNullOrWhiteSpace(lang) ? null : lang.Trim().ToLowerInvariant();
+
+        // Try exact language match first
+        if (!string.IsNullOrWhiteSpace(requested))
+        {
+            var item = await _db.Table<Poi>()
+                .Where(p => p.Code == code && p.LanguageCode == requested)
+                .FirstOrDefaultAsync();
+
+            if (item != null) return item;
+        }
+
+        // Fallback to Vietnamese
+        var vi = await _db.Table<Poi>()
+            .Where(p => p.Code == code && p.LanguageCode == "vi")
+            .FirstOrDefaultAsync();
+
+        if (vi != null) return vi;
+
+        // Fallback to any language
+        return await GetAnyLanguageByCodeAsync(code);
+    }
+
+    public async Task<Poi?> GetAnyLanguageByCodeAsync(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return null;
+
+        code = code.Trim();
+
+        return await _db.Table<Poi>()
+            .Where(p => p.Code == code)
+            .FirstOrDefaultAsync();
+    }
 }

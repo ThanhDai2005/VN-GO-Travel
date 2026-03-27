@@ -7,6 +7,8 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices.Sensors;
 using MauiApp1.Models;
 using MauiApp1.Services;
+using Microsoft.Maui.Controls;
+using System.Windows.Input;
 
 namespace MauiApp1.ViewModels;
 
@@ -66,6 +68,9 @@ public class MapViewModel : INotifyPropertyChanged
 
     public ObservableCollection<Poi> Pois { get; } = new();
 
+    // New command to open QR scanner page (Phase-1A manual paste scanner)
+    public ICommand OpenQrCommand { get; }
+
     public MapViewModel(
         LocationService locationService,
         GeofenceService geofenceService,
@@ -79,6 +84,12 @@ public class MapViewModel : INotifyPropertyChanged
 
         CurrentLanguage = "vi";
         _geofenceService.CurrentLanguage = CurrentLanguage;
+
+        OpenQrCommand = new Command(async () =>
+        {
+            // Navigate to the registered qrscan route
+            await Shell.Current.GoToAsync("qrscan");
+        });
     }
 
     public async Task UpdateLocationAsync()
