@@ -2,6 +2,7 @@
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
     x:Class="MauiApp1.Views.QrScannerPage"
     Title="Quét mã"
     BackgroundColor="{StaticResource SurfaceBackground}">
@@ -18,6 +19,38 @@
             <Button Text="Scan" Command="{Binding ScanCommand}" />
             <Button Text="Cancel" Command="{Binding CancelCommand}" />
         </HorizontalStackLayout>
+        
+        <!-- Diagnostic panel -->
+        <Frame Margin="12" Padding="8" CornerRadius="8" BackgroundColor="#FFF7E6" BorderColor="#FFB74D">
+            <Label x:Name="DiagLabel" Text="" FontAttributes="Bold" TextColor="#333" />
+        </Frame>
+        
+        <!-- Camera scanner area (Android-first) -->
+        <!-- Camera preview with centered scan frame overlay -->
+        <Frame Margin="12" Padding="2" CornerRadius="8" BackgroundColor="#000" BorderColor="#FF4081">
+            <AbsoluteLayout HeightRequest="420">
+                <zxing:CameraBarcodeReaderView
+                    x:Name="CameraView"
+                    AbsoluteLayout.LayoutBounds="0,0,1,1"
+                    AbsoluteLayout.LayoutFlags="All"
+                    IsDetecting="False"
+                    BarcodesDetected="OnBarcodesDetected" />
+
+                <!-- Centered scan frame to guide user to middle area -->
+                <Frame
+                    AbsoluteLayout.LayoutBounds="0.5,0.5,0.6,0.45"
+                    AbsoluteLayout.LayoutFlags="PositionProportional,WidthProportional,HeightProportional"
+                    CornerRadius="12"
+                    BackgroundColor="#00000000"
+                    BorderColor="#80FFFFFF"
+                    HasShadow="False"
+                    Padding="6">
+                    <Grid>
+                        <BoxView Color="#00000080" Opacity="0.0" />
+                    </Grid>
+                </Frame>
+            </AbsoluteLayout>
+        </Frame>
 
     </VerticalStackLayout>
 </ContentPage>

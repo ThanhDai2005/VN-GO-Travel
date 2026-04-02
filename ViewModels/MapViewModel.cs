@@ -1,8 +1,9 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Diagnostics;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices.Sensors;
 using MauiApp1.Models;
@@ -67,6 +68,8 @@ public class MapViewModel : INotifyPropertyChanged
     public bool IsPoiPanelVisible => SelectedPoi != null;
 
     public ObservableCollection<Poi> Pois { get; } = new();
+    private string? _pendingFocusPoiCode;
+    private string? _pendingFocusPoiLang;
 
     // New command to open QR scanner page (Phase-1A manual paste scanner)
     public ICommand OpenQrCommand { get; }
@@ -92,13 +95,60 @@ public class MapViewModel : INotifyPropertyChanged
         });
     }
 
+    public async Task FocusOnPoiByCodeAsync(string code, string? lang = null)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return;
+
+        await _db.InitAsync();
+
+        var preferred = string.IsNullOrWhiteSpace(lang) ? CurrentLanguage : lang.Trim().ToLowerInvariant();
+
+        var poi = await _db.GetByCodeAsync(code.Trim(), preferred);
+        if (poi == null)
+            return;
+
+        SelectedPoi = poi;
+    }
+
+    public void RequestFocusOnPoiCode(string code, string? lang = null)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return;
+
+        _pendingFocusPoiCode = code.Trim();
+        _pendingFocusPoiLang = string.IsNullOrWhiteSpace(lang) ? null : lang.Trim().ToLowerInvariant();
+        Debug.WriteLine($"[Map-VM] Pending focus requested code='{_pendingFocusPoiCode}' lang='{_pendingFocusPoiLang}'");
+    }
+
+    public (string? code, string? lang) ConsumePendingFocusRequest()
+    {
+        var code = _pendingFocusPoiCode;
+        var lang = _pendingFocusPoiLang;
+        _pendingFocusPoiCode = null;
+        _pendingFocusPoiLang = null;
+        return (code, lang);
+    }
+
     public async Task UpdateLocationAsync()
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var tGetStart = sw.ElapsedMilliseconds;
         var loc = await _locationService.GetCurrentLocationAsync();
-        if (loc == null) return;
+        var tGetEnd = sw.ElapsedMilliseconds;
+        if (loc == null) 
+        {
+            Debug.WriteLine($"[MAP-TIME] UpdateLocationAsync: location null getTime={tGetEnd - tGetStart} ms");
+            return;
+        }
 
         CurrentLocation = loc;
+
+        var tGeoStart = sw.ElapsedMilliseconds;
         await _geofenceService.CheckLocationAsync(loc);
+        var tGeoEnd = sw.ElapsedMilliseconds;
+
+        Debug.WriteLine($"[MAP-TIME] UpdateLocationAsync timings ms: get={tGetEnd - tGetStart} geofence={tGeoEnd - tGeoStart}");
     }
 
     public void SetLanguage(string language)
@@ -187,7 +237,12 @@ public class MapViewModel : INotifyPropertyChanged
 
     public async Task LoadPoisAsync(string? preferredLanguage = null)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        Debug.WriteLine($"[MAP-TIME] LoadPoisAsync START");
+
+        var tInitStart = sw.ElapsedMilliseconds;
         await _db.InitAsync();
+        var tInitEnd = sw.ElapsedMilliseconds;
 
         var targetLang = string.IsNullOrWhiteSpace(preferredLanguage)
             ? CultureInfo.CurrentCulture.TwoLetterISOLanguageName
@@ -196,11 +251,17 @@ public class MapViewModel : INotifyPropertyChanged
         if (targetLang != "vi" && targetLang != "en")
             targetLang = "vi";
 
+        var tLoadSeedStart = sw.ElapsedMilliseconds;
         var allSeedPois = await LoadAllPoisFromJsonAsync();
+        var tLoadSeedEnd = sw.ElapsedMilliseconds;
 
+        var tUpsertStart = sw.ElapsedMilliseconds;
         await _db.UpsertManyAsync(allSeedPois);
+        var tUpsertEnd = sw.ElapsedMilliseconds;
 
+        var tGetStart = sw.ElapsedMilliseconds;
         var poisFromDb = await _db.GetAllAsync(targetLang);
+        var tGetEnd = sw.ElapsedMilliseconds;
 
         if (poisFromDb.Count == 0 && targetLang != "vi")
         {

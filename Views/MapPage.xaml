@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -109,20 +109,20 @@
                        TextColor="{StaticResource TextSecondary}" />
                     </VerticalStackLayout>
 
-                    <!-- BUTTON -->
+                <!-- BUTTONS -->
                     <Grid Grid.Row="2"
                   Padding="16"
                   ColumnDefinitions="*,*"
                   ColumnSpacing="10">
 
                         <Button Text="🔊 Nghe chi tiết"
-                        Style="{StaticResource PrimaryButton}"
-                        Clicked="OnListenDetailedClicked" />
+                                Style="{StaticResource PrimaryButton}"
+                                Clicked="OnListenDetailedClicked" />
 
                         <Button Grid.Column="1"
-                        Text="⏹ Dừng"
-                        Style="{StaticResource SecondaryButton}"
-                        Clicked="OnStopAudioClicked" />
+                                Text="Chi tiết"
+                                Style="{StaticResource SecondaryButton}"
+                                Clicked="OnOpenDetailClicked" />
                     </Grid>
 
                 </Grid>

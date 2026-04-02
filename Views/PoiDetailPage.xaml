@@ -13,6 +13,7 @@
             <Label Text="{Binding Poi.NarrationShort}" FontSize="14" TextColor="{StaticResource TextSecondary}" />
 
             <HorizontalStackLayout Spacing="10">
+                <Button Text="🗺 Open on Map" Clicked="OnOpenOnMapClicked" />
                 <Button Text="🔊 Play" Clicked="OnPlayClicked" />
                 <Button Text="⏹ Stop" Clicked="OnStopClicked" />
             </HorizontalStackLayout>

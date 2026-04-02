@@ -1,9 +1,10 @@
-﻿using MauiApp1.Services;
+using MauiApp1.Services;
 using MauiApp1.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Controls.Maps;
-
+using ZXing.Net.Maui;
+using ZXing.Net.Maui.Controls;
 namespace MauiApp1;
 
 public static class MauiProgram
@@ -15,6 +16,7 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
+            .UseBarcodeReader()
             .UseMauiMaps()
             .ConfigureFonts(fonts =>
             {

@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>ZXing.Net.Maui</id>
+    <version>0.6.0</version>
+    <title>ZXing.Net.MAUI Barcode Scanner for .NET MAUI</title>
+    <authors>Redth</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <readme>README.md</readme>
+    <projectUrl>https://github.com/redth/ZXing.Net.Maui</projectUrl>
+    <description>Package Description</description>
+    <copyright>Copyright © Redth</copyright>
+    <repository type="git" url="https://github.com/redth/ZXing.Net.Maui" commit="a2c33152bfcc406c2b157227bd91cbce164ebc0e" />
+    <dependencies>
+      <group targetFramework="net9.0">
+        <dependency id="Microsoft.Maui.Controls" version="9.0.40" exclude="Build,Analyzers" />
+        <dependency id="ZXing.Net" version="0.16.10" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net9.0-android35.0">
+        <dependency id="Microsoft.Maui.Controls" version="9.0.40" exclude="Build,Analyzers" />
+        <dependency id="Xamarin.AndroidX.Camera.Camera2" version="1.4.1.1" exclude="Build,Analyzers" />
+        <dependency id="Xamarin.AndroidX.Camera.Lifecycle" version="1.4.1.1" exclude="Build,Analyzers" />
+        <dependency id="Xamarin.AndroidX.Camera.View" version="1.4.1.1" exclude="Build,Analyzers" />
+        <dependency id="ZXing.Net" version="0.16.10" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net9.0-ios18.0">
+        <dependency id="Microsoft.Maui.Controls" version="9.0.40" exclude="Build,Analyzers" />
+        <dependency id="ZXing.Net" version="0.16.10" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net9.0-maccatalyst18.0">
+        <dependency id="Microsoft.Maui.Controls" version="9.0.40" exclude="Build,Analyzers" />
+        <dependency id="ZXing.Net" version="0.16.10" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net9.0-windows10.0.19041">
+        <dependency id="Microsoft.Maui.Controls" version="9.0.40" exclude="Build,Analyzers" />
+        <dependency id="ZXing.Net" version="0.16.10" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>

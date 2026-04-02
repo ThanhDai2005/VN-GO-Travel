@@ -1,7 +1,8 @@
-﻿using MauiApp1.Models;
+using MauiApp1.Models;
 using MauiApp1.ViewModels;
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Maps;
+using System.Diagnostics;
 
 namespace MauiApp1.Views;
 
@@ -43,18 +44,80 @@ public partial class MapPage : ContentPage
 
     private async Task OnAppearingAsync()
     {
-        if (_isTracking) return;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        Debug.WriteLine($"[MAP-TIME] OnAppearingAsync START");
 
-        InitBottomPanel();
+        if (!_poisDrawn)
+        {
+            InitBottomPanel();
 
-        await _vm.LoadPoisAsync();
-        UpdateLanguageButtons();
+            Debug.WriteLine($"[MAP-TIME] Starting LoadPoisAsync (background)");
+            var loadTask = _vm.LoadPoisAsync();
 
-        _isTracking = true;
-        _cts = new CancellationTokenSource();
-        _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+            // Capture any pending focus and ensure focus happens after load completes
+            var pendingFocus = _vm.ConsumePendingFocusRequest();
 
-        _ = StartTrackingAsync(_cts.Token);
+            // When load completes, draw POIs on main thread immediately (don't wait for tracking tick)
+            loadTask.ContinueWith(async t =>
+            {
+                try
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        try
+                        {
+                            if (!_poisDrawn)
+                            {
+                                DrawPois();
+                                _poisDrawn = true;
+                                Debug.WriteLine("[MAP-TIME] DrawPois invoked after LoadPoisAsync completion");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[MAP-ERR] DrawPois after load: {ex}");
+                        }
+                    });
+
+                    // If there was a pending focus request, perform focus now on main thread
+                    if (!string.IsNullOrWhiteSpace(pendingFocus.code))
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
+                        {
+                            try
+                            {
+                                Debug.WriteLine($"[MAP-TIME] Performing pending focus after load code={pendingFocus.code} lang={pendingFocus.lang}");
+                                await FocusOnPoiByCodeAsync(pendingFocus.code, pendingFocus.lang);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"[MAP-ERR] FocusOnPoiByCodeAsync after load: {ex}");
+                            }
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[MAP-ERR] loadTask continuation: {ex}");
+                }
+            }, TaskScheduler.Default);
+            UpdateLanguageButtons();
+        }
+
+        // pending focus handled by loadTask continuation above (if any)
+
+        if (!_isTracking)
+        {
+            _isTracking = true;
+            _cts = new CancellationTokenSource();
+            _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+
+            Debug.WriteLine($"[MAP-TIME] Starting tracking loop");
+            _ = StartTrackingAsync(_cts.Token);
+        }
+
+        sw.Stop();
+        Debug.WriteLine($"[MAP-TIME] OnAppearingAsync END totalElapsed={sw.ElapsedMilliseconds} ms");
     }
 
     protected override void OnDisappearing()
@@ -89,11 +152,23 @@ public partial class MapPage : ContentPage
     {
         if (_timer == null) return;
 
+        var swLoop = System.Diagnostics.Stopwatch.StartNew();
+        Debug.WriteLine("[MAP-TIME] StartTrackingAsync loop started");
+        var firstIteration = true;
+
         try
         {
             while (await _timer.WaitForNextTickAsync(ct))
             {
+                var iterStart = swLoop.ElapsedMilliseconds;
                 await _vm.UpdateLocationAsync();
+                var iterAfterLocation = swLoop.ElapsedMilliseconds;
+
+                if (firstIteration)
+                {
+                    Debug.WriteLine($"[MAP-TIME] First UpdateLocationAsync completed in {iterAfterLocation - iterStart} ms");
+                    firstIteration = false;
+                }
 
                 var location = _vm.CurrentLocation;
                 if (location == null) continue;
@@ -164,6 +239,8 @@ public partial class MapPage : ContentPage
 
                     _poisDrawn = true;
                 }
+                var iterEnd = swLoop.ElapsedMilliseconds;
+                Debug.WriteLine($"[MAP-TIME] Tracking loop iteration elapsed={iterEnd - iterStart} ms");
             }
         }
         catch (OperationCanceledException)
@@ -250,6 +327,32 @@ public partial class MapPage : ContentPage
         await _vm.PlayPoiAsync(poi, _vm.CurrentLanguage);
     }
 
+    private async Task FocusOnPoiByCodeAsync(string code, string? lang = null)
+    {
+        Debug.WriteLine($"[Map] FocusOnPoiByCodeAsync input code='{code}'");
+        await _vm.FocusOnPoiByCodeAsync(code, lang);
+
+        var poi = _vm.SelectedPoi;
+        if (poi == null)
+        {
+            Debug.WriteLine($"[Map] No POI found for code='{code}' in current language='{_vm.CurrentLanguage}'");
+            return;
+        }
+
+        _isUserSelecting = true;
+        _lastAutoPoiId = poi.Id;
+
+        var location = new Location(poi.Latitude, poi.Longitude);
+
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            Map.MoveToRegion(
+                MapSpan.FromCenterAndRadius(location, Distance.FromMeters(220)));
+
+            await ShowBottomPanelAsync();
+        });
+    }
+
     private async Task ShowBottomPanelAsync()
     {
         if (!BottomPanel.IsVisible)
@@ -276,6 +379,15 @@ public partial class MapPage : ContentPage
     private void OnStopAudioClicked(object sender, EventArgs e)
     {
         _vm.StopAudio();
+    }
+
+    private async void OnOpenDetailClicked(object sender, EventArgs e)
+    {
+        var poi = _vm.SelectedPoi;
+        if (poi == null) return;
+
+        var route = $"/poidetail?code={Uri.EscapeDataString(poi.Code)}&lang={Uri.EscapeDataString(poi.LanguageCode)}";
+        await Shell.Current.GoToAsync(route);
     }
 
     private async void OnVietnameseClicked(object sender, EventArgs e)

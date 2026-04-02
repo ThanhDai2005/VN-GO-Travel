@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using MauiApp1.Services;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 
 namespace MauiApp1.ViewModels;
@@ -52,88 +54,87 @@ public class QrScannerViewModel : INotifyPropertyChanged
 
     public async Task ScanAsync()
     {
-        if (IsBusy) return;
+        await SubmitCodeAsync(InputText, source: "Manual");
+    }
 
+    public async Task CancelAsync()
+    {
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            await Shell.Current.GoToAsync("..");
+        });
+    }
+
+    public async Task<bool> HandleScannedCodeAsync(string scanned)
+    {
+        return await SubmitCodeAsync(scanned, source: "Camera");
+    }
+
+    private async Task<bool> SubmitCodeAsync(string rawText, string source)
+    {
+        Debug.WriteLine($"[QR-NAV] SubmitCodeAsync enter source={source} thread={System.Threading.Thread.CurrentThread.ManagedThreadId} main={MainThread.IsMainThread} busy={IsBusy} handling={_isHandlingScan}");
+
+        if (_isHandlingScan || IsBusy)
+        {
+            Debug.WriteLine($"[QR-NAV] SubmitCodeAsync early exit (already busy) source={source}");
+            return false;
+        }
+
+        _isHandlingScan = true;
         IsBusy = true;
         Message = string.Empty;
 
         try
         {
-            var parsed = QrResolver.Parse(InputText);
+            Debug.WriteLine($"[QR-NAV] Parse start rawLen={rawText?.Length ?? 0}");
+            var parsed = QrResolver.Parse(rawText);
             if (!parsed.Success)
             {
                 Message = parsed.Error ?? "Invalid QR";
-                return;
+                Debug.WriteLine($"[QR-NAV] Parse failed: {Message}");
+                return false;
             }
 
             var code = parsed.Code!;
+            Debug.WriteLine($"[QR-NAV] Parse ok code='{code}'");
 
+            Debug.WriteLine("[QR-NAV] DB InitAsync before GetByCode");
             await _db.InitAsync();
 
             var preferredLang = _mapVm.CurrentLanguage;
+            Debug.WriteLine($"[QR-NAV] GetByCode code='{code}' lang='{preferredLang}'");
 
             var poi = await _db.GetByCodeAsync(code, preferredLang);
-
             if (poi == null)
             {
                 Message = "POI not available locally";
-                return;
+                Debug.WriteLine($"[QR-NAV] GetByCode returned null for code='{code}'");
+                return false;
             }
 
-            // Navigate to poi detail
+            Debug.WriteLine($"[QR-NAV] POI resolved id={poi.Id} name={poi.Name}");
+
             var route = $"/poidetail?code={Uri.EscapeDataString(code)}&lang={Uri.EscapeDataString(poi.LanguageCode)}";
-            await Shell.Current.GoToAsync(route);
+            Debug.WriteLine($"[QR-NAV] GoToAsync BEFORE route={route} source={source} main={MainThread.IsMainThread}");
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.GoToAsync(route);
+            });
+
+            Debug.WriteLine($"[QR-NAV] GoToAsync AFTER (returned) source={source}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[QR-ERR] SubmitCodeAsync source={source}: {ex}");
+            return false;
         }
         finally
         {
             IsBusy = false;
-        }
-    }
-
-    public async Task CancelAsync()
-    {
-        await Shell.Current.GoToAsync("..");
-    }
-
-    // Called by camera event handler to process scanned text
-    public async Task HandleScannedCodeAsync(string scanned)
-    {
-        if (_isHandlingScan) return;
-        _isHandlingScan = true;
-
-        try
-        {
-            var parsed = QrResolver.Parse(scanned);
-            if (!parsed.Success)
-            {
-                Message = parsed.Error ?? "Invalid QR";
-                return;
-            }
-
-            var code = parsed.Code!;
-
-            await _db.InitAsync();
-
-            var preferredLang = _mapVm.CurrentLanguage;
-
-            var poi = await _db.GetByCodeAsync(code, preferredLang);
-
-            if (poi == null)
-            {
-                Message = "POI not available locally";
-                return;
-            }
-
-            // Navigate to poi detail
-            var route = $"/poidetail?code={Uri.EscapeDataString(code)}&lang={Uri.EscapeDataString(poi.LanguageCode)}";
-            await Shell.Current.GoToAsync(route);
-        }
-        finally
-        {
             _isHandlingScan = false;
+            Debug.WriteLine($"[QR-NAV] SubmitCodeAsync finally source={source} busy cleared");
         }
     }
-
-    // NOTE: Camera scanning not implemented in Phase-1B due to missing scanner package.
-    // This handler remains for future integration.
 }
