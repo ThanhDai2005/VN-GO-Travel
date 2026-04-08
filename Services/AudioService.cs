@@ -81,8 +81,16 @@ public class AudioService
 
         // --- Serialization Level ---
         // Ensure only one TTS call hits the platform engine at a time.
-        // This is critical on Android to avoid JavaProxyThrowable and Engine Busy errors.
-        await _speakSemaphore.WaitAsync().ConfigureAwait(false);
+        // We pass the token to WaitAsync so that if a newer request cancels this one,
+        // we stop waiting immediately without blocking the queue.
+        try
+        {
+            await _speakSemaphore.WaitAsync(cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
         try
         {
             if (cts.IsCancellationRequested) return;
@@ -149,7 +157,9 @@ public class AudioService
             {
                 Debug.WriteLine("[AUDIO] Performing cold-start warm-up speak...");
                 // Silent speak ensures engine is in Active state before first user request.
-                await TextToSpeech.Default.SpeakAsync(" ", new SpeechOptions { Volume = 0 }).ConfigureAwait(false);
+                // We use a short timeout to prevent a platform hang from blocking initialization forever.
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                await TextToSpeech.Default.SpeakAsync(" ", new SpeechOptions { Volume = 0 }, timeoutCts.Token).ConfigureAwait(false);
                 _isWarmedUp = true;
             }
         }

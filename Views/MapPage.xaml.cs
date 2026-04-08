@@ -14,6 +14,9 @@ public partial class MapPage : ContentPage, IQueryAttributable
 {
     private readonly MapViewModel _vm;
     private readonly LanguageSelectorViewModel _langSelectorVm;
+    private readonly AppState _appState;
+    private readonly INavigationService _navService;
+
     private bool _pendingNarrateAfterFocus;
     private PeriodicTimer? _timer;
     private CancellationTokenSource? _cts;
@@ -27,11 +30,13 @@ public partial class MapPage : ContentPage, IQueryAttributable
     private string? _lastAutoPoiId;
     private bool _isUserSelecting;
 
-    public MapPage(MapViewModel vm, LanguageSelectorViewModel langSelectorVm)
+    public MapPage(MapViewModel vm, LanguageSelectorViewModel langSelectorVm, AppState appState, INavigationService navService)
     {
         InitializeComponent();
         BindingContext = _vm = vm;
         _langSelectorVm = langSelectorVm;
+        _appState = appState;
+        _navService = navService;
 
         InitBottomPanel();
 
@@ -233,6 +238,12 @@ public partial class MapPage : ContentPage, IQueryAttributable
         {
             while (await _timer.WaitForNextTickAsync(ct))
             {
+                if (_appState.IsModalOpen)
+                {
+                    Debug.WriteLine("[MAP-TIME] Skipping tracking iteration: Modal UI is active.");
+                    continue;
+                }
+
                 var iterStart = swLoop.ElapsedMilliseconds;
                 await _vm.UpdateLocationAsync();
                 var iterAfterLocation = swLoop.ElapsedMilliseconds;
@@ -472,7 +483,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
 
     private async void OnLanguageButtonClicked(object sender, EventArgs e)
     {
-        var page = new LanguageSelectorPage(_langSelectorVm);
-        await Navigation.PushModalAsync(page, animated: true);
+        var page = new LanguageSelectorPage(_langSelectorVm, _navService);
+        await _navService.PushModalAsync(page, animated: true);
     }
 }

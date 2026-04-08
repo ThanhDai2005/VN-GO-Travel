@@ -35,7 +35,7 @@
                             BackgroundColor="White"
                             Stroke="{StaticResource BorderLight}"
                             StrokeShape="RoundRectangle 16">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                             <!-- Info -->
                             <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
                                 <Label Text="{Binding NativeName}"
@@ -46,8 +46,17 @@
                                        FontSize="12"
                                        TextColor="{StaticResource TextSecondary}" />
                             </VerticalStackLayout>
-                            
-                            <Label Grid.Column="1" Text="➕" FontSize="18" VerticalOptions="Center" />
+
+                            <!-- Download indicator / size -->
+                            <Label Grid.Column="1"
+                                   Text="{Binding SizeLabel}"
+                                   FontSize="11"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="End" />
+
+                            <!-- Add icon -->
+                            <Label Grid.Column="2" Text="➕" FontSize="18" VerticalOptions="Center" />
                         </Grid>
 
                         <Border.GestureRecognizers>

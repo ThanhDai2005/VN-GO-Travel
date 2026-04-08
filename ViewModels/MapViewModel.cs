@@ -438,12 +438,51 @@ public class MapViewModel : INotifyPropertyChanged
         _activeNarrationPoiCode = poi.Code;
         Debug.WriteLine($"[AUDIO] PlayPoiAsync: code={poi.Code} lang={language} _activeNarrationPoiCode='{_activeNarrationPoiCode}'");
 
-        // Always read text via bridge (which reads poi.Localization).
-        // The passed Poi is always a hydrated instance from FocusOnPoiByCodeAsync or
-        // the rehydrated collection in ApplyLanguageSelectionAsync — never a bare core Poi.
-        var text = !string.IsNullOrWhiteSpace(poi.Localization?.NarrationShort)
-            ? poi.Localization.NarrationShort
-            : poi.Localization?.Name ?? "";
+        // Ensure we speak the requested language even if the passed POI is currently using fallback text.
+        // This is required for the Map tap flow, where callers might pass a POI hydrated from fallback.
+        var normalizedCode = poi.Code?.Trim().ToUpperInvariant() ?? "";
+
+        var locResult = _locService.GetLocalizationResult(normalizedCode, language);
+        var shouldTranslateOnMissingOrFallback =
+            !string.Equals(language, "vi", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(language, "en", StringComparison.OrdinalIgnoreCase) &&
+            (locResult.Localization == null || locResult.IsFallback);
+
+        if (shouldTranslateOnMissingOrFallback)
+        {
+            var translatedPoi = await _poiTranslationService.GetOrTranslateAsync(normalizedCode, language).ConfigureAwait(false);
+            if (translatedPoi?.Localization != null)
+            {
+                _locService.RegisterDynamicTranslation(normalizedCode, language, translatedPoi.Localization);
+                locResult = _locService.GetLocalizationResult(normalizedCode, language);
+            }
+        }
+
+        var hydratedPoi = CreateHydratedPoi(poi, locResult);
+
+        // Keep UI in sync after on-demand translation:
+        // - update bottom panel via SelectedPoi
+        // - update map pin label via Pois collection
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (SelectedPoi != null && string.Equals(SelectedPoi.Code, hydratedPoi.Code, StringComparison.OrdinalIgnoreCase))
+                SelectedPoi = hydratedPoi;
+
+            var idx = -1;
+            for (int i = 0; i < Pois.Count; i++)
+            {
+                if (string.Equals(Pois[i].Code, hydratedPoi.Code, StringComparison.OrdinalIgnoreCase))
+                {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx >= 0) Pois[idx] = hydratedPoi;
+        });
+
+        var text = !string.IsNullOrWhiteSpace(hydratedPoi.Localization?.NarrationShort)
+            ? hydratedPoi.Localization.NarrationShort
+            : hydratedPoi.Localization?.Name ?? "";
 
         Debug.WriteLine($"[AUDIO] PlayPoiAsync: textLen={text?.Length ?? 0} text='{text?.Substring(0, Math.Min(60, text?.Length ?? 0))}'");
 
@@ -514,9 +553,46 @@ public class MapViewModel : INotifyPropertyChanged
         _activeNarrationPoiCode = poi.Code;
         Debug.WriteLine($"[AUDIO] PlayPoiDetailedAsync: code={poi.Code} lang={language} _activeNarrationPoiCode='{_activeNarrationPoiCode}'");
 
-        var text = !string.IsNullOrWhiteSpace(poi.Localization?.NarrationLong)
-            ? poi.Localization.NarrationLong
-            : (!string.IsNullOrWhiteSpace(poi.Localization?.NarrationShort) ? poi.Localization.NarrationShort : (poi.Localization?.Name ?? ""));
+        // Same on-demand translation logic as PlayPoiAsync so detailed view never speaks fallback Vietnamese.
+        var normalizedCode = poi.Code?.Trim().ToUpperInvariant() ?? "";
+        var locResult = _locService.GetLocalizationResult(normalizedCode, language);
+        var shouldTranslateOnMissingOrFallback =
+            !string.Equals(language, "vi", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(language, "en", StringComparison.OrdinalIgnoreCase) &&
+            (locResult.Localization == null || locResult.IsFallback);
+
+        if (shouldTranslateOnMissingOrFallback)
+        {
+            var translatedPoi = await _poiTranslationService.GetOrTranslateAsync(normalizedCode, language).ConfigureAwait(false);
+            if (translatedPoi?.Localization != null)
+            {
+                _locService.RegisterDynamicTranslation(normalizedCode, language, translatedPoi.Localization);
+                locResult = _locService.GetLocalizationResult(normalizedCode, language);
+            }
+        }
+
+        var hydratedPoi = CreateHydratedPoi(poi, locResult);
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (SelectedPoi != null && string.Equals(SelectedPoi.Code, hydratedPoi.Code, StringComparison.OrdinalIgnoreCase))
+                SelectedPoi = hydratedPoi;
+
+            var idx = -1;
+            for (int i = 0; i < Pois.Count; i++)
+            {
+                if (string.Equals(Pois[i].Code, hydratedPoi.Code, StringComparison.OrdinalIgnoreCase))
+                {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx >= 0) Pois[idx] = hydratedPoi;
+        });
+
+        var text = !string.IsNullOrWhiteSpace(hydratedPoi.Localization?.NarrationLong)
+            ? hydratedPoi.Localization.NarrationLong
+            : (!string.IsNullOrWhiteSpace(hydratedPoi.Localization?.NarrationShort) ? hydratedPoi.Localization.NarrationShort : (hydratedPoi.Localization?.Name ?? ""));
 
         Debug.WriteLine($"[AUDIO] PlayPoiDetailedAsync: textLen={text?.Length ?? 0}");
 
