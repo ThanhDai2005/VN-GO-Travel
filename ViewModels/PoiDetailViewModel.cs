@@ -69,7 +69,14 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
     public Poi? Poi
     {
         get => _poi;
-        set { _poi = value; OnPropertyChanged(); }
+        set
+        {
+            _poi = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(OpenOnMapButtonText));
+            OnPropertyChanged(nameof(PlayButtonText));
+            OnPropertyChanged(nameof(StopButtonText));
+        }
     }
 
     private bool _isNavigatingToMap;
@@ -82,6 +89,36 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
     }
 
     // ── Shell query attributes ────────────────────────────────────────────────
+
+    // Button UI should follow the current app UI language, not the POI fallback language.
+    private string EffectiveLang => _mapVm.CurrentLanguage;
+
+    public string OpenOnMapButtonText => EffectiveLang switch
+    {
+        "vi" => "🗺 Mở trên bản đồ",
+        "en" => "🗺 Open on Map",
+        "zh" => "🗺 在地图上打开",
+        "ja" => "🗺 マップで開く",
+        _ => "🗺 Open on Map"
+    };
+
+    public string PlayButtonText => EffectiveLang switch
+    {
+        "vi" => "🔊 Phát",
+        "en" => "🔊 Play",
+        "zh" => "🔊 播放",
+        "ja" => "🔊 再生",
+        _ => "🔊 Play"
+    };
+
+    public string StopButtonText => EffectiveLang switch
+    {
+        "vi" => "⏹ Dừng",
+        "en" => "⏹ Stop",
+        "zh" => "⏹ 停止",
+        "ja" => "⏹ 停止",
+        _ => "⏹ Stop"
+    };
 
     public async void ApplyQueryAttributes(IDictionary<string, object> query)
     {

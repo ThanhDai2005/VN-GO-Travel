@@ -5,12 +5,28 @@
 *.userosscache
 *.sln.docstates
 
-# Build results
+# Build
 bin/
 obj/
 
-# Rider
+# .NET artifacts
+*.dll
+*.exe
+*.pdb
+*.cache
+*.mdb
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Rider / VSCode
 .idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 
 # OS
 .DS_Store
@@ -18,11 +34,21 @@ Thumbs.db
 
 # Android
 *.keystore
+*.apk
+*.aab
 
 # iOS
 *.xcuserstate
 *.xcworkspace
 *.xcuserdata
+*.ipa
 
 # Logs
 *.log
+
+# MAUI
+*.maui-cache
+
+# Secrets
+secrets.json
+appsettings.Development.json

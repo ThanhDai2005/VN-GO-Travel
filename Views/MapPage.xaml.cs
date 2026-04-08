@@ -1,5 +1,4 @@
 using MauiApp1.Models;
-using MauiApp1.Services;
 using MauiApp1.ViewModels;
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Maps;
@@ -7,14 +6,9 @@ using System.Diagnostics;
 
 namespace MauiApp1.Views;
 
-/// <summary>
-/// Map-first QR entry: Shell navigates with <c>//map?code=&amp;lang=&amp;narrate=1</c> (see <see cref="MauiApp1.Services.PoiEntryCoordinator"/>).
-/// </summary>
-public partial class MapPage : ContentPage, IQueryAttributable
+public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _vm;
-    private readonly LanguageSelectorViewModel _langSelectorVm;
-    private bool _pendingNarrateAfterFocus;
     private PeriodicTimer? _timer;
     private CancellationTokenSource? _cts;
 
@@ -27,67 +21,13 @@ public partial class MapPage : ContentPage, IQueryAttributable
     private string? _lastAutoPoiId;
     private bool _isUserSelecting;
 
-    public MapPage(MapViewModel vm, LanguageSelectorViewModel langSelectorVm)
+    public MapPage(MapViewModel vm)
     {
         InitializeComponent();
         BindingContext = _vm = vm;
-        _langSelectorVm = langSelectorVm;
 
         InitBottomPanel();
-
-        _vm.PoisRefreshed += (_, _) =>
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                try
-                {
-                    DrawPois();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[MAP-ERR] DrawPois after language change: {ex}");
-                }
-            });
-        };
-    }
-
-    /// <summary>Shell query from coordinator: <c>code</c>, <c>lang</c>, optional <c>narrate=1</c> after QR scan.</summary>
-    public void ApplyQueryAttributes(IDictionary<string, object> query)
-    {
-        try
-        {
-            if (query == null || !query.TryGetValue("code", out var codeObj) || codeObj == null)
-                return;
-
-            var rawCode = codeObj.ToString()?.Trim();
-            if (string.IsNullOrWhiteSpace(rawCode))
-                return;
-
-            var code = Uri.UnescapeDataString(rawCode);
-
-            string? lang = null;
-            if (query.TryGetValue("lang", out var langObj) && langObj != null)
-            {
-                var ls = langObj.ToString()?.Trim();
-                if (!string.IsNullOrWhiteSpace(ls))
-                    lang = Uri.UnescapeDataString(ls);
-            }
-
-            var narrate = false;
-            if (query.TryGetValue("narrate", out var narObj) && narObj != null)
-            {
-                var s = narObj.ToString();
-                narrate = s == "1" || string.Equals(s, "true", StringComparison.OrdinalIgnoreCase);
-            }
-
-            _pendingNarrateAfterFocus = narrate;
-            _vm.RequestFocusOnPoiCode(code, lang);
-            Debug.WriteLine($"[MAP-QR] ApplyQuery code={code} lang={lang} narrate={narrate}");
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[MAP-QR] ApplyQueryAttributes error: {ex}");
-        }
+        UpdateLanguageButtons();
     }
 
     private void InitBottomPanel()
@@ -107,75 +47,43 @@ public partial class MapPage : ContentPage, IQueryAttributable
         var sw = System.Diagnostics.Stopwatch.StartNew();
         Debug.WriteLine($"[MAP-TIME] OnAppearingAsync START");
 
+        // Capture pending focus before potentially redrawing POIs
+        var pendingFocus = _vm.ConsumePendingFocusRequest();
+
         if (!_poisDrawn)
         {
             InitBottomPanel();
 
-            Debug.WriteLine($"[MAP-TIME] Starting LoadPoisAsync (background)");
-            var loadTask = _vm.LoadPoisAsync();
+            Debug.WriteLine("[MAP-TIME] Await LoadPoisAsync before drawing pins");
+            await _vm.LoadPoisAsync();
 
-            var pendingFocus = _vm.ConsumePendingFocusRequest();
-
-            loadTask.ContinueWith(async t =>
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                try
+                if (!_poisDrawn)
                 {
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        try
-                        {
-                            if (!_poisDrawn)
-                            {
-                                DrawPois();
-                                _poisDrawn = true;
-                                Debug.WriteLine("[MAP-TIME] DrawPois invoked after LoadPoisAsync completion");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"[MAP-ERR] DrawPois after load: {ex}");
-                        }
-                    });
+                    DrawPois();
+                    _poisDrawn = true;
+                    Debug.WriteLine("[MAP-TIME] DrawPois invoked after LoadPoisAsync completion");
+                }
+            });
 
-                    if (!string.IsNullOrWhiteSpace(pendingFocus.code))
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(async () =>
-                        {
-                            try
-                            {
-                                Debug.WriteLine($"[MAP-TIME] Performing pending focus after load code={pendingFocus.code} lang={pendingFocus.lang}");
-                                await FocusOnPoiByCodeAsync(pendingFocus.code, pendingFocus.lang);
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine($"[MAP-ERR] FocusOnPoiByCodeAsync after load: {ex}");
-                            }
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[MAP-ERR] loadTask continuation: {ex}");
-                }
-            }, TaskScheduler.Default);
+            UpdateLanguageButtons();
         }
         else
         {
-            var pendingFocus = _vm.ConsumePendingFocusRequest();
-            if (!string.IsNullOrWhiteSpace(pendingFocus.code))
+            UpdateLanguageButtons();
+        }
+
+        if (!string.IsNullOrWhiteSpace(pendingFocus.code))
+        {
+            try
             {
-                Debug.WriteLine($"[MAP-TIME] Handling pending focus on already-drawn map: code={pendingFocus.code} narrate={_pendingNarrateAfterFocus}");
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    try
-                    {
-                        await FocusOnPoiByCodeAsync(pendingFocus.code, pendingFocus.lang);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"[MAP-ERR] Pending focus on already-drawn map: {ex}");
-                    }
-                });
+                Debug.WriteLine($"[MAP-TIME] Performing pending focus after load code={pendingFocus.code} lang={pendingFocus.lang}");
+                await FocusOnPoiByCodeAsync(pendingFocus.code!, pendingFocus.lang);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MAP-ERR] FocusOnPoiByCodeAsync after load: {ex}");
             }
         }
 
@@ -198,7 +106,6 @@ public partial class MapPage : ContentPage, IQueryAttributable
         base.OnDisappearing();
 
         _isTracking = false;
-        _poisDrawn = false;
         _lastAutoPoiId = null;
         _isUserSelecting = false;
 
@@ -283,7 +190,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
                                 new Location(nearest.Poi.Latitude, nearest.Poi.Longitude),
                                 Distance.FromMeters(220)));
 
-                        await _vm.PlayPoiAsync(nearest.Poi, _vm.CurrentLanguage);
+                        await _vm.PlayPoiAsync(nearest.Poi, nearest.Poi.LanguageCode);
                     });
                 }
                 else if (nearest == null && _vm.SelectedPoi != null)
@@ -298,19 +205,6 @@ public partial class MapPage : ContentPage, IQueryAttributable
                         await HideBottomPanelAsync();
                         _vm.StopAudio();
                     });
-                }
-
-                if (!_poisDrawn)
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        DrawPois();
-
-                        Map.MoveToRegion(
-                            MapSpan.FromCenterAndRadius(center, Distance.FromMeters(500)));
-                    });
-
-                    _poisDrawn = true;
                 }
                 var iterEnd = swLoop.ElapsedMilliseconds;
                 Debug.WriteLine($"[MAP-TIME] Tracking loop iteration elapsed={iterEnd - iterStart} ms");
@@ -331,7 +225,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
         {
             _userPin = new Pin
             {
-                Label = "Ban dang o day",
+                Label = _vm.UserLocationText,
                 Location = location
             };
 
@@ -361,7 +255,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
 
             var pin = new Pin
             {
-                Label = poi.Localization?.Name ?? "",
+                Label = poi.Name,
                 Location = location
             };
 
@@ -397,7 +291,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
         _lastAutoPoiId = poi.Id;
 
         await ShowBottomPanelAsync();
-        await _vm.PlayPoiAsync(poi, _vm.CurrentLanguage);
+        await _vm.PlayPoiAsync(poi, poi.LanguageCode);
     }
 
     private async Task FocusOnPoiByCodeAsync(string code, string? lang = null)
@@ -408,7 +302,6 @@ public partial class MapPage : ContentPage, IQueryAttributable
         var poi = _vm.SelectedPoi;
         if (poi == null)
         {
-            _pendingNarrateAfterFocus = false;
             Debug.WriteLine($"[Map] No POI found for code='{code}' in current language='{_vm.CurrentLanguage}'");
             return;
         }
@@ -425,11 +318,8 @@ public partial class MapPage : ContentPage, IQueryAttributable
 
             await ShowBottomPanelAsync();
 
-            if (_pendingNarrateAfterFocus)
-            {
-                _pendingNarrateAfterFocus = false;
-                await _vm.PlayPoiAsync(poi, lang ?? _vm.CurrentLanguage);
-            }
+            // QR scan should immediately play the POI audio after focusing.
+            await _vm.PlayPoiAsync(poi, poi.LanguageCode);
         });
     }
 
@@ -453,7 +343,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
     private async void OnListenDetailedClicked(object sender, EventArgs e)
     {
         if (_vm.SelectedPoi != null)
-            await _vm.PlayPoiDetailedAsync(_vm.SelectedPoi, _vm.CurrentLanguage);
+            await _vm.PlayPoiDetailedAsync(_vm.SelectedPoi, _vm.SelectedPoi.LanguageCode);
     }
 
     private void OnStopAudioClicked(object sender, EventArgs e)
@@ -461,18 +351,77 @@ public partial class MapPage : ContentPage, IQueryAttributable
         _vm.StopAudio();
     }
 
-    private async void OnOpenDetailClicked(object sender, EventArgs e)
+    private async void OnVietnameseClicked(object sender, EventArgs e)
     {
-        var poi = _vm.SelectedPoi;
-        if (poi == null) return;
-
-        var route = $"/poidetail?code={Uri.EscapeDataString(poi.Code)}&lang={Uri.EscapeDataString(_vm.CurrentLanguage)}";
-        await Shell.Current.GoToAsync(route);
+        await ReloadLanguageAsync("vi");
     }
 
-    private async void OnLanguageButtonClicked(object sender, EventArgs e)
+    private async void OnEnglishClicked(object sender, EventArgs e)
     {
-        var page = new LanguageSelectorPage(_langSelectorVm);
-        await Navigation.PushModalAsync(page, animated: true);
+        await ReloadLanguageAsync("en");
+    }
+
+    private async Task ReloadLanguageAsync(string lang)
+    {
+        _vm.SetLanguage(lang);
+        _vm.StopAudio();
+
+        _isUserSelecting = false;
+        _lastAutoPoiId = null;
+        _vm.SelectedPoi = null;
+
+        await _vm.LoadPoisAsync(lang);
+
+        UpdateLanguageButtons();
+        DrawPois();
+        _poisDrawn = true;
+    }
+
+    private void UpdateLanguageButtons()
+    {
+        // Selected background/text
+        var selectedBg = Color.FromArgb("#D94E2A");
+        var unselectedBg = Color.FromArgb("#F4ECE7");
+        var selectedText = Colors.White;
+        var unselectedText = Color.FromArgb("#6A2C25");
+
+        // Reset
+        foreach (var btn in new[] { VietnameseButton, EnglishButton, ChineseButton, JapaneseButton })
+        {
+            btn!.BackgroundColor = unselectedBg;
+            btn.TextColor = unselectedText;
+        }
+
+        // Highlight active
+        switch (_vm.CurrentLanguage)
+        {
+            case "en":
+                EnglishButton.BackgroundColor = selectedBg;
+                EnglishButton.TextColor = selectedText;
+                break;
+            case "zh":
+                ChineseButton.BackgroundColor = selectedBg;
+                ChineseButton.TextColor = selectedText;
+                break;
+            case "ja":
+                JapaneseButton.BackgroundColor = selectedBg;
+                JapaneseButton.TextColor = selectedText;
+                break;
+            case "vi":
+            default:
+                VietnameseButton.BackgroundColor = selectedBg;
+                VietnameseButton.TextColor = selectedText;
+                break;
+        }
+    }
+
+    private async void OnChineseClicked(object sender, EventArgs e)
+    {
+        await ReloadLanguageAsync("zh");
+    }
+
+    private async void OnJapaneseClicked(object sender, EventArgs e)
+    {
+        await ReloadLanguageAsync("ja");
     }
 }

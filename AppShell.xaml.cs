@@ -47,8 +47,7 @@ public partial class AppShell : Shell
 
         Items.Add(tabBar);
 
-        // Register QR routes (Phase-1A)
-        Routing.RegisterRoute("qrscan", typeof(QrScannerPage));
+        // Stack push for POI detail (tab "qrscan" is already declared on TabBar; do not RegisterRoute the same name).
         Routing.RegisterRoute("poidetail", typeof(PoiDetailPage));
     }
 

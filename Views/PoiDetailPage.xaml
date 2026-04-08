@@ -7,25 +7,63 @@
     BackgroundColor="{StaticResource SurfaceBackground}">
 
     <ScrollView>
-        <VerticalStackLayout Padding="16" Spacing="12">
-            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+        <VerticalStackLayout Padding="16" Spacing="16">
+            <Frame
+                BackgroundColor="{StaticResource SurfaceCard}"
+                BorderColor="{StaticResource BorderLight}"
+                Padding="16"
+                CornerRadius="24"
+                HasShadow="False">
 
-            <Label Text="{Binding Poi.Localization.Name}" FontSize="20" FontAttributes="Bold" />
-            <Label Text="{Binding Poi.Localization.Summary}" FontSize="14" />
-            <Label Text="{Binding Poi.Localization.NarrationShort}" FontSize="14" TextColor="{StaticResource TextSecondary}" />
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        Text="{Binding Poi.Name}"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource TextPrimary}"
+                        LineBreakMode="WordWrap" />
 
-            <Label Text="Auto translated"
-                   FontSize="11"
-                   FontAttributes="Italic"
-                   TextColor="{StaticResource TextSecondary}"
-                   IsVisible="{Binding Poi.IsAutoTranslated}" />
+                    <Label
+                        Text="{Binding Poi.Summary}"
+                        FontSize="14"
+                        TextColor="{StaticResource TextSecondary}"
+                        LineBreakMode="WordWrap" />
 
-            <HorizontalStackLayout Spacing="10">
-                <Button Text="🗺 Open on Map" Clicked="OnOpenOnMapClicked" />
-                <Button Text="🔊 Play" Clicked="OnPlayClicked" />
-                <Button Text="⏹ Stop" Clicked="OnStopClicked" />
-            </HorizontalStackLayout>
+                    <Label
+                        Text="{Binding Poi.NarrationLong}"
+                        FontSize="14"
+                        TextColor="{StaticResource TextSecondary}"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Frame>
 
+            <Grid
+                ColumnDefinitions="*,*"
+                RowDefinitions="Auto,Auto"
+                ColumnSpacing="10"
+                RowSpacing="10">
+
+                <Button
+                    Text="{Binding OpenOnMapButtonText}"
+                    Style="{StaticResource SecondaryButton}"
+                    Clicked="OnOpenOnMapClicked"
+                    Grid.Row="0"
+                    Grid.Column="0" />
+
+                <Button
+                    Text="{Binding PlayButtonText}"
+                    Style="{StaticResource PrimaryButton}"
+                    Clicked="OnPlayClicked"
+                    Grid.Row="0"
+                    Grid.Column="1" />
+
+                <Button
+                    Text="{Binding StopButtonText}"
+                    Style="{StaticResource SecondaryButton}"
+                    Clicked="OnStopClicked"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="2" />
+            </Grid>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

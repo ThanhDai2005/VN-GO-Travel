@@ -45,10 +45,12 @@ public class PoiDatabase
               .OrderByDescending(p => p.Priority)
               .ToListAsync();
 
-    public Task<Poi?> GetByIdAsync(string id)
-        => _db.Table<Poi>()
-              .Where(p => p.Id == id)
-              .FirstOrDefaultAsync();
+    public async Task<Poi?> GetByIdAsync(string id)
+    {
+        return await _db.Table<Poi>()
+            .Where(p => p.Id == id)
+            .FirstOrDefaultAsync();
+    }
 
     public Task<int> InsertAsync(Poi poi)
         => _db.InsertAsync(poi);

@@ -17,8 +17,6 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 
 		<!-- Display name -->
 <ApplicationTitle>VN GO Travel</ApplicationTitle>
@@ -91,11 +89,4 @@
 	  <Folder Include="Microsoft\Maui\Maps\" />
 	</ItemGroup>
 
-<!-- Exclude the AdminWeb (ASP.NET Core MVC) project from MAUI compilation globs -->
-	<ItemGroup>
-	  <Compile Remove="AdminWeb\**\*.cs" />
-	  <MauiXaml Remove="AdminWeb\**\*.xaml" />
-	  <Content Remove="AdminWeb\**\*" />
-	  <None Remove="AdminWeb\**\*" />
-	</ItemGroup>
 </Project>
