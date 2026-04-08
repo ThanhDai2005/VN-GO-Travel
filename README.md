@@ -40,13 +40,13 @@ Thiết kế lấy cảm hứng từ:
 
 ## 📱 Tính năng chính
 
-- 📍 Khám phá địa điểm du lịch  
-- 🗺️ Xem bản đồ (Google Maps)  
-- 🔊 Tự động phát audio khi đến địa điểm (Auto Guide)  
-- 🎧 Nghe mô tả chi tiết (Detailed Mode)  
-- 🌐 Hỗ trợ đa ngôn ngữ (Vi / En)  
-- 📸 Hiển thị hình ảnh đẹp, trực quan  
-- 💾 Lưu dữ liệu offline (SQLite)  
+- 📍 Khám phá địa điểm du lịch
+- 🗺️ Xem bản đồ (Google Maps)
+- 🔊 Tự động phát audio khi đến địa điểm (geofence-driven Auto Guide)
+- 🎧 Nghe mô tả chi tiết (Detailed Mode)
+- 🌐 Hỗ trợ đa ngôn ngữ (Vi / En)
+- 📸 Hiển thị hình ảnh đẹp, trực quan
+- 💾 Lưu dữ liệu offline (SQLite)
 
 ---
 

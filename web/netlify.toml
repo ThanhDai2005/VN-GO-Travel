@@ -1,0 +1,9 @@
+# Deploy this repo with "Publish directory" = web (or deploy from /web).
+[build]
+  publish = "."
+
+# Client-side route: /poi/CODE must serve index.html on refresh / direct load.
+[[redirects]]
+  from = "/poi/*"
+  to = "/index.html"
+  status = 200

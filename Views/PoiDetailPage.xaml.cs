@@ -17,11 +17,13 @@ public partial class PoiDetailPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        _vm.AttachPreferredLanguageListener();
         Debug.WriteLine($"[QR-LIFE] PoiDetailPage OnAppearing Poi null?={_vm.Poi == null}");
     }
 
     protected override void OnDisappearing()
     {
+        _vm.DetachPreferredLanguageListener();
         base.OnDisappearing();
         Debug.WriteLine("[QR-LIFE] PoiDetailPage OnDisappearing");
     }

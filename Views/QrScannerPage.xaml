@@ -7,50 +7,112 @@
     Title="Quét mã"
     BackgroundColor="{StaticResource SurfaceBackground}">
 
-    <VerticalStackLayout Padding="16" Spacing="12">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14">
 
-        <Label Text="Paste QR text (format: poi:CODE)" FontAttributes="Bold" />
+            <!-- Camera first: primary focus -->
+            <Frame
+                Padding="0"
+                CornerRadius="12"
+                BackgroundColor="#0D0D0D"
+                BorderColor="#2A2A2A"
+                HasShadow="True">
+                <Grid x:Name="CameraContainer" HeightRequest="400" BackgroundColor="#000">
 
-        <Editor Text="{Binding InputText}" HeightRequest="120" />
+                    <zxing:CameraBarcodeReaderView
+                        x:Name="CameraView"
+                        IsDetecting="False"
+                        BarcodesDetected="OnBarcodesDetected" />
 
-        <Label Text="{Binding Message}" TextColor="Red" IsVisible="{Binding Message, Converter={StaticResource StringNotNullOrEmptyConverter}}" />
+                    <!-- Top status strip (readable on dark preview) -->
+                    <Border
+                        VerticalOptions="Start"
+                        BackgroundColor="#CC000000"
+                        StrokeThickness="0"
+                        Padding="12,10">
+                        <VerticalStackLayout Spacing="8">
+                            <ActivityIndicator
+                                IsRunning="{Binding IsProcessingScan}"
+                                IsVisible="{Binding IsProcessingScan}"
+                                Color="White"
+                                HeightRequest="28" />
+                            <Label
+                                Text="{Binding UxStatusText}"
+                                FontSize="15"
+                                FontAttributes="Bold"
+                                TextColor="White"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
 
-        <HorizontalStackLayout Spacing="10">
-            <Button Text="Scan" Command="{Binding ScanCommand}" />
-            <Button Text="Cancel" Command="{Binding CancelCommand}" />
-        </HorizontalStackLayout>
-        
-        <!-- Diagnostic panel -->
-        <Frame Margin="12" Padding="8" CornerRadius="8" BackgroundColor="#FFF7E6" BorderColor="#FFB74D">
-            <Label x:Name="DiagLabel" Text="" FontAttributes="Bold" TextColor="#333" />
-        </Frame>
-        
-        <!-- Camera scanner area (Android-first) -->
-        <!-- Camera preview with centered scan frame overlay -->
-        <Frame Margin="12" Padding="2" CornerRadius="8" BackgroundColor="#000" BorderColor="#FF4081">
-            <AbsoluteLayout HeightRequest="420">
-                <zxing:CameraBarcodeReaderView
-                    x:Name="CameraView"
-                    AbsoluteLayout.LayoutBounds="0,0,1,1"
-                    AbsoluteLayout.LayoutFlags="All"
-                    IsDetecting="False"
-                    BarcodesDetected="OnBarcodesDetected" />
-
-                <!-- Centered scan frame to guide user to middle area -->
-                <Frame
-                    AbsoluteLayout.LayoutBounds="0.5,0.5,0.6,0.45"
-                    AbsoluteLayout.LayoutFlags="PositionProportional,WidthProportional,HeightProportional"
-                    CornerRadius="12"
-                    BackgroundColor="#00000000"
-                    BorderColor="#80FFFFFF"
-                    HasShadow="False"
-                    Padding="6">
-                    <Grid>
-                        <BoxView Color="#00000080" Opacity="0.0" />
+                    <!-- Scan target: corner brackets + subtle scan line -->
+                    <Grid
+                        InputTransparent="True"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Center"
+                        WidthRequest="260"
+                        HeightRequest="260">
+                        <Border
+                            Stroke="#B3FFFFFF"
+                            StrokeThickness="2"
+                            BackgroundColor="Transparent"
+                            Padding="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Grid x:Name="ScanFrameGrid">
+                                <BoxView
+                                    x:Name="ScanLine"
+                                    HeightRequest="2"
+                                    Color="#66FF4081"
+                                    VerticalOptions="Start"
+                                    HorizontalOptions="Fill"
+                                    Margin="8,24,8,0" />
+                            </Grid>
+                        </Border>
                     </Grid>
-                </Frame>
-            </AbsoluteLayout>
-        </Frame>
 
-    </VerticalStackLayout>
+                    <Label
+                        InputTransparent="True"
+                        Text="Căn mã trong khung"
+                        FontSize="12"
+                        TextColor="#CCFFFFFF"
+                        VerticalOptions="End"
+                        HorizontalOptions="Center"
+                        Margin="0,0,0,12" />
+                </Grid>
+            </Frame>
+
+            <!-- Error / detail -->
+            <Label
+                Text="{Binding UxDetailError}"
+                FontSize="14"
+                TextColor="#D32F2F"
+                LineBreakMode="WordWrap"
+                IsVisible="{Binding HasDetailError}" />
+
+            <!-- Manual fallback -->
+            <Label Style="{StaticResource SectionTitle}" Text="Nhập mã thủ công" FontSize="18" />
+            <Label
+                Style="{StaticResource BodyText}"
+                Text="Định dạng: poi:CODE hoặc URL https://…/poi/CODE"
+                FontSize="13" />
+            <Editor
+                Text="{Binding InputText}"
+                HeightRequest="100"
+                Placeholder="Ví dụ: poi:HO_GUOM"
+                IsEnabled="{Binding IsScannerAcceptingInput}" />
+
+            <HorizontalStackLayout Spacing="10">
+                <Button
+                    Style="{StaticResource PrimaryButton}"
+                    Text="Dùng mã đã nhập"
+                    Command="{Binding ScanCommand}" />
+                <Button
+                    Style="{StaticResource SecondaryButton}"
+                    Text="Đóng"
+                    Command="{Binding CancelCommand}" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

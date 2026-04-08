@@ -25,7 +25,7 @@
                 StrokeShape="RoundRectangle 24"
                 VerticalOptions="Start">
 
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
 
                 <Border BackgroundColor="#F8E9E0"
                         Padding="10"
@@ -34,57 +34,31 @@
                 </Border>
 
                 <VerticalStackLayout Grid.Column="1" Spacing="2">
-                    <Label Text="{Binding MapTitle}"
+                    <Label Text="Bản đồ Việt Nam"
                            FontSize="16"
                            FontAttributes="Bold"
                            TextColor="{StaticResource BrandPrimaryDark}" />
-                    <Label Text="{Binding MapSubtitle}"
+                    <Label Text="Khám phá bằng vị trí và âm thanh"
                            FontSize="12"
                            TextColor="{StaticResource TextSecondary}" />
                 </VerticalStackLayout>
 
-                <!-- Compact 2x2 language selector (keeps header height stable) -->
-                <Grid Grid.Column="2"
-                      ColumnDefinitions="Auto,Auto"
-                      RowDefinitions="Auto,Auto"
-                      ColumnSpacing="6"
-                      RowSpacing="6">
-                    <Button x:Name="VietnameseButton"
-                            Grid.Row="0"
-                            Grid.Column="0"
-                            Text="VN"
-                            Clicked="OnVietnameseClicked"
-                            WidthRequest="46"
-                            HeightRequest="40"
-                            CornerRadius="14" />
+                <ActivityIndicator Grid.Column="2"
+                                   IsRunning="{Binding IsTranslating}"
+                                   IsVisible="{Binding IsTranslating}"
+                                   VerticalOptions="Center"
+                                   WidthRequest="28"
+                                   HeightRequest="28" />
 
-                    <Button x:Name="EnglishButton"
-                            Grid.Row="0"
-                            Grid.Column="1"
-                            Text="EN"
-                            Clicked="OnEnglishClicked"
-                            WidthRequest="46"
-                            HeightRequest="40"
-                            CornerRadius="14" />
-
-                    <Button x:Name="ChineseButton"
-                            Grid.Row="1"
-                            Grid.Column="0"
-                            Text="中文"
-                            Clicked="OnChineseClicked"
-                            WidthRequest="46"
-                            HeightRequest="40"
-                            CornerRadius="14" />
-
-                    <Button x:Name="JapaneseButton"
-                            Grid.Row="1"
-                            Grid.Column="1"
-                            Text="日本語"
-                            Clicked="OnJapaneseClicked"
-                            WidthRequest="46"
-                            HeightRequest="40"
-                            CornerRadius="14" />
-                </Grid>
+                <!-- Language selector button — opens LanguageSelectorPage modal -->
+                <Button Grid.Column="3"
+                        Text="{Binding CurrentLanguageLabel}"
+                        Style="{StaticResource SecondaryButton}"
+                        FontSize="13"
+                        HeightRequest="40"
+                        WidthRequest="150"
+                        VerticalOptions="Center"
+                        Clicked="OnLanguageButtonClicked" />
 
                 <!-- QR button removed: QR tab added to Shell -->
             </Grid>
@@ -126,30 +100,44 @@
                                  Padding="20,8"
                                  Spacing="8">
 
-                        <Label Text="{Binding SelectedPoi.Name}"
+                        <Label Text="{Binding SelectedPoi.Localization.Name}"
                        FontSize="20"
                        FontAttributes="Bold"
                        TextColor="{StaticResource TextPrimary}" />
 
-                        <Label Text="{Binding SelectedPoi.NarrationShort}"
+                        <Label Text="{Binding SelectedPoi.Localization.NarrationShort}"
                        FontSize="14"
                        TextColor="{StaticResource TextSecondary}" />
+
+                        <Label Text="Auto translated"
+                               FontSize="11"
+                               FontAttributes="Italic"
+                               TextColor="{StaticResource TextSecondary}"
+                               IsVisible="{Binding SelectedPoi.IsAutoTranslated}" />
                     </VerticalStackLayout>
 
                 <!-- BUTTONS -->
                     <Grid Grid.Row="2"
                   Padding="16"
+                  RowDefinitions="Auto,Auto"
                   ColumnDefinitions="*,*"
-                  ColumnSpacing="10">
+                  ColumnSpacing="10"
+                  RowSpacing="10">
 
-                        <Button Text="{Binding ListenDetailedButtonText}"
+                        <Button Text="🔊 Nghe chi tiết"
                                 Style="{StaticResource PrimaryButton}"
                                 Clicked="OnListenDetailedClicked" />
 
                         <Button Grid.Column="1"
-                                Text="{Binding StopButtonText}"
+                        Text="⏹ Dừng"
+                        Style="{StaticResource SecondaryButton}"
+                        Clicked="OnStopAudioClicked" />
+
+                        <Button Grid.Row="1"
+                                Grid.ColumnSpan="2"
+                                Text="📄 Xem chi tiết địa điểm"
                                 Style="{StaticResource SecondaryButton}"
-                                Clicked="OnStopAudioClicked" />
+                                Clicked="OnOpenDetailClicked" />
                     </Grid>
 
                 </Grid>

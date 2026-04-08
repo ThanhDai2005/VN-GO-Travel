@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:MauiApp1.ViewModels"
+    xmlns:model="clr-namespace:MauiApp1.Models"
+    x:Class="MauiApp1.Views.LanguageSelectorPage"
+    x:DataType="vm:LanguageSelectorViewModel"
+    Title="Chọn ngôn ngữ"
+    BackgroundColor="{StaticResource SurfaceBackground}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+        <!-- Drag handle -->
+        <BoxView Grid.Row="0"
+                 HeightRequest="4"
+                 WidthRequest="48"
+                 HorizontalOptions="Center"
+                 Margin="0,12,0,8"
+                 BackgroundColor="#D0C8C0"
+                 CornerRadius="2" />
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="1" Padding="24,0,24,16" Spacing="4">
+            <Label Text="🌐 Chọn ngôn ngữ"
+                   FontSize="22"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}" />
+            <Label Text="Ngôn ngữ hiển thị và phát âm thanh sẽ được thay đổi."
+                   FontSize="13"
+                   TextColor="{StaticResource TextSecondary}"
+                   LineBreakMode="WordWrap" />
+        </VerticalStackLayout>
+
+        <!-- Language list (unlimited, scrollable) -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding Packs}"
+                        SelectionMode="None"
+                        Margin="12,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="model:LanguagePack">
+                    <Border Margin="0,4"
+                            Padding="16,14"
+                            BackgroundColor="White"
+                            Stroke="{StaticResource BorderLight}"
+                            StrokeShape="RoundRectangle 16">
+                        <Border.Shadow>
+                            <Shadow Brush="{StaticResource ShadowColor}"
+                                    Opacity="0.07"
+                                    Offset="0,2"
+                                    Radius="8" />
+                        </Border.Shadow>
+
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+
+                            <!-- Language info -->
+                            <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                <Label Text="{Binding NativeName}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="{Binding DisplayName}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource TextSecondary}" />
+                            </VerticalStackLayout>
+
+                            <!-- Download indicator / size -->
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center"
+                                                 IsVisible="{Binding IsNotDownloaded}">
+                                <Label Text="{Binding SizeLabel}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       HorizontalOptions="End" />
+                            </VerticalStackLayout>
+
+                            <!-- Per-item download spinner -->
+                            <ActivityIndicator Grid.Column="1"
+                                               IsRunning="{Binding IsDownloading}"
+                                               IsVisible="{Binding IsDownloading}"
+                                               Color="{StaticResource BrandPrimary}"
+                                               WidthRequest="22"
+                                               HeightRequest="22"
+                                               VerticalOptions="Center" />
+
+                            <!-- Status icon (✅/⬇️/❌) — hidden while downloading -->
+                            <Label Grid.Column="2"
+                                   Text="{Binding StatusIcon}"
+                                   FontSize="20"
+                                   VerticalOptions="Center"
+                                   IsVisible="{Binding IsDownloading, Converter={StaticResource InverseBoolConverter}}" />
+                        </Grid>
+
+                        <!-- Tap gesture — whole row is tappable -->
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:LanguageSelectorViewModel}}, Path=SelectLanguageCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Add language button -->
+        <Button Grid.Row="3"
+                Text="➕ Thêm Ngôn Ngữ Khác"
+                Style="{StaticResource PrimaryButton}"
+                Margin="24,12,24,0"
+                Clicked="OnAddLanguageClicked" />
+
+        <!-- Close button -->
+        <Button Grid.Row="4"
+                Text="Đóng"
+                Style="{StaticResource SecondaryButton}"
+                Margin="24,12,24,24"
+                Clicked="OnCloseClicked" />
+
+    </Grid>
+</ContentPage>

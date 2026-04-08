@@ -1,4 +1,4 @@
-﻿# 8. Test Checklist
+# 8. Test Checklist
 
 ## Mục tiêu
 Tài liệu này dùng để kiểm tra xem ứng dụng đã đạt mức PoC hay MVP chưa, đồng thời giúp tránh việc sửa bug lặp đi lặp lại mà không có tiêu chí rõ ràng.
@@ -96,10 +96,12 @@ Tài liệu này dùng để kiểm tra xem ứng dụng đã đạt mức PoC h
 ### 5.2. Playback policy
 - [ ] Chỉ phát một audio tại một thời điểm
 - [ ] Không bị chồng nhiều audio
-- [ ] Nếu đang phát, auto trigger sau đó xử lý đúng theo rule
+- [ ] Auto geofence không phá manual play
+- [ ] Manual play từ detail stop được audio cũ rồi phát mới
 
 ### 5.3. Content choice
-- [ ] Có thể xác định dùng `NarrationShort` hay `NarrationLong`
+- [ ] `NarrationShort` được dùng cho auto play
+- [ ] `NarrationLong` được dùng cho detailed play nếu có
 - [ ] Rule chọn short/long được áp dụng nhất quán
 
 ### 5.4. Language
@@ -139,10 +141,13 @@ Tài liệu này dùng để kiểm tra xem ứng dụng đã đạt mức PoC h
 
 ## 8. QR Code Tests
 
-### 8.1. In-app QR format
-- [ ] App parse được QR dạng `poi:HO_TAY`
-- [ ] App trích xuất đúng `Code`
-- [ ] Nếu mã không hợp lệ, app báo lỗi đúng
+### 8.1. Parser formats (current)
+- [ ] App parse được `poi:HO_GUOM`
+- [ ] App parse được `poi://HO_GUOM`
+- [ ] App parse được `HO_GUOM`
+- [ ] App parse được URL payloads: `https://domain/p/HO_GUOM` và `https://domain/poi/HO_GUOM` khi quét trong app scanner
+- [ ] App báo lỗi đúng với QR sai format
+- [ ] Đảm bảo parse order: `poi://` được kiểm tra trước `poi:`
 
 ### 8.2. QR to POI resolution
 - [ ] Scan xong mở đúng POI detail
@@ -153,22 +158,27 @@ Tài liệu này dùng để kiểm tra xem ứng dụng đã đạt mức PoC h
 - [ ] Nếu dữ liệu POI đã có local, QR vẫn mở được khi offline
 - [ ] Nếu chưa có local data và đang offline, app báo rõ tình trạng thiếu dữ liệu
 
-### 8.4. Link-based QR
-- [ ] QR dạng `https://your-domain/poi/CODE` được nhận diện đúng
-- [ ] Nếu app đã cài, link có thể mở app vào đúng POI
-- [ ] Nếu app chưa cài, link có thể mở landing page hoặc trang hướng dẫn tải app
+### 8.4. Link-based QR (notes)
+- [ ] Parser inside scanner nhận diện URL path `/p/{CODE}` và `/poi/{CODE}`
+- [ ] OS-level app link behavior is NOT implemented: verify deep-link behavior is planned only
+- [ ] Landing page / external flow are out of scope for current tests
 
-### 8.5. External camera scenario
-- [ ] Người dùng scan bằng camera thiết bị vẫn đi đúng luồng
-- [ ] Không phụ thuộc hoàn toàn vào scanner trong app
+### 8.5. External camera scenario (future)
+- External device camera -> OS deep link is not implemented. Add these tests in future phases when deep link handler and intent-filters are added.
 
 ### 8.6. QR and narration
 - [ ] Từ POI detail sau khi scan, user có thể bấm nghe narration
 - [ ] QR không gây phát chồng với geofence nếu đang ở gần POI
 
-### 8.7. Offline no-app scenario
+### 8.7. Navigation stability
+- [ ] Scan không push dư page bất thường (verify double navigation prevention)
+- [ ] Từ detail bấm Open on Map không bị kẹt flow
+- [ ] Map focus đúng POI sau khi mở từ detail
+
+### 8.8. Offline no-app scenario
 - [ ] Nếu user không có app và đang offline, hệ thống xử lý rõ ràng
 - [ ] Nếu không thể phát audio ngay, phải có thông báo hoặc fallback hợp lý
+
 ---
 
 ## 9. Regression Tests
@@ -179,13 +189,14 @@ Tài liệu này dùng để kiểm tra xem ứng dụng đã đạt mức PoC h
 - [ ] GPS vẫn hoạt động
 - [ ] Geofence vẫn trigger
 - [ ] Narration vẫn phát
+- [ ] QR vẫn mở đúng detail
 - [ ] Không sinh ra bug cũ
 
 ### 9.2. Đối chiếu docs
-- [ ] Code hiện tại khớp với `03_poc_scope.md`
 - [ ] Code hiện tại khớp với `04_mvp_scope.md`
 - [ ] Code hiện tại khớp với `05_core_business_rules.md`
 - [ ] Code hiện tại khớp với `06_simple_architecture.md`
+- [ ] Code hiện tại khớp với `09_qr_strategy.md`
 
 ---
 
@@ -197,13 +208,12 @@ Tài liệu này dùng để kiểm tra xem ứng dụng đã đạt mức PoC h
 - [ ] App xác định được POI gần
 - [ ] App phát được narration
 - [ ] App không phát lặp liên tục
+- [ ] App scan được QR trong app
 
-### MVP được coi là xong khi:
-- [ ] Có map ổn định
-- [ ] Có dữ liệu local rõ ràng
-- [ ] Có geofence đủ dùng
-- [ ] Có narration ổn định
-- [ ] Có xử lý đa ngôn ngữ cơ bản
-- [ ] Có chi tiết POI
-- [ ] Có QR flow cơ bản
+### MVP QR được coi là xong khi:
+- [ ] Có parser QR ổn định
+- [ ] Có scan -> detail flow ổn định
+- [ ] Có open on map ổn định
+- [ ] Có rule audio không chồng
+- [ ] Có chuẩn bị link-based QR rõ ràng
 - [ ] Có checklist test đạt mức chấp nhận được

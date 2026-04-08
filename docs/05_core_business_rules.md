@@ -1,8 +1,8 @@
-﻿# 5. Core Business Rules
+# 5. Core Business Rules
 
 ## POI
 Mỗi POI phải có:
-- mã định danh
+- mã định danh `Code`
 - tên
 - mô tả
 - latitude
@@ -13,48 +13,68 @@ Mỗi POI phải có:
 - ngôn ngữ
 
 ## Trigger Rules
-- User chỉ được coi là vào vùng khi khoảng cách <= radius
-- Có thể dùng debounce để tránh GPS nhiễu
-- Sau khi đã phát thì POI đó vào cooldown
+- user chỉ được coi là vào vùng khi khoảng cách `<= radius`
+- nếu nhiều POI cùng hợp lệ, chọn theo:
+  1. `Priority` cao hơn
+  2. khoảng cách gần hơn
+- cần có cơ chế chống lặp khi GPS dao động
 
 ## Audio Rules
-- Chỉ phát một audio tại một thời điểm
-- Nếu đang phát audio khác thì không phát chồng
-- Có thể hàng chờ hoặc bỏ qua theo luật ưu tiên
+- chỉ phát một audio tại một thời điểm
+- không được phát chồng
+- manual play được quyền ưu tiên hơn auto trigger
+- QR flow không tự động phát nếu chưa chốt rõ luật; mặc định user vào detail rồi bấm nghe
 
 ## Offline Rules
-- Nếu không có mạng vẫn đọc được POI từ SQLite
-- Nếu không có file audio thì dùng TTS local nếu có
+- nếu không có mạng vẫn đọc được POI từ SQLite
+- nếu không có file audio thì dùng TTS local nếu có
+- QR trong app vẫn mở được POI nếu local data đã có
+
+## Language Rules
+- ưu tiên ngôn ngữ đang chọn
+- fallback theo thứ tự:
+  1. ngôn ngữ yêu cầu
+  2. `vi`
+  3. bất kỳ bản ghi nào còn tồn tại
 
 ## QR Rules
 
 ### QR Role
 - QR là kênh truy cập POI bổ sung, không thay thế geofence
-- Geofence phục vụ kích hoạt tự động theo vị trí
+- geofence phục vụ kích hoạt tự động theo vị trí
 - QR phục vụ truy cập trực tiếp đúng POI theo mã hoặc liên kết
 
-### QR Input Types
-Hệ thống có thể hỗ trợ 2 loại QR:
-1. In-app QR format: `poi:CODE`
-2. Link-based QR format: `https://your-domain/poi/CODE`
+### QR Input Types (current)
+Hệ thống hiện hỗ trợ các loại QR sau (parsed inside app scanner):
+1. in-app QR format: `poi:CODE`
+2. in-app QR format mở rộng: `poi://CODE`
+3. plain code fallback: `CODE`
+4. link-based QR inside app scanner:
+   - `https://domain/poi/CODE`
+   - `https://domain/p/CODE`
 
-### QR Behavior
-- Nếu QR chứa `poi:CODE`, app scanner trong ứng dụng phải parse được `Code`
-- Nếu QR chứa link HTTP, hệ thống nên hỗ trợ mở app hoặc mở landing page
-- Nếu user đã có app, QR nên dẫn tới đúng POI trong app
-- Nếu user chưa có app, QR nên dẫn tới trang trung gian để tải app
+### QR Behavior (current)
+- `QrResolver.Parse()` chuẩn hóa payload về `Code` (trim, uppercase)
+- Sau khi parse thành công, flow dùng chung: `Code -> PoiDatabase -> Poi` -> navigation to `PoiDetailPage`
+- Khi scan trong app, mặc định mở `PoiDetailPage`; từ detail user có thể `Open on Map` hoặc play narration
+- Parser báo lỗi rõ ràng khi format không hợp lệ hoặc khi code trống
+- Nếu `Code` không tồn tại trong local DB, app thông báo POI không khả dụng local
+
+### QR Behavior (notes)
+- Parser normalizes code (trim + ToUpperInvariant)
+- Parser supports both plain and link-based payloads INSIDE the app scanner. OS-level deep linking and landing page behavior are not implemented here.
 
 ### QR and Offline
-- Nếu user offline và đã có app + dữ liệu POI đã tồn tại local, app vẫn có thể mở đúng POI
-- Nếu user offline nhưng chưa có app, hệ thống không đảm bảo trải nghiệm nghe audio đầy đủ
-- Có thể hỗ trợ hiển thị thông tin ngắn hoặc thông báo hướng dẫn tải app khi có mạng
+- nếu user offline và đã có app + dữ liệu POI local, app vẫn có thể mở đúng POI
+- nếu user offline nhưng chưa có app, hệ thống không đảm bảo trải nghiệm đầy đủ
+- app phải báo rõ khi POI không có local data
 
 ### QR and Narration
-- Sau khi mở POI bằng QR, user có thể bấm nghe narration
+- sau khi mở POI bằng QR, user có thể bấm nghe narration
 - QR trigger không được gây phát chồng với geofence trigger
-- Nếu cùng lúc QR và geofence cùng trỏ tới một POI, hệ thống phải ưu tiên một luồng narration duy nhất
+- nếu đang có audio do geofence phát, manual play từ detail được quyền stop audio cũ rồi phát audio mới
 
 ### Error Handling
-- Nếu QR sai format, báo lỗi hợp lệ
-- Nếu `Code` không tồn tại, báo POI không khả dụng
-- Nếu POI có nhưng thiếu đúng ngôn ngữ, áp dụng language fallback
+- nếu QR sai format, báo lỗi hợp lệ
+- nếu `Code` không tồn tại, báo POI không khả dụng local
+- nếu POI có nhưng thiếu đúng ngôn ngữ, áp dụng language fallback

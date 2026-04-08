@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -11,24 +12,118 @@ namespace MauiApp1.Views;
 
 public partial class QrScannerPage : ContentPage
 {
-    private readonly QrScannerViewModel _vm;
-    private bool _cameraSubmitInProgress;
-    private static int s_barcodeEventCount;
+    private const int InterFrameDedupeMs = 450;
 
-    private string? _lastScannedValue;
-    private DateTime _lastScannedAtUtc = DateTime.MinValue;
+    private readonly QrScannerViewModel _vm;
+    private readonly object _barcodeSync = new();
+
+    private bool _cameraSubmitInProgress;
+    private string? _lastInterFrameKey;
+    private DateTime _lastInterFrameAtUtc = DateTime.MinValue;
+
+    private static int s_barcodeEventCount;
     private DateTime? _appearedAtUtc;
     private bool _firstBarcodeLogged;
+
+    private CancellationTokenSource? _scanLineAnimCts;
+
+    // Tracks whether we have subscribed to Window.Resumed so we don't double-subscribe.
+    private bool _windowResumedSubscribed;
+    // True after a first-time permission grant so TryStartCameraAsync knows to do a
+    // hard camera restart (ZXing needs re-init if camera was never opened before).
+    private bool _cameraStartedAtLeastOnce;
 
     public QrScannerPage(QrScannerViewModel vm)
     {
         InitializeComponent();
         BindingContext = _vm = vm;
-        Debug.WriteLine($"[QR-LIFE] QrScannerPage ctor hash={GetHashCode()} thread={Thread.CurrentThread.ManagedThreadId} main={MainThread.IsMainThread}");
+        Debug.WriteLine($"[QR-UX] QrScannerPage ctor hash={GetHashCode()} thread={Thread.CurrentThread.ManagedThreadId} main={MainThread.IsMainThread}");
     }
 
-    // Best-effort configuration of CameraBarcodeReaderView to prefer QR-only and performance options.
-    // Uses reflection so it won't fail if running with a different ZXing version.
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(QrScannerViewModel.IsProcessingScan))
+            return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!IsVisible) return;
+            if (_vm.IsProcessingScan)
+            {
+                TryStopScanLineAnimation();
+                try
+                {
+                    if (CameraView != null)
+                        CameraView.IsDetecting = false;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[QR-ERR] Pause camera during processing: {ex}");
+                }
+
+                Debug.WriteLine("[QR-STATE] Scan line paused; camera detection paused (processing)");
+            }
+            else
+            {
+                try
+                {
+                    if (CameraView != null)
+                        CameraView.IsDetecting = true;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[QR-ERR] Resume camera after processing: {ex}");
+                }
+
+                if (CameraView is { IsDetecting: true })
+                    TryStartScanLineAnimation();
+            }
+        });
+    }
+
+    private void TryStartScanLineAnimation()
+    {
+        if (_vm.IsProcessingScan || !IsVisible)
+            return;
+
+        _scanLineAnimCts?.Cancel();
+        _scanLineAnimCts?.Dispose();
+        _scanLineAnimCts = new CancellationTokenSource();
+        var token = _scanLineAnimCts.Token;
+        _ = RunScanLineAnimationAsync(token);
+    }
+
+    private void TryStopScanLineAnimation()
+    {
+        try
+        {
+            _scanLineAnimCts?.Cancel();
+        }
+        catch { /* ignore */ }
+    }
+
+    private async Task RunScanLineAnimationAsync(CancellationToken ct)
+    {
+        Debug.WriteLine("[QR-UX] Scan line animation loop started");
+        try
+        {
+            while (!ct.IsCancellationRequested && IsVisible && !_vm.IsProcessingScan)
+            {
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    if (ScanLine is null || ct.IsCancellationRequested) return;
+                    ScanLine.TranslationY = 0;
+                    await ScanLine.TranslateTo(0, 200, 1300, Easing.Linear);
+                }).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[QR-ERR] Scan line animation: {ex}");
+        }
+        Debug.WriteLine("[QR-UX] Scan line animation loop ended");
+    }
+
     private void TryConfigureCameraForQrOnly()
     {
         try
@@ -38,23 +133,20 @@ public partial class QrScannerPage : ContentPage
 
             var t = cv.GetType();
 
-            // 1) Try set Multiple = false
             var pMultiple = t.GetProperty("Multiple");
             if (pMultiple != null && pMultiple.CanWrite && pMultiple.PropertyType == typeof(bool))
             {
                 pMultiple.SetValue(cv, false);
-                Debug.WriteLine("[QR] Config: set Multiple=false");
+                Debug.WriteLine("[QR-UX] Config: Multiple=false");
             }
 
-            // 2) Try set AutoRotate = true
             var pAutoRotate = t.GetProperty("AutoRotate");
             if (pAutoRotate != null && pAutoRotate.CanWrite && pAutoRotate.PropertyType == typeof(bool))
             {
                 pAutoRotate.SetValue(cv, true);
-                Debug.WriteLine("[QR] Config: set AutoRotate=true");
+                Debug.WriteLine("[QR-UX] Config: AutoRotate=true");
             }
 
-            // 3) Try set camera to Rear/Back if property exists
             var camProp = t.GetProperty("CameraLocation") ?? t.GetProperty("CameraFacing") ?? t.GetProperty("Camera");
             if (camProp != null && camProp.CanWrite && camProp.PropertyType.IsEnum)
             {
@@ -66,21 +158,19 @@ public partial class QrScannerPage : ContentPage
                     {
                         var val = Enum.Parse(enumType, name, ignoreCase: true);
                         camProp.SetValue(cv, val);
-                        Debug.WriteLine($"[QR] Config: set {camProp.Name}={name}");
+                        Debug.WriteLine($"[QR-UX] Config: {camProp.Name}={name}");
                         break;
                     }
                     catch { }
                 }
             }
 
-            // 4) Try find direct format property (e.g., "Formats", "BarcodeFormats") and set QR-only if enum
             var formatProp = t.GetProperties().FirstOrDefault(p => p.Name.IndexOf("Format", StringComparison.OrdinalIgnoreCase) >= 0 && p.CanWrite);
             if (formatProp != null)
             {
                 var ft = formatProp.PropertyType;
                 if (ft.IsEnum)
                 {
-                    // Try common names for QR
                     string[] qnames = { "QR_CODE", "QrCode", "QRCode", "QR" };
                     foreach (var qn in qnames)
                     {
@@ -88,7 +178,7 @@ public partial class QrScannerPage : ContentPage
                         {
                             var enumVal = Enum.Parse(ft, qn, ignoreCase: true);
                             formatProp.SetValue(cv, enumVal);
-                            Debug.WriteLine($"[QR] Config: set {formatProp.Name}={qn}");
+                            Debug.WriteLine($"[QR-UX] Config: {formatProp.Name}={qn}");
                             break;
                         }
                         catch { }
@@ -96,11 +186,10 @@ public partial class QrScannerPage : ContentPage
                 }
                 else if (ft == typeof(string))
                 {
-                    try { formatProp.SetValue(cv, "QR_CODE"); Debug.WriteLine($"[QR] Config: set {formatProp.Name}=QR_CODE"); } catch { }
+                    try { formatProp.SetValue(cv, "QR_CODE"); Debug.WriteLine($"[QR-UX] Config: {formatProp.Name}=QR_CODE"); } catch { }
                 }
             }
 
-            // 5) If there's a nested BarcodeReaderOptions or ReaderOptions type, try to set PossibleFormats within it
             var optionsProp = t.GetProperty("BarcodeReaderOptions") ?? t.GetProperty("ReaderOptions") ?? t.GetProperty("Options");
             if (optionsProp != null && optionsProp.CanRead)
             {
@@ -112,9 +201,9 @@ public partial class QrScannerPage : ContentPage
                     if (pf != null && pf.CanWrite)
                     {
                         var pft = pf.PropertyType;
-                        if (pft.IsArray && pft.GetElementType().IsEnum)
+                        if (pft.IsArray && pft.GetElementType()!.IsEnum)
                         {
-                            var enumType = pft.GetElementType();
+                            var enumType = pft.GetElementType()!;
                             string[] qnames = { "QR_CODE", "QrCode", "QRCode", "QR" };
                             foreach (var qn in qnames)
                             {
@@ -124,7 +213,7 @@ public partial class QrScannerPage : ContentPage
                                     var arr = Array.CreateInstance(enumType, 1);
                                     arr.SetValue(ev, 0);
                                     pf.SetValue(opts, arr);
-                                    Debug.WriteLine("[QR] Config: set PossibleFormats to QR array");
+                                    Debug.WriteLine("[QR-UX] Config: PossibleFormats=QR array");
                                     break;
                                 }
                                 catch { }
@@ -136,89 +225,230 @@ public partial class QrScannerPage : ContentPage
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[QR-ERR] TryConfigureCameraForQrOnly reflection: {ex}");
+            Debug.WriteLine($"[QR-ERR] TryConfigureCameraForQrOnly: {ex}");
         }
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        Debug.WriteLine("[QR-LIFE] OnAppearing - Trang QR bắt đầu hiển thị");
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm.PropertyChanged += OnVmPropertyChanged;
+        Debug.WriteLine("[QR-STATE] Scanner page appeared");
         _appearedAtUtc = DateTime.UtcNow;
-        Debug.WriteLine($"[QR-TIME] QrScannerPage OnAppearing at {_appearedAtUtc:O}");
+        _firstBarcodeLogged = false;
 
-        _cameraSubmitInProgress = false;
-        // Try to configure camera/decoder for QR-only to improve sensitivity (best-effort, reflection)
+        lock (_barcodeSync)
+        {
+            _cameraSubmitInProgress = false;
+            _lastInterFrameKey = null;
+            _lastInterFrameAtUtc = DateTime.MinValue;
+        }
+
+        _vm.ResetForPageAppearing();
+
+        try { TryConfigureCameraForQrOnly(); }
+        catch (Exception ex) { Debug.WriteLine($"[QR-ERR] TryConfigureCameraForQrOnly outer: {ex}"); }
+
+        // Subscribe to Window.Resumed so we can re-check permission and restart
+        // the camera when the Android OS permission dialog is dismissed.
+        SubscribeWindowResumed();
+
+        LogShellState("[QR-LIFE] OnAppearing start");
+        LogShortState("[QR-STATE] OnAppearing short state");
+
+        await TryStartCameraAsync(reason: "OnAppearing");
+
+        LogShellState("[QR-LIFE] OnAppearing end");
+    }
+
+    // ── Window.Resumed subscription ───────────────────────────────────────────
+    // On Android the OS permission dialog runs in the same Activity but still
+    // causes onPause/onResume in the Activity lifecycle. MAUI maps onResume
+    // to Window.Resumed. This is the reliable hook to know
+    // "user just came back from the Allow/Deny dialog".
+
+    private void SubscribeWindowResumed()
+    {
+        if (_windowResumedSubscribed) return;
         try
         {
-            TryConfigureCameraForQrOnly();
+            var win = Application.Current?.Windows?.FirstOrDefault();
+            if (win == null) return;
+            win.Resumed += OnWindowResumed;
+            _windowResumedSubscribed = true;
+            Debug.WriteLine("[QR-PERM] Window.Resumed subscribed");
+        }
+        catch (Exception ex) { Debug.WriteLine($"[QR-ERR] SubscribeWindowResumed: {ex}"); }
+    }
+
+    private void UnsubscribeWindowResumed()
+    {
+        try
+        {
+            var win = Application.Current?.Windows?.FirstOrDefault();
+            if (win == null) return;
+            win.Resumed -= OnWindowResumed;
+            _windowResumedSubscribed = false;
+            Debug.WriteLine("[QR-PERM] Window.Resumed unsubscribed");
+        }
+        catch (Exception ex) { Debug.WriteLine($"[QR-ERR] UnsubscribeWindowResumed: {ex}"); }
+    }
+
+    private async void OnWindowResumed(object? sender, EventArgs e)
+    {
+        // Only react when this page is the visible one.
+        if (!IsVisible) return;
+
+        Debug.WriteLine("[QR-PERM] Window.Resumed fired — re-checking camera permission");
+        try
+        {
+            // Small delay: let Android finish transferring camera ownership back to the app.
+            await Task.Delay(300).ConfigureAwait(false);
+
+            if (!IsVisible) return;     // user navigated away during delay
+
+            var status = await Permissions.CheckStatusAsync<Permissions.Camera>().ConfigureAwait(false);
+            Debug.WriteLine($"[QR-PERM] Window.Resumed — permission={status}");
+
+            if (status == PermissionStatus.Granted)
+            {
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    if (!IsVisible) return;
+                    Debug.WriteLine("[QR-PERM] Camera permission confirmed after resume — restarting");
+                    await TryStartCameraAsync(reason: "Window.Resumed");
+                });
+            }
+        }
+        catch (Exception ex) { Debug.WriteLine($"[QR-ERR] OnWindowResumed: {ex}"); }
+    }
+
+    // ── Camera start ─────────────────────────────────────────────────────────
+
+    private void RecreateCameraView()
+    {
+        try
+        {
+            if (CameraContainer != null && CameraView != null)
+            {
+                Debug.WriteLine("[QR-STATE] Completely recreating CameraView instance to force native CameraX re-init");
+                
+                CameraView.BarcodesDetected -= OnBarcodesDetected;
+                CameraContainer.Children.Remove(CameraView);
+                
+                CameraView = new ZXing.Net.Maui.Controls.CameraBarcodeReaderView
+                {
+                    IsDetecting = false
+                };
+                CameraView.BarcodesDetected += OnBarcodesDetected;
+                
+                // Insert at the bottom (index 0) so the scanning line and text stay on top
+                CameraContainer.Children.Insert(0, CameraView);
+            }
+            else
+            {
+                Debug.WriteLine("[QR-ERR] RecreateCameraView failed: Container or View is null");
+            }
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[QR-ERR] TryConfigureCameraForQrOnly: {ex}");
+            Debug.WriteLine($"[QR-ERR] RecreateCameraView exception: {ex}");
         }
+    }
 
-
-        LogShellState("[QR-LIFE] OnAppearing start");
-        Debug.WriteLine($"[QR-LIFE] IsVisible={IsVisible} CameraView null?={CameraView == null} IsDetecting(before)={(CameraView == null ? "n/a" : CameraView.IsDetecting.ToString())}");
-        LogShortState("[QR] ShortState OnAppearing");
-
-        SetDiag("QR page appeared");
-
+    /// <summary>
+    /// Checks camera permission, requests it if needed, and starts the ZXing scanner.
+    /// Safe to call on every <c>OnAppearing</c> and after <c>Window.Resumed</c>.
+    /// <para>
+    /// When permission is granted for the first time during this session, a hard restart
+    /// is performed (IsDetecting toggle with extended delay) because ZXing’s native camera
+    /// handler was never initialised before and a simple <c>IsDetecting = true</c> is
+    /// insufficient to open the hardware camera on Android.
+    /// </para>
+    /// </summary>
+    private async Task TryStartCameraAsync(string reason = "")
+    {
         try
         {
-            SetDiag("Requesting camera permission");
-            Debug.WriteLine("[QR] Requesting camera permission");
-
-            var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
-            var requestedNow = false;
+            Debug.WriteLine($"[QR-PERM] TryStartCameraAsync reason={reason}");
+            var status = await Permissions.CheckStatusAsync<Permissions.Camera>().ConfigureAwait(false);
+            Debug.WriteLine($"[QR-PERM] Permission status={status}");
 
             if (status != PermissionStatus.Granted)
             {
-                status = await Permissions.RequestAsync<Permissions.Camera>();
-                requestedNow = true;
+                Debug.WriteLine("[QR-PERM] Requesting camera permission");
+                status = await Permissions.RequestAsync<Permissions.Camera>().ConfigureAwait(false);
+                Debug.WriteLine($"[QR-PERM] Permission result after request: {status}");
             }
 
-            SetDiag($"Permission result: {status}");
-            Debug.WriteLine($"[QR] Permission result: {status}");
-
             if (status != PermissionStatus.Granted)
             {
-                SetDiag("Permission denied - manual fallback only");
-                Debug.WriteLine("[QR] Permission denied");
+                Debug.WriteLine("[QR-PERM] Camera permission denied — showing fallback UI");
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                    _vm.SetCameraUnavailableMessage("Kh\u00f4ng c\u00f3 quy\u1ec1n camera \u2014 d\u00f9ng nh\u1eadp tay b\u00ean d\u01b0\u1edbi."));
                 return;
             }
 
-            await EnsureScannerCreatedAsync();
+            Debug.WriteLine($"[QR-PERM] Camera permission granted. firstTime={!_cameraStartedAtLeastOnce}");
 
-            // Start detecting after short stabilization to improve autofocus/reliability
-            await StartDetectingWithStabilizationAsync(350);
-
-            if (requestedNow)
+            await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                Debug.WriteLine("[QR-LIFE] Camera permission granted just now -> restarting scanner");
-                await Task.Delay(250);
-                await RestartScannerAsync("first grant");
-            }
+                if (CameraView == null)
+                {
+                    Debug.WriteLine("[QR-ERR] CameraView is null — cannot start camera");
+                    return;
+                }
+
+                if (!_cameraStartedAtLeastOnce)
+                {
+                    // First-time camera start within this page session.
+                    // ZXing’s native handler may not have acquired the camera hardware yet
+                    // (it was created before permission was granted, resulting in a black preview
+                    // that ignores IsDetecting=true).
+                    // We must recreate the entire object to force MAUI to bind a new native view.
+                    Debug.WriteLine("[QR-PERM] Hard camera restart (first grant) via recreation");
+                    await Task.Delay(200);   // wait briefly for OS camera release
+                    RecreateCameraView();
+                    TryConfigureCameraForQrOnly();
+                    CameraView.IsDetecting = true;
+                    _cameraStartedAtLeastOnce = true;
+                    Debug.WriteLine("[QR-STATE] Camera started (first-time)");
+                }
+                else
+                {
+                    // Camera was already started; resume normally with a shorter delay.
+                    await StartDetectingWithStabilizationAsync(350);
+                    Debug.WriteLine("[QR-STATE] Camera resumed");
+                }
+
+                TryStartScanLineAnimation();
+                Debug.WriteLine("[QR-STATE] Scanner activated successfully");
+            });
         }
         catch (Exception ex)
         {
-            SetDiag("Permission check/request failed");
-            Debug.WriteLine($"[QR-ERR] Permission check/request failed: {ex}");
+            Debug.WriteLine($"[QR-ERR] TryStartCameraAsync: {ex}");
         }
-
-        LogShellState("[QR-LIFE] OnAppearing end");
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        Debug.WriteLine("[QR-STATE] Scanner page disappeared");
         LogShellState("[QR-LIFE] OnDisappearing start");
 
-        _cameraSubmitInProgress = false;
+        // Unsubscribe Window.Resumed to prevent leaks when navigating away.
+        UnsubscribeWindowResumed();
+        _cameraStartedAtLeastOnce = false;  // reset so next OnAppearing starts fresh
 
-        SetDiag("QR page disappearing");
-        Debug.WriteLine($"[QR-LIFE] OnDisappearing IsVisible={IsVisible}");
+        TryStopScanLineAnimation();
+        _vm.ReleaseProcessingAfterNavigationAway();
+
+        lock (_barcodeSync)
+        {
+            _cameraSubmitInProgress = false;
+        }
 
         try
         {
@@ -226,9 +456,15 @@ public partial class QrScannerPage : ContentPage
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    Debug.WriteLine("[QR] Before IsDetecting=false (cleanup on leave)");
-                    CameraView.IsDetecting = false;
-                    Debug.WriteLine("[QR] After IsDetecting=false");
+                    try
+                    {
+                        CameraView.IsDetecting = false;
+                        Debug.WriteLine("[QR-STATE] Scanner deactivated (page left)");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[QR-ERR] IsDetecting=false: {ex}");
+                    }
                 });
             }
         }
@@ -245,46 +481,33 @@ public partial class QrScannerPage : ContentPage
         try
         {
             if (CameraView != null)
-            {
-                // Do not start detecting immediately here. We'll start detection after camera stabilization
-                Debug.WriteLine("[QR] EnsureScannerCreatedAsync: CameraView available (will start detecting after stabilization)");
-                SetDiag("Scanner created");
-            }
+                Debug.WriteLine("[QR-UX] Camera view ready");
             else
-            {
-                Debug.WriteLine("[QR-ERR] CameraView is null in EnsureScannerCreatedAsync");
-            }
+                Debug.WriteLine("[QR-ERR] CameraView is null");
         }
         catch (Exception ex)
         {
-            SetDiag("Failed to start scanner");
-            Debug.WriteLine($"[QR-ERR] Scanner start: {ex}");
+            Debug.WriteLine($"[QR-ERR] EnsureScannerCreatedAsync: {ex}");
         }
 
         return Task.CompletedTask;
     }
 
-    // Start detection after a short stabilization period to allow camera autofocus/preview to settle.
     private async Task StartDetectingWithStabilizationAsync(int stabilizeMs = 350)
     {
         try
         {
             if (CameraView == null) return;
 
-            // Ensure detector is off first
             try { await MainThread.InvokeOnMainThreadAsync(() => CameraView.IsDetecting = false); } catch { }
 
-            // Small stabilization delay to let camera auto-focus and preview warm up.
             if (stabilizeMs > 0)
                 await Task.Delay(stabilizeMs);
 
-            // Try configure QR-only again in case camera implementation needs properties set after creation
             try { TryConfigureCameraForQrOnly(); } catch { }
 
-            // Start detecting on main thread
             await MainThread.InvokeOnMainThreadAsync(() => CameraView.IsDetecting = true);
-            Debug.WriteLine($"[QR] StartDetectingWithStabilization: IsDetecting set true after {stabilizeMs}ms");
-            SetDiag("Scanner detecting started");
+            Debug.WriteLine($"[QR-STATE] IsDetecting=true after {stabilizeMs}ms stabilization");
         }
         catch (Exception ex)
         {
@@ -292,124 +515,122 @@ public partial class QrScannerPage : ContentPage
         }
     }
 
-    private async void OnBarcodesDetected(object sender, object e)
+    private async void OnBarcodesDetected(object? sender, object e)
     {
-        // Minimal per-event logging to avoid slowing the decode pipeline
         s_barcodeEventCount++;
-        if (s_barcodeEventCount % 10 == 0)
-            Debug.WriteLine($"[QR] BarcodesDetected #{s_barcodeEventCount} (sparse log) main={MainThread.IsMainThread}");
+        if (s_barcodeEventCount % 12 == 0)
+            Debug.WriteLine($"[QR-SCAN] BarcodesDetected event #{s_barcodeEventCount} (sparse)");
 
         if (e is not ZXing.Net.Maui.BarcodeDetectionEventArgs args)
         {
-            Debug.WriteLine("[QR] BarcodesDetected: unexpected event args type");
+            Debug.WriteLine("[QR-SCAN] Unexpected event args type");
             return;
         }
 
         var first = args.Results?.FirstOrDefault();
         if (first == null)
-        {
-            Debug.WriteLine("[QR] BarcodesDetected: no results");
             return;
-        }
 
         var value = first.Value?.Trim();
         if (string.IsNullOrWhiteSpace(value))
-        {
-            Debug.WriteLine("[QR] BarcodesDetected: empty value");
             return;
-        }
 
-        Debug.WriteLine($"[QR] BarcodesDetected raw (len={value.Length}) preview={TruncateForLog(value)}");
+        await MainThread.InvokeOnMainThreadAsync(() => ProcessBarcodeOnMainThread(value));
+    }
 
-        // Log time from page appearing to first barcode detection
+    private void ProcessBarcodeOnMainThread(string value)
+    {
+        Debug.WriteLine($"[QR-SCAN] Raw barcode detected value={TruncateForLog(value, 160)}");
+
         if (!_firstBarcodeLogged && _appearedAtUtc.HasValue)
         {
             var sinceAppearMs = (DateTime.UtcNow - _appearedAtUtc.Value).TotalMilliseconds;
-            Debug.WriteLine($"[QR-TIME] Time from QrScanner OnAppearing to first barcode event = {sinceAppearMs} ms");
+            Debug.WriteLine($"[QR-TIME] First barcode after appear: {sinceAppearMs:F0} ms");
             _firstBarcodeLogged = true;
         }
 
-        if (_cameraSubmitInProgress)
+        lock (_barcodeSync)
         {
-            Debug.WriteLine("[QR] BarcodesDetected skipped: _cameraSubmitInProgress already true");
-            return;
+            if (_cameraSubmitInProgress || _vm.IsProcessingScan)
+            {
+                Debug.WriteLine("[QR-SCAN] Ignored: processing lock (page or VM)");
+                return;
+            }
+
+            var dedupeKey = QrScannerViewModel.GetDedupeKey(value);
+            var now = DateTime.UtcNow;
+            if (dedupeKey == _lastInterFrameKey
+                && (now - _lastInterFrameAtUtc).TotalMilliseconds < InterFrameDedupeMs)
+            {
+                Debug.WriteLine($"[QR-SCAN] Ignored duplicate scan within cooldown window key={dedupeKey}");
+                return;
+            }
+
+            _lastInterFrameKey = dedupeKey;
+            _lastInterFrameAtUtc = now;
+            _cameraSubmitInProgress = true;
         }
 
-        var now = DateTime.UtcNow;
-        // reduce duplicate suppression window to 1s for snappier re-detection while still preventing immediate dupes
-        if (_lastScannedValue == value && (now - _lastScannedAtUtc).TotalSeconds < 1)
-        {
-            Debug.WriteLine("[QR] BarcodesDetected skipped: duplicate within 1s");
-            return;
-        }
-
-        _cameraSubmitInProgress = true;
-        _lastScannedValue = value;
-        _lastScannedAtUtc = now;
+        TryStopScanLineAnimation();
 
         try
         {
-            // Pause camera detection quickly on UI thread, then do heavy work off UI thread
             if (CameraView != null)
-            {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    try { CameraView.IsDetecting = false; } catch { }
-                });
-            }
-
-            // Light log before heavy processing
-            Debug.WriteLine("[QR] HandleScannedValueAsync scheduled (background)");
-
-            // Run processing off the UI thread to avoid blocking camera decode pipeline
-            _ = Task.Run(async () =>
-            {
-                var success = await HandleScannedValueAsync(value);
-
-                // Minimal UI updates after processing
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    LogShortState("[QR] ShortState AfterHandleScannedValue");
-                    if (!success && IsVisible && CameraView != null)
-                    {
-                        try { CameraView.IsDetecting = true; } catch { }
-                    }
-
-                    if (IsVisible)
-                        _cameraSubmitInProgress = false;
-                });
-            });
+                CameraView.IsDetecting = false;
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[QR-ERR] OnBarcodesDetected scheduling: {ex}");
-            // try to resume detector if possible
-            try
-            {
-                if (IsVisible && CameraView != null)
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() => CameraView.IsDetecting = true);
-                }
-            }
-            catch { }
-            _cameraSubmitInProgress = false;
+            Debug.WriteLine($"[QR-ERR] Stop detecting: {ex}");
         }
+
+        Debug.WriteLine("[QR-STATE] Scanner deactivated (accepted frame, processing)");
+
+        _ = Task.Run(async () =>
+        {
+            var success = await HandleScannedValueAsync(value);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                LogShortState("[QR-STATE] After handle scanned");
+
+                if (!success && IsVisible && CameraView != null)
+                {
+                    try
+                    {
+                        CameraView.IsDetecting = true;
+                        Debug.WriteLine("[QR-STATE] Scanner activated (after failed or skipped scan)");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[QR-ERR] Resume detecting: {ex}");
+                    }
+
+                    TryStartScanLineAnimation();
+                }
+
+                if (!success && IsVisible)
+                {
+                    lock (_barcodeSync)
+                    {
+                        _cameraSubmitInProgress = false;
+                    }
+                    Debug.WriteLine("[QR-STATE] Scanner reset completed (failure path)");
+                }
+            });
+        });
     }
 
     private async Task<bool> HandleScannedValueAsync(string value)
     {
         LogShellState("[QR-NAV] HandleScannedValueAsync start");
-        Debug.WriteLine($"[QR-NAV] HandleScannedValueAsync value len={value?.Length ?? 0} IsVisible={IsVisible} _cameraSubmitInProgress={_cameraSubmitInProgress}");
-
         try
         {
-            _vm.InputText = value;
-            Debug.WriteLine("[QR-NAV] Before HandleScannedCodeAsync (VM)");
+            await MainThread.InvokeOnMainThreadAsync(() => _vm.InputText = value);
+            Debug.WriteLine("[QR-NAV] Opening POI flow from camera scan");
 
-            // Call VM handler which now returns success flag
             var vmResult = await _vm.HandleScannedCodeAsync(value);
 
-            Debug.WriteLine("[QR-NAV] After HandleScannedCodeAsync (VM)");
+            Debug.WriteLine($"[QR-NAV] HandleScannedCodeAsync finished success={vmResult}");
             return vmResult;
         }
         catch (Exception ex)
@@ -453,18 +674,6 @@ public partial class QrScannerPage : ContentPage
         }
     }
 
-    private void SetDiag(string text)
-    {
-        try
-        {
-            MainThread.BeginInvokeOnMainThread(() => DiagLabel.Text = text);
-        }
-        catch
-        {
-            // Ignore
-        }
-    }
-
     private void LogShortState(string tag)
     {
         try
@@ -491,26 +700,14 @@ public partial class QrScannerPage : ContentPage
             Debug.WriteLine($"[QR-LIFE] RestartScannerAsync reason={reason}");
 
             if (CameraView == null)
-            {
-                Debug.WriteLine("[QR-ERR] RestartScannerAsync: CameraView is null");
                 return;
-            }
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                CameraView.IsDetecting = false;
-                Debug.WriteLine("[QR] RestartScannerAsync -> IsDetecting=false");
-            });
-
+            await MainThread.InvokeOnMainThreadAsync(() => { CameraView.IsDetecting = false; });
             await Task.Delay(150);
+            await MainThread.InvokeOnMainThreadAsync(() => { CameraView.IsDetecting = true; });
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                CameraView.IsDetecting = true;
-                Debug.WriteLine("[QR] RestartScannerAsync -> IsDetecting=true");
-            });
-
-            Debug.WriteLine("[QR-LIFE] RestartScannerAsync completed");
+            if (!_vm.IsProcessingScan)
+                TryStartScanLineAnimation();
         }
         catch (Exception ex)
         {

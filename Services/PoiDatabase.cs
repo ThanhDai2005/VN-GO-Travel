@@ -1,4 +1,5 @@
-﻿using SQLite;
+using System.Threading;
+using SQLite;
 using MauiApp1.Models;
 
 namespace MauiApp1.Services;
@@ -19,6 +20,7 @@ public class PoiDatabase
         if (_inited) return;
 
         await _db.CreateTableAsync<Poi>();
+        await _db.CreateTableAsync<PoiTranslationCacheEntry>();
 
         // Ensure new columns exist for flattened model. ALTER TABLE is no-op if column exists.
         try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN Code TEXT"); } catch { }
@@ -34,9 +36,12 @@ public class PoiDatabase
         _inited = true;
     }
 
-    public Task<List<Poi>> GetAllAsync(string langCode)
+    public Task<int> GetCountAsync()
+        => _db.Table<Poi>().CountAsync();
+
+    // Changed: DB now stores exactly 1 core row per POI. No language filtering in SQL.
+    public Task<List<Poi>> GetAllAsync()
         => _db.Table<Poi>()
-              .Where(p => p.LanguageCode == langCode)
               .OrderByDescending(p => p.Priority)
               .ToListAsync();
 
@@ -77,45 +82,49 @@ public class PoiDatabase
         }
     }
 
-    // New helper: get POI by Code with language preference and fallbacks.
+    // Translation Service Helpers
+    // Previously these checked LanguageCode in the DB, but since the DB now only stores
+    // one core row per POI (no localization), they both just fetch that core row by Code.
+    // The MapViewModel will attach localization at load time, and the translation service
+    // only needs the core geo data as the "source Poi" anyway.
+
     public async Task<Poi?> GetByCodeAsync(string code, string? lang = null)
     {
         if (string.IsNullOrWhiteSpace(code)) return null;
-
-        code = code.Trim();
-
-        // Normalize language
-        var requested = string.IsNullOrWhiteSpace(lang) ? null : lang.Trim().ToLowerInvariant();
-
-        // Try exact language match first
-        if (!string.IsNullOrWhiteSpace(requested))
-        {
-            var item = await _db.Table<Poi>()
-                .Where(p => p.Code == code && p.LanguageCode == requested)
-                .FirstOrDefaultAsync();
-
-            if (item != null) return item;
-        }
-
-        // Fallback to Vietnamese
-        var vi = await _db.Table<Poi>()
-            .Where(p => p.Code == code && p.LanguageCode == "vi")
-            .FirstOrDefaultAsync();
-
-        if (vi != null) return vi;
-
-        // Fallback to any language
-        return await GetAnyLanguageByCodeAsync(code);
-    }
-
-    public async Task<Poi?> GetAnyLanguageByCodeAsync(string code)
-    {
-        if (string.IsNullOrWhiteSpace(code)) return null;
-
         code = code.Trim();
 
         return await _db.Table<Poi>()
             .Where(p => p.Code == code)
             .FirstOrDefaultAsync();
+    }
+
+    public Task<Poi?> GetAnyLanguageByCodeAsync(string code)
+    {
+        return GetByCodeAsync(code);
+    }
+
+    public Task<Poi?> GetExactByCodeAndLanguageAsync(string code, string languageCode, CancellationToken cancellationToken = default)
+    {
+        return GetByCodeAsync(code);
+    }
+
+    public Task<PoiTranslationCacheEntry?> GetTranslationCacheAsync(string code, string languageCode, CancellationToken cancellationToken = default)
+    {
+        var key = PoiTranslationCacheEntry.MakeKey(code, languageCode);
+        return _db.Table<PoiTranslationCacheEntry>()
+            .Where(e => e.Key == key)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task UpsertTranslationCacheAsync(PoiTranslationCacheEntry entry, CancellationToken cancellationToken = default)
+    {
+        var existing = await _db.Table<PoiTranslationCacheEntry>()
+            .Where(e => e.Key == entry.Key)
+            .FirstOrDefaultAsync();
+
+        if (existing == null)
+            await _db.InsertAsync(entry);
+        else
+            await _db.UpdateAsync(entry);
     }
 }

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:MauiApp1.ViewModels"
+             x:Class="MauiApp1.Views.AddLanguagePage"
+             x:DataType="vm:AddLanguageViewModel"
+             Title="Thêm Ngôn Ngữ"
+             BackgroundColor="{StaticResource SurfaceBackground}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <!-- Drag handle -->
+        <BoxView Grid.Row="0"
+                 HeightRequest="4"
+                 WidthRequest="48"
+                 HorizontalOptions="Center"
+                 Margin="0,12,0,8"
+                 BackgroundColor="#D0C8C0"
+                 CornerRadius="2" />
+
+        <!-- Search Bar -->
+        <SearchBar Grid.Row="1"
+                   Placeholder="Tìm kiếm ngôn ngữ..."
+                   Text="{Binding SearchText}"
+                   Margin="16,8" />
+
+        <!-- List -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding FilteredLanguages}"
+                        SelectionMode="None"
+                        Margin="12,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:AvailableLanguage">
+                    <Border Margin="0,4"
+                            Padding="16,14"
+                            BackgroundColor="White"
+                            Stroke="{StaticResource BorderLight}"
+                            StrokeShape="RoundRectangle 16">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <!-- Info -->
+                            <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                <Label Text="{Binding NativeName}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="{Binding DisplayName}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource TextSecondary}" />
+                            </VerticalStackLayout>
+                            
+                            <Label Grid.Column="1" Text="➕" FontSize="18" VerticalOptions="Center" />
+                        </Grid>
+
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer 
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AddLanguageViewModel}}, Path=SelectLanguageCommand}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Close button -->
+        <Button Grid.Row="3"
+                Text="Đóng"
+                Style="{StaticResource SecondaryButton}"
+                Margin="24,12,24,24"
+                Clicked="OnCloseClicked" />
+    </Grid>
+
+</ContentPage>

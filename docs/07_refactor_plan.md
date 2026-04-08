@@ -1,32 +1,47 @@
-﻿# 7. Refactor Plan
+# 7. Refactor Plan
 
 ## Mục tiêu
-Tài liệu này dùng để xác định những phần nào trong dự án cần giữ nguyên, phần nào cần chỉnh sửa, và phần nào nên bổ sung để đưa ứng dụng từ trạng thái “đã code được lõi” sang trạng thái “ổn định, rõ nghiệp vụ, dễ mở rộng”.
+Khóa lại luồng nghiệp vụ cốt lõi, cập nhật docs khớp với code hiện tại, và chuẩn bị nền tảng sạch để hoàn tất QR flow theo hướng thực tế hơn mà không phá app đang chạy.
 
 ---
 
 ## 1. Tình trạng hiện tại
 
-Dự án hiện đã có các thành phần cốt lõi:
+Dự án hiện đã có:
 - dữ liệu POI từ `Resources/Raw/pois.json`
 - model `Poi`
+- `PoiDatabase`
 - `MapViewModel`
 - các service liên quan đến location / geofence / audio
-- giao diện `MapPage`, `AboutPage`, `ExplorePage`
-- tài liệu nền tảng trong thư mục `docs/`
+- `QrScannerPage`
+- `QrScannerViewModel`
+- `QrResolver`
+- `PoiDetailPage`
+- bộ docs nền tảng
 
-Tuy nhiên, dự án ban đầu được phát triển theo hướng nhảy vào code sớm, chưa khóa rõ PRD và business rules, nên việc sửa lỗi và tối ưu mất nhiều thời gian.
+### Trạng thái QR hiện tại
+In-app QR flow đã hoạt động và hỗ trợ cả link-based parsing INSIDE scanner:
+1. mở scanner page
+2. camera đọc payload
+3. `QrResolver` trích `Code` từ `poi:`, `poi://`, plain `CODE`, hoặc từ URL path `/poi/{CODE}` / `/p/{CODE}`
+4. lookup local DB
+5. mở `PoiDetailPage`
+
+Chưa có (planned/future):
+- OS-level app links / intent filters / universal links
+- landing page / public web redirect
+- external camera end-to-end deep-link handling
 
 ---
 
 ## 2. Mục tiêu của refactor
 
 Refactor trong giai đoạn này không nhằm viết lại toàn bộ dự án, mà nhằm:
-- khóa lại luồng nghiệp vụ cốt lõi
-- tách rõ trách nhiệm giữa các lớp
+- khóa lại flow QR hiện tại
+- tách rõ trách nhiệm giữa scanner page, parser, navigation, map focus
 - giảm việc code-behind gánh quá nhiều logic
-- chuẩn bị nền tảng tốt để hoàn tất MVP
-- hỗ trợ mở rộng sau này như QR code, CMS, AI integration
+- chuẩn bị nền tảng tốt để hoàn tất MVP QR
+- hỗ trợ mở rộng sang deep link / landing page sau này
 
 ---
 
@@ -34,31 +49,34 @@ Refactor trong giai đoạn này không nhằm viết lại toàn bộ dự án,
 
 ### 3.1. Không refactor toàn bộ cùng lúc
 Chỉ chỉnh những phần có liên quan trực tiếp đến:
-- GPS / geofence
-- narration
-- dữ liệu POI
-- map flow
+- QR scanner
+- QR parsing
+- POI resolution
+- detail flow
+- map focus
+- audio conflict rule
 
 ### 3.2. Docs đi trước code
 Mỗi thay đổi lớn cần đối chiếu với:
-- `03_poc_scope.md`
 - `04_mvp_scope.md`
 - `05_core_business_rules.md`
 - `06_simple_architecture.md`
+- `08_test_checklist.md`
+- `09_qr_strategy.md`
 
-### 3.3. Không thêm tính năng mới khi rule chưa rõ
-Nếu chưa chốt rõ business rule thì chưa nên thêm:
-- QR scanner hoàn chỉnh
-- audio queue phức tạp
-- AI API
-- backend/CMS
+### 3.3. Không thêm feature ngoài scope hiện tại
+Chưa làm ngay:
+- landing page production
+- analytics QR
+- server-managed QR
+- deferred deep link hoàn chỉnh
 
 ---
 
 ## 4. Những phần nên giữ nguyên trước mắt
 
 ### 4.1. Cấu trúc thư mục chính
-Giữ nguyên các thư mục:
+Giữ nguyên:
 - `Models`
 - `Services`
 - `ViewModels`
@@ -68,167 +86,93 @@ Giữ nguyên các thư mục:
 
 ### 4.2. Dữ liệu POI hiện tại
 Giữ format POI hiện tại trong `pois.json`:
-- Code
-- Latitude
-- Longitude
-- Radius
-- Priority
-- LanguageCode
-- Name
-- Summary
-- NarrationShort
-- NarrationLong
+- `Code`
+- `Latitude`
+- `Longitude`
+- `Radius`
+- `Priority`
+- `LanguageCode`
+- `Name`
+- `Summary`
+- `NarrationShort`
+- `NarrationLong`
 
-Đây là format đủ tốt cho PoC và MVP cơ bản.
-
-### 4.3. Tinh thần kiến trúc hiện tại
-Giữ hướng phân tách:
-- UI
-- ViewModel
-- Service
-- Model
-- Data source local
+### 4.3. Flow QR hiện tại
+Giữ flow scan -> parse -> lookup DB -> mở detail.  
+Không ép refactor sang deep link ngay trong đợt này.
 
 ---
 
 ## 5. Những phần cần làm rõ thêm trong code
 
-### 5.1. Geofence rule
-Cần làm rõ trong code và docs:
-- điều kiện xác định “đã vào vùng”
-- nếu nhiều POI cùng hợp lệ thì chọn theo gì
-- khi nào một POI được phép phát lại
-- cooldown đang dùng bao lâu
-- có debounce chưa
-- manual play và auto play tương tác thế nào
+### 5.1. `QrResolver`
+- sửa bug thứ tự parse:
+  - phải check `poi://` trước `poi:`
+- mở rộng parser cho link-based QR
+- trả về type/source nếu cần debug tốt hơn
 
-### 5.2. Audio/Narration rule
-Cần làm rõ:
-- chỉ một audio được phát tại một thời điểm
-- nếu đang phát audio khác thì auto trigger làm gì
-- manual play có được interrupt không
-- khi thiếu audio file thì fallback sang TTS thế nào
-- ưu tiên `NarrationShort` hay `NarrationLong`
+### 5.2. `QrScannerViewModel`
+- giữ luồng hiện tại: parse -> lookup -> open detail
+- đảm bảo cơ chế hạn chế double navigation đang hoạt động
+- tránh mở rộng chức năng deep link ở giai đoạn này
 
-### 5.3. Map flow
-Cần giảm bớt logic nằm trực tiếp trong `MapPage.xaml.cs`.
-Mục tiêu lâu dài:
-- `MapPage` chủ yếu lo hiển thị
-- `MapViewModel` lo dữ liệu và state
-- `Services` lo xử lý nghiệp vụ
+### 5.3. `MapViewModel` + `MapPage`
+- giữ cơ chế pending focus
+- đảm bảo `OpenOnMap` từ detail không sinh thêm stack bất thường
+- giảm lỗi push page dư / kẹt flow
+
+### 5.4. Audio conflict rule
+- xác định rõ khi đang có audio geofence thì QR detail/manual play sẽ làm gì
+- mặc định đề xuất:
+  - geofence auto: skip nếu đang bận
+  - manual từ detail: stop audio hiện tại và phát mới
 
 ---
 
 ## 6. Những phần nên bổ sung tiếp theo
 
 ### 6.1. Docs
-Bổ sung và cập nhật:
-- `07_refactor_plan.md`
-- `08_test_checklist.md`
+Bổ sung:
+- sequence QR hiện tại
+- sequence QR target
+- implementation prompt cho AI coding assistant
 
-### 6.2. Service / Model có thể bổ sung sau
-Khi sang giai đoạn MVP hoàn thiện hơn, có thể thêm:
-- `PlaybackLog`
-- `QrService`
-- `QrScannerViewModel`
-- `PoiDetailViewModel`
-- `SettingsViewModel`
-
-### 6.3. Thư mục tích hợp AI
-Hiện tại chưa dùng AI API.
-Chỉ cần chuẩn bị:
-- `Integrations/AI/README.md`
+### 6.2. Service / Model có thể bổ sung
+- `DeepLinkHandler`
+- `QrLinkParserResult`
+- `QrNavigationCoordinator`
+- `PlaybackState` hoặc `PlaybackPolicy`
 
 ---
 
 ## 7. Kế hoạch refactor theo thứ tự
 
-### Giai đoạn 1 — Khóa rule
-- rà soát `05_core_business_rules.md`
-- ghi rõ geofence rule
-- ghi rõ audio rule
-- ghi rõ offline rule
-- ghi rõ QR strategy (chưa cần code)
+### Giai đoạn 1 — Khóa docs và rule
+- chuẩn hóa docs hiện có
+- chốt sequence hiện tại
+- chốt target sequence
 
-### Giai đoạn 2 — Test trước
-- viết test cho logic geofence
-- viết test cho load/fallback dữ liệu POI
+### Giai đoạn 2 — Sửa lỗi parser và QR flow
+- sửa parse order bug `poi://`
+- mở rộng parser cho URL
+- đảm bảo route/detail flow ổn định
 
-### Giai đoạn 3 — Dọn lại flow lõi
-- giảm logic trong `MapPage`
-- giữ service làm đúng trách nhiệm
-- tránh UI tự xử lý nghiệp vụ phức tạp
+### Giai đoạn 3 — Chuẩn bị deep link
+- đăng ký route/app link
+- tạo entry point xử lý URL
+- dùng lại chung logic `Code -> POI`
 
-### Giai đoạn 4 — Bổ sung MVP features
-- POI detail page
-- settings page
-- QR scan flow
-- chọn ngôn ngữ rõ ràng hơn
-
----
-
-## 8. QR code sẽ được xử lý như thế nào
-
-Hiện tại dự án chưa có chức năng QR code.
-
-### Hướng xử lý đề xuất
-QR sẽ không thay thế geofence.
-QR là một trigger phụ để truy cập đúng POI.
-
-### Dữ liệu trong QR
-Đề xuất format đơn giản:
-`poi:CODE`
-
-Ví dụ:
-`poi:HO_TAY`
-
-### Luồng xử lý
-1. User mở màn quét QR
-2. App scan ra chuỗi
-3. Parse `Code`
-4. Tìm POI theo `Code`
-5. Mở trang chi tiết POI
-6. User có thể bấm nghe narration
-
-### Ghi chú
-Không bắt buộc phải lưu sẵn ảnh QR trong từng POI.
-Có thể tạo ảnh QR sau này từ `Code` nếu cần in ấn hoặc demo.
+### Giai đoạn 4 — Hoàn tất MVP QR
+- test offline/local data
+- test external camera scenario
+- test manual narration / open on map
+- đóng gói docs + prompt cho vibe coding
 
 ---
 
-## 9. Những thứ chưa làm ở giai đoạn này
-
-Chưa ưu tiên:
-- AI API
-- CMS web
-- analytics
-- backend phức tạp
-- queue audio nâng cao
-- bản đồ offline nâng cao
-- QR quản lý bởi server
-
----
-
-## 10. Kết quả mong muốn sau refactor
-
-Sau giai đoạn refactor này, dự án cần đạt:
-- rule rõ hơn
-- code dễ hiểu hơn
-- dễ test hơn
-- ít bug logic hơn
-- sẵn sàng để hoàn tất MVP
-
-## QR Refactor Direction
-
-QR cần được thiết kế theo hướng nhiều ngữ cảnh sử dụng, không chỉ scan trong app.
-
-### Giai đoạn 1
-- hỗ trợ scan trong app với format `poi:CODE`
-
-### Giai đoạn 2
-- hỗ trợ link-based QR
-- thêm cơ chế mở app tới đúng POI từ QR link
-
-### Giai đoạn 3
-- xem xét landing page cho user chưa có app
-- xem xét fallback khi user scan bằng camera ngoài app
+## 8. Refactor success criteria
+- docs khớp code hiện tại
+- parser không còn bug format
+- scan QR mở đúng detail ổn định
+- open on map từ detail ổn định
+- có tài liệu đủ rõ để Copilot/Cursor bám đúng flow

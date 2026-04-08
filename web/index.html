@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thuyết minh — Địa điểm</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" class="brand">VN GO Travel</a>
+    <button type="button" class="linkish" id="btnHomeHeader">Về trang chủ</button>
+  </header>
+
+  <main class="wrap">
+    <div id="viewLoading" class="card">
+      <p class="muted">Đang tải…</p>
+    </div>
+
+    <div id="viewFatal" class="card" hidden>
+      <h1>Lỗi tải trang</h1>
+      <p id="fatalMessage"></p>
+      <button type="button" onclick="location.reload()">Tải lại</button>
+    </div>
+
+    <div id="viewHome" class="card" hidden>
+      <h1>Điểm đến</h1>
+      <p class="muted">Mở liên kết dạng <code>/poi/MÃ</code> để xem thông tin địa điểm hoặc mở trong ứng dụng.</p>
+      <p class="muted">Ví dụ: <a href="/poi/HO_GUOM">/poi/HO_GUOM</a></p>
+    </div>
+
+    <div id="viewNotFound" class="card" hidden>
+      <h1>Không tìm thấy địa điểm</h1>
+      <p>Mã <strong id="nfCode"></strong> không có trong danh sách.</p>
+      <p class="muted">Kiểm tra lại mã hoặc quay về trang chủ.</p>
+      <div class="actions">
+        <button type="button" id="btnHomeFromNf">Về trang chủ</button>
+      </div>
+    </div>
+
+    <div id="viewPoi" class="card" hidden>
+      <p class="eyebrow" id="poiCode"></p>
+      <h1 id="poiName"></h1>
+      <p class="summary" id="poiSummary"></p>
+      <p class="muted small">Ngôn ngữ hiển thị: <span id="poiLang"></span></p>
+
+      <div id="fallbackBanner" class="banner" hidden>
+        <p><strong>Gợi ý:</strong> Nếu ứng dụng không mở, có thể bạn chưa cài app hoặc thiết bị chưa liên kết đúng. Bạn vẫn có thể xem thông tin trên trang này, sao chép mã, hoặc mở lại sau.</p>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="btnOpenApp">Mở trong ứng dụng</button>
+        <button type="button" id="btnCopy">Sao chép mã địa điểm</button>
+      </div>
+      <p id="copyHint" class="hint" hidden></p>
+    </div>
+  </main>
+
+  <script src="pois.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
