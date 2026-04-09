@@ -44,14 +44,14 @@
 - GPS lấy vị trí hiện tại
 - geofence chọn POI theo priority rồi khoảng cách
 - audio service tránh chồng tiếng theo kiểu cancel current speech
-- SQLite tra POI theo `Code` và `LanguageCode`
+- SQLite tra POI theo `Code` (dữ liệu lõi); phần text/ngôn ngữ lấy qua `LocalizationService` + fallback/cache
 - QR scanner in-app mở `PoiDetailPage`
 
 ### Đã có trong docs nhưng chưa hoàn chỉnh trong code
 - debounce/cooldown geofence rõ ràng
 - deep link / app link
 - link-based QR cho camera ngoài app
-- landing page cho user chưa có app
+- landing page web cơ bản đã có, nhưng external flow chưa ổn định đồng đều mọi thiết bị
 
 ## Mapping Decision
 QR được xem là phần mở rộng đúng với định hướng giáo viên, nhưng phải được triển khai như:

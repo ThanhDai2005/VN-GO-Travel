@@ -102,8 +102,6 @@ public sealed class PoiTranslationService : IPoiTranslationService
 
             var allSucceeded = nameR.Succeeded && summaryR.Succeeded && narrSR.Succeeded && narrLR.Succeeded;
 
-            //var allSucceeded = nameR.Succeeded && summaryR.Succeeded && narrSR.Succeeded && narrLR.Succeeded;
-
             var entry = new PoiTranslationCacheEntry
             {
                 Key = key,

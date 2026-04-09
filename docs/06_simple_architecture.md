@@ -1,5 +1,8 @@
 # 6. Simple Architecture
 
+> Tài liệu này mô tả kiến trúc đơn giản theo hiện trạng runtime MVP.  
+> Chi tiết QR/deep-link chuẩn dùng `docs/QR_MODULE.md`.
+
 ## Main Components
 1. `LocationService`
 2. `GeofenceService`
@@ -10,7 +13,7 @@
 7. `QrResolver`
 8. `PoiEntryCoordinator` (new)
 8. `PoiDetailPage / PoiDetailViewModel`
-9. `DeepLinkHandler` (planned)
+9. `DeepLinkHandler` + `DeepLinkCoordinator` (đang dùng cho warm deep link Android)
 
 ## Responsibilities
 
@@ -33,7 +36,7 @@
 ### `PoiDatabase`
 - đọc/ghi POI từ SQLite
 - tra POI theo `Code`
-- áp dụng language fallback
+- dữ liệu text theo ngôn ngữ được hydrate qua `LocalizationService` (không lấy trực tiếp từ bảng `pois`)
 
 ### `MapViewModel`
 - giữ language hiện tại
@@ -74,9 +77,10 @@
 - cho phép user phát narration thủ công
 - cho phép mở lại đúng POI trên map
 
-### `DeepLinkHandler` (app-side stub, planned)
-- app-side handler/stub exists to accept raw URLs and reuse the shared `PoiEntryCoordinator` flow
-- this is a planned-only entry point (no platform wiring in this phase). When platform code receives a link it should create a `PoiEntryRequest` and call the coordinator via this handler.
+### `DeepLinkHandler` + `DeepLinkCoordinator`
+- `DeepLinkHandler` nhận raw link và tái sử dụng cùng pipeline `PoiEntryCoordinator`
+- `DeepLinkCoordinator` điều phối thời điểm dispatch khi Shell sẵn sàng
+- hiện đang ổn định cho warm/background deep link Android; cold-start còn là known limitation
 
 ## Architectural Principle
 Mọi nguồn vào đều nên hội tụ về cùng một lõi xử lý:

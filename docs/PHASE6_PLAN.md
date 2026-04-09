@@ -1,5 +1,8 @@
 # Phase 6 Plan — Entry pipeline stabilization
 
+> Tài liệu kế hoạch đã thực hiện theo phase, giữ lại để truy vết lịch sử.  
+> Trạng thái runtime hiện tại: xem `docs/QR_MODULE.md`, `docs/QR_IMPLEMENTATION_STATUS.md`, `docs/DEEP_LINK_LIMITATIONS.md`.
+
 Goal: continue Phase 6 without relying on Android cold-start deep links. Stabilize and unify POI entry flows and keep the codebase ready for a later cold-start fix.
 
 Summary of actions taken in Phase 6:

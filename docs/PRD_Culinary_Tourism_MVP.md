@@ -1,5 +1,8 @@
 # PRD — Hệ Thống Du Lịch Ẩm Thực Quận 4 (MVP)
 
+> Tài liệu PRD mức định hướng sản phẩm (draft/historical).  
+> Có thể khác phạm vi runtime hiện tại của app MAUI; không dùng làm contract kỹ thuật triển khai.
+
 ## 1. Thông tin tài liệu
 - **Tên sản phẩm:** Hệ Thống Du Lịch Ẩm Thực Quận 4
 - **Phiên bản PRD:** v0.1

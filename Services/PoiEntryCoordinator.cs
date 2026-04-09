@@ -19,7 +19,6 @@ public class PoiEntryResult
 public class PoiEntryCoordinator
 {
     private readonly PoiDatabase          _db;
-    private readonly LocalizationService   _locService;
     private readonly ViewModels.MapViewModel _mapVm;
     private bool     _isHandling;
     private string?  _lastHandledCode;
@@ -29,12 +28,10 @@ public class PoiEntryCoordinator
 
     public PoiEntryCoordinator(
         PoiDatabase db,
-        LocalizationService locService,
         ViewModels.MapViewModel mapVm,
         CurrentPoiStore currentPoiStore)
     {
         _db              = db;
-        _locService      = locService;
         _mapVm           = mapVm;
         _currentPoiStore = currentPoiStore;
     }
@@ -93,7 +90,7 @@ public class PoiEntryCoordinator
                 ? request.PreferredLanguage
                 : _mapVm.CurrentLanguage;
 
-            // Verify POI exists without calling PoiTranslationService (which is broken).
+            // Verify POI exists via core POI lookup in SQLite.
             var core = await _db.GetByCodeAsync(code).ConfigureAwait(false);
             if (core == null)
                 return new PoiEntryResult { Success = false, Error = "POI not found in database" };

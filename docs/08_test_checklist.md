@@ -31,19 +31,17 @@ Tài liệu này dùng để kiểm tra xem ứng dụng đã đạt mức PoC h
 - [ ] Mỗi POI có `Latitude`, `Longitude`
 - [ ] Mỗi POI có `Radius`
 - [ ] Mỗi POI có `Priority`
-- [ ] Mỗi POI có `LanguageCode`
-- [ ] Mỗi POI có `Name`
-- [ ] Mỗi POI có `NarrationShort`
-- [ ] Mỗi POI có `NarrationLong`
+- [ ] Trong SQLite, mỗi POI có dữ liệu lõi: `Code`, `Latitude`, `Longitude`, `Radius`, `Priority`
+- [ ] Text hiển thị được hydrate qua `LocalizationService` (không bắt buộc lưu trực tiếp trong bảng `pois`)
 
 ### 2.2. Multi-language consistency
-- [ ] Cùng một `Code` có thể tồn tại nhiều ngôn ngữ
-- [ ] Dữ liệu tiếng Việt và tiếng Anh của cùng một POI khớp nhau về tọa độ/radius/priority
-- [ ] Không bị sai lệch `Code` giữa các bản dịch
+- [ ] Cùng một `Code` trả ra đúng nội dung theo ngôn ngữ đã chọn (hoặc fallback hợp lệ)
+- [ ] Tọa độ/radius/priority không đổi khi đổi ngôn ngữ
+- [ ] Không bị sai lệch `Code` giữa dữ liệu lõi và text hiển thị
 
 ### 2.3. Data lookup
 - [ ] Tìm đúng POI theo `Code`
-- [ ] Lấy đúng bản dịch theo `LanguageCode`
+- [ ] Lấy đúng nội dung theo ngôn ngữ yêu cầu qua `LocalizationService`/cache dịch
 - [ ] Nếu thiếu ngôn ngữ, có rule fallback rõ ràng
 
 ---
@@ -160,11 +158,12 @@ Tài liệu này dùng để kiểm tra xem ứng dụng đã đạt mức PoC h
 
 ### 8.4. Link-based QR (notes)
 - [ ] Parser inside scanner nhận diện URL path `/p/{CODE}` và `/poi/{CODE}`
-- [ ] OS-level app link behavior is NOT implemented: verify deep-link behavior is planned only
+- [ ] OS-level deep link Android warm/background hoạt động đúng theo `QR_MODULE.md`
 - [ ] Landing page / external flow are out of scope for current tests
 
-### 8.5. External camera scenario (future)
-- External device camera -> OS deep link is not implemented. Add these tests in future phases when deep link handler and intent-filters are added.
+### 8.5. External camera scenario (advanced)
+- External device camera -> app handoff có thể hoạt động tùy thiết bị/cấu hình host; cần test thực tế theo checklist `QR_MODULE.md`.
+- Cold-start deep link vẫn là known limitation, kiểm tra theo `DEEP_LINK_LIMITATIONS.md`.
 
 ### 8.6. QR and narration
 - [ ] Từ POI detail sau khi scan, user có thể bấm nghe narration
@@ -196,7 +195,7 @@ Tài liệu này dùng để kiểm tra xem ứng dụng đã đạt mức PoC h
 - [ ] Code hiện tại khớp với `04_mvp_scope.md`
 - [ ] Code hiện tại khớp với `05_core_business_rules.md`
 - [ ] Code hiện tại khớp với `06_simple_architecture.md`
-- [ ] Code hiện tại khớp với `09_qr_strategy.md`
+- [ ] Code hiện tại khớp với `QR_MODULE.md`
 
 ---
 

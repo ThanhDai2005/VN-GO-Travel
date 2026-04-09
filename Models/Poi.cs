@@ -4,8 +4,8 @@ using System.Diagnostics;
 namespace MauiApp1.Models;
 
 /// <summary>
-/// Represents a Point of Interest with geographic and behavioral metadata.
-/// Text content (name, narration, etc.) is stored in <see cref="Localization"/>.
+/// Represents one core Point of Interest row in SQLite.
+/// Text content (name, narration, etc.) is attached at runtime via <see cref="Localization"/>.
 /// </summary>
 [Table("pois")]
 public class Poi
@@ -13,7 +13,7 @@ public class Poi
     // ── Persisted columns (SQLite) ───────────────────────────────────────────
 
     /// <summary>
-    /// Primary key. Format: <c>{Code}_{LanguageCode}</c> (e.g. "HCM_en").
+    /// Primary key for the current DB shape. In this MVP: one row per POI code.
     /// </summary>
     [PrimaryKey]
     public string Id { get; set; } = "";
