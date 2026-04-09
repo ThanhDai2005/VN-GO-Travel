@@ -62,7 +62,8 @@ Hệ thống hiện hỗ trợ các loại QR sau (parsed inside app scanner):
 
 ### QR Behavior (notes)
 - Parser normalizes code (trim + ToUpperInvariant)
-- Parser supports both plain and link-based payloads INSIDE the app scanner. OS-level deep linking and landing page behavior are not implemented here.
+- Parser hỗ trợ plain/link payload trong app scanner.
+- Deep link Android warm/background và web landing đã có; cold-start deep link còn giới hạn (xem `docs/DEEP_LINK_LIMITATIONS.md`).
 
 ### QR and Offline
 - nếu user offline và đã có app + dữ liệu POI local, app vẫn có thể mở đúng POI

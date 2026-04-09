@@ -33,7 +33,20 @@ public class LanguagePackService
         ["ko"] = "~390 KB",
         ["fr"] = "~350 KB",
         ["zh"] = "~430 KB",
+        // Dynamic/on-demand added languages (estimates for UX only).
+        ["es"] = "~300 KB",
+        ["ru"] = "~400 KB",
+        ["de"] = "~300 KB",
+        ["it"] = "~400 KB",
+        ["pt"] = "~300 KB",
+        ["ar"] = "~400 KB",
+        ["th"] = "~300 KB",
+        ["id"] = "~400 KB",
+        ["hi"] = "~300 KB",
     };
+
+    public static string EstimateSizeLabel(string code)
+        => PackSizeLabels.GetValueOrDefault(code, "~300 KB");
 
     public LanguagePackService(IPreferredLanguageService langPrefs)
     {
@@ -65,14 +78,16 @@ public class LanguagePackService
                 {
                     var nativeName = Preferences.Get($"custom_lang_{code}_native", code);
                     var displayName = Preferences.Get($"custom_lang_{code}_display", code);
+
+                    var persisted = Preferences.Get(PrefKeyPrefix + code, false);
                     
                     Packs.Add(new LanguagePack
                     {
                         Code = code,
                         DisplayName = displayName,
                         NativeName = nativeName,
-                        SizeLabel = "On-demand",
-                        State = DownloadState.Downloaded
+                        SizeLabel = EstimateSizeLabel(code),
+                        State = persisted ? DownloadState.Downloaded : DownloadState.NotDownloaded
                     });
                     Debug.WriteLine($"[LANG-PACK] Restored dynamic language: {code}");
                 }
@@ -114,12 +129,12 @@ public class LanguagePackService
             Code = code,
             DisplayName = displayName,
             NativeName = nativeName,
-            SizeLabel = "On-demand",
-            State = DownloadState.Downloaded
+            SizeLabel = EstimateSizeLabel(code),
+            State = DownloadState.NotDownloaded
         };
         
         Packs.Add(pack);
-        Preferences.Set(PrefKeyPrefix + code, true);
+        Preferences.Set(PrefKeyPrefix + code, false);
 
         // Keep a comma-separated list of added languages in Preferences so we load them next time.
         var customLangs = Preferences.Get("custom_dynamic_languages", "");

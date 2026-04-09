@@ -1,5 +1,8 @@
 # 7. Refactor Plan
 
+> Tài liệu lịch sử phục vụ quá trình refactor theo phase.  
+> Không dùng làm runtime contract hiện tại.
+
 ## Mục tiêu
 Khóa lại luồng nghiệp vụ cốt lõi, cập nhật docs khớp với code hiện tại, và chuẩn bị nền tảng sạch để hoàn tất QR flow theo hướng thực tế hơn mà không phá app đang chạy.
 

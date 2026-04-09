@@ -24,10 +24,10 @@ Chuẩn hoá và stabilise PoC thành ứng dụng demo có luồng thực tế 
 - Flow after scan: parse -> resolve Code -> lookup local SQLite -> open PoiDetailPage -> optional Open on Map
 
 ## Deferred / Out of scope for this phase
-- OS-level app links / universal links / intent-filters (not implemented)
-- External camera / device-level deep link handling (not implemented)
-- Landing page / public web redirect (not implemented)
-- Deferred deep linking and analytics (not implemented)
+- Android warm/background deep link đã có nhưng cold-start chưa hardened hoàn toàn
+- iOS universal links chưa hoàn thiện production-level
+- External camera end-to-end phụ thuộc cấu hình host/OS, chưa coi là fully stable ở mọi thiết bị
+- Deferred deep linking và analytics nâng cao chưa triển khai
 
 ## Done Definition for MVP (subset)
 - Map renders and POI load from SQLite

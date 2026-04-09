@@ -1,5 +1,8 @@
 # Prompt for GitHub Copilot / AI Coding Assistant
 
+> Tài liệu prompt lịch sử để tham khảo cách triển khai theo từng thời điểm.  
+> Runtime contract hiện tại ưu tiên `docs/QR_MODULE.md`.
+
 Bạn đang làm việc trên một dự án .NET MAUI tên `MauiApp1` cho app du lịch theo vị trí.  
 Nhiệm vụ của bạn là **hoàn thiện QR flow theo đúng docs hiện có**, không tự ý đổi kiến trúc, không tự ý thêm feature ngoài scope.
 

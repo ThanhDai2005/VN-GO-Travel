@@ -1,5 +1,8 @@
 # QR_SEQUENCE_FUTURE
 
+> Tài liệu kế hoạch tương lai (historical planning).  
+> Không dùng làm mô tả tính năng đã triển khai. Runtime contract: `docs/QR_MODULE.md`.
+
 Planned flow for future external / OS-level deep link support. THIS IS PLANNED ONLY — not implemented in code.
 
 ## Goals

@@ -1,6 +1,7 @@
 # QR Sequence — Target State
 
-> **Runtime contract (frozen):** `docs/QR_MODULE.md` — các URL `your-domain` bên dưới là ví dụ lịch sử.
+> Tài liệu này là target flow lịch sử để tham khảo kiến trúc mở rộng.  
+> Runtime contract hiện tại: `docs/QR_MODULE.md`.
 
 Tài liệu này mô tả flow QR mục tiêu sau khi mở rộng để dùng được cả trong app lẫn ngoài app.
 
@@ -16,7 +17,7 @@ Tài liệu này mô tả flow QR mục tiêu sau khi mở rộng để dùng đ
 - `https://your-domain/p/CODE`
 - `https://your-domain/poi/CODE`
 
-## Mermaid Sequence — In-app Scanner Target
+## Mermaid Sequence — In-app Scanner Target (historical reference)
 ```mermaid
 sequenceDiagram
     actor User
@@ -42,7 +43,7 @@ sequenceDiagram
     end
 ```
 
-## Mermaid Sequence — External Camera Target
+## Mermaid Sequence — External Camera Target (historical reference)
 ```mermaid
 sequenceDiagram
     actor User
