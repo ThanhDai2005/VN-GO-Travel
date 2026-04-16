@@ -77,6 +77,17 @@ public partial class App : Microsoft.Maui.Controls.Application
     protected override void OnSleep()
     {
         base.OnSleep();
+        try
+        {
+            // Best effort: notify backend immediately so Admin device screen flips to Offline right away.
+            _services.GetService<DevicePresenceService>()?
+                .SendOfflineAsync()
+                .Wait(1200);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PRESENCE] Immediate offline on sleep failed: {ex}");
+        }
         StopBackgroundServices();
     }
 
@@ -84,6 +95,19 @@ public partial class App : Microsoft.Maui.Controls.Application
     {
         base.OnResume();
         StartBackgroundServices();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var presence = _services.GetService<DevicePresenceService>();
+                if (presence != null)
+                    await presence.SendHeartbeatAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PRESENCE] Resume heartbeat: {ex}");
+            }
+        });
 #if ANDROID
         try
         {

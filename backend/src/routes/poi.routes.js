@@ -1,13 +1,15 @@
 const express = require('express');
 const poiController = require('../controllers/poi.controller');
-const { protect } = require('../middlewares/auth.middleware');
+const { protect, optionalAuth } = require('../middlewares/auth.middleware');
 const { requireRole, ROLES } = require('../middlewares/rbac.middleware');
 
 const router = express.Router();
 
+// Allow guest scan for secure/static QR. req.user is attached when JWT exists.
+router.post('/scan', optionalAuth, poiController.scan);
+
 router.use(protect);
 
-router.post('/scan', poiController.scan);
 router.get('/nearby', poiController.getNearby);
 router.get('/code/:code', poiController.getByCode);
 

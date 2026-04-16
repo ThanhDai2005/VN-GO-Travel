@@ -159,3 +159,7 @@ export async function fetchOwnerSubmissions(page = 1, limit = 50) {
 export async function submitOwnerPoi(body) {
   return apiRequest('/api/v1/owner/pois', { method: 'POST', body });
 }
+
+export async function fetchAdminDevices() {
+  return apiRequest('/api/v1/devices/admin/list');
+}

@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import AuditsPage from './pages/AuditsPage.jsx';
 import MasterPoisPage from './pages/MasterPoisPage.jsx';
 import UserManagementPage from './pages/UserManagementPage.jsx';
+import DeviceManagementPage from './pages/DeviceManagementPage.jsx';
 import OwnerSubmissionsPage from './pages/OwnerSubmissionsPage.jsx';
 import SubmitPoiPage from './pages/SubmitPoiPage.jsx';
 import DashboardLayout from './components/DashboardLayout.jsx';
@@ -94,6 +95,14 @@ export default function App() {
           element={
             <RequireRole allowedRoles={['ADMIN']}>
               <UserManagementPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="devices"
+          element={
+            <RequireRole allowedRoles={['ADMIN']}>
+              <DeviceManagementPage />
             </RequireRole>
           }
         />

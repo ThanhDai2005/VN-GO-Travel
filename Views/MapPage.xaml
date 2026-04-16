@@ -67,7 +67,7 @@
         <!-- BOTTOM PANEL -->
         <Border x:Name="BottomPanel"
         Grid.Row="1"
-        HeightRequest="220"
+        HeightRequest="176"
         Margin="16,0,16,20"
         BackgroundColor="White"
         Stroke="{StaticResource BorderLight}"
@@ -82,51 +82,48 @@
                 Radius="18" />
             </Border.Shadow>
 
-            <ScrollView>
+            <Grid RowDefinitions="Auto,Auto,Auto">
 
-                <Grid RowDefinitions="Auto,Auto,Auto">
+                <!-- drag indicator -->
+                <BoxView HeightRequest="4"
+                 WidthRequest="42"
+                 HorizontalOptions="Center"
+                 Margin="0,10,0,6"
+                 BackgroundColor="#D8C8C0"
+                 CornerRadius="2" />
 
-                    <!-- drag indicator -->
-                    <BoxView HeightRequest="4"
-                     WidthRequest="42"
-                     HorizontalOptions="Center"
-                     Margin="0,10"
-                     BackgroundColor="#D8C8C0"
-                     CornerRadius="2" />
+                <!-- CONTENT -->
+                <VerticalStackLayout Grid.Row="1"
+                             Padding="20,2,20,4"
+                             Spacing="4">
 
-                    <!-- CONTENT -->
-                    <VerticalStackLayout Grid.Row="1"
-                                 Padding="20,8"
-                                 Spacing="8">
+                    <Label Text="{Binding SelectedPoi.Localization.Name}"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}"
+                           LineBreakMode="TailTruncation"
+                           MaxLines="2" />
+                </VerticalStackLayout>
 
-                        <Label Text="{Binding SelectedPoi.Localization.Name}"
-                       FontSize="20"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}" />
+            <!-- BUTTONS -->
+                <Grid Grid.Row="2"
+              Padding="16,8,16,14"
+              RowDefinitions="Auto"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="10">
 
-                       
-                    </VerticalStackLayout>
+                    <Button x:Name="PlayAudioButton"
+                            Text="🔊 Nghe chi tiết"
+                            Style="{StaticResource PrimaryButton}"
+                            Clicked="OnListenDetailedClicked" />
 
-                <!-- BUTTONS -->
-                    <Grid Grid.Row="2"
-                  Padding="16"
-                  RowDefinitions="Auto"
-                  ColumnDefinitions="*,*"
-                  ColumnSpacing="10">
-
-                        <Button Text="🔊 Nghe chi tiết"
-                                Style="{StaticResource PrimaryButton}"
-                                Clicked="OnListenDetailedClicked" />
-
-                        <Button Grid.Column="1"
-                        Text="⏹ Dừng"
-                        Style="{StaticResource SecondaryButton}"
-                        Clicked="OnStopAudioClicked" />
-                    </Grid>
-
+                    <Button Grid.Column="1"
+                    Text="⏹ Dừng"
+                    Style="{StaticResource SecondaryButton}"
+                    Clicked="OnStopAudioClicked" />
                 </Grid>
 
-            </ScrollView>
+            </Grid>
         </Border>
 
     </Grid>

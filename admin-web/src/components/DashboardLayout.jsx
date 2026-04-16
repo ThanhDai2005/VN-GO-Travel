@@ -18,6 +18,7 @@ export default function DashboardLayout() {
     { to: '/pois', label: 'Quản lý POI' },
     { to: '/pending', label: 'Địa Điểm Chờ Duyệt' },
     { to: '/users', label: 'Quản lý Người Dùng' },
+    { to: '/devices', label: 'Quản lý Thiết bị' },
     { to: '/audits', label: 'Nhật ký duyệt' },
   ];
 

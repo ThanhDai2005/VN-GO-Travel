@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { createAdminUser, fetchAdminUsers, updateAdminUser, updateUserRole, updateUserStatus } from '../apiClient.js';
+import { createAdminUser, fetchAdminUsers, updateAdminUser, updateUserStatus } from '../apiClient.js';
 import { useAuth } from '../AuthContext.jsx';
 
 const ROLES = ['USER', 'OWNER'];
@@ -56,19 +56,6 @@ export default function UserManagementPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  async function onRoleChange(userId, role) {
-    setBusyId(userId);
-    setErr('');
-    try {
-      await updateUserRole(userId, role);
-      await load();
-    } catch (e) {
-      setErr(e.message || 'Cập nhật vai trò thất bại');
-    } finally {
-      setBusyId(null);
-    }
-  }
 
   async function onStatusToggle(userId, next) {
     setBusyId(userId);
@@ -195,18 +182,9 @@ export default function UserManagementPage() {
                     <td className="px-4 py-3 text-slate-800">{row.email}</td>
                     <td className="px-4 py-3 text-slate-800">{row.fullName || '—'}</td>
                     <td className="px-4 py-3">
-                      <select
-                        value={row.role || 'USER'}
-                        disabled={busy}
-                        onChange={(e) => onRoleChange(id, e.target.value)}
-                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900"
-                      >
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
+                      <span className="inline-flex min-w-[70px] justify-center rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
+                        {row.role || 'USER'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-slate-800">{Number(row.qrScanCount || 0)}</td>
                     <td className="px-4 py-3">
@@ -361,17 +339,12 @@ export default function UserManagementPage() {
               </label>
               <label className="block">
                 <span className="text-xs font-medium text-slate-600">Vai trò</span>
-                <select
+                <input
+                  type="text"
                   value={editForm.role}
-                  onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/40"
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                  readOnly
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
+                />
               </label>
               <label className="block">
                 <span className="text-xs font-medium text-slate-600">Lượt quét QR đã dùng</span>

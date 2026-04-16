@@ -85,6 +85,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<GeofenceService>();
         builder.Services.AddSingleton<IGeofenceService>(sp => sp.GetRequiredService<GeofenceService>());
 
+        builder.Services.AddSingleton<DevicePresenceService>();
         builder.Services.AddSingleton<BackgroundTaskService>();
         builder.Services.AddSingleton<AppState>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
