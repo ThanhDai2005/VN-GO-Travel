@@ -1,5 +1,4 @@
 using SQLite;
-using System.Diagnostics;
 
 namespace MauiApp1.Models;
 
@@ -20,6 +19,18 @@ public class Poi
 
     /// <summary>Stable POI identifier (e.g. "HCM", "HN_OLD_QUARTER").</summary>
     public string Code { get; set; } = "";
+
+    /// <summary>
+    /// When set, identifies the language of flattened text columns on this row
+    /// (<see cref="Name"/>, <see cref="Summary"/>, etc.) for exact code+language queries.
+    /// Core geo-only rows may leave this null.
+    /// </summary>
+    public string? LanguageCode { get; set; }
+
+    public string? Name { get; set; }
+    public string? Summary { get; set; }
+    public string? NarrationShort { get; set; }
+    public string? NarrationLong { get; set; }
 
     /// <summary>WGS-84 latitude of the POI center.</summary>
     public double Latitude { get; set; }

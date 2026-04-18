@@ -303,3 +303,102 @@ describe('Stage 6 — Audit log API', () => {
         expect(doc.newStatus).toBe('REJECTED');
     });
 });
+
+describe('7.3.0 — Intelligence ingestion (RBEL)', () => {
+    beforeEach(() => seedUsers());
+
+    const sampleEvent = (overrides = {}) => ({
+        contractVersion: 'v2',
+        correlationId: 'corr-test-1',
+        deviceId: 'device-a',
+        authState: 'guest',
+        userType: 'guest',
+        sourceSystem: 'GAK',
+        rbelEventFamily: 'location',
+        rbelMappingVersion: 'rbel-1.0.0',
+        timestamp: new Date().toISOString(),
+        eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        runtimeSequence: 1,
+        runtimeTickUtcTicks: 638800000000000000,
+        actionType: 'geofence',
+        ...overrides
+    });
+
+    it('rejects batch without auth', async () => {
+        const res = await request(app())
+            .post('/api/v1/intelligence/events/batch')
+            .send({ events: [sampleEvent()] });
+        expect(res.status).toBe(401);
+    });
+
+    it('accepts batch with X-Api-Key', async () => {
+        const ev = sampleEvent({
+            correlationId: 'c-api-1',
+            deviceId: 'd-ingest-1',
+            eventId: `e1-${Date.now()}`
+        });
+        const res = await request(app())
+            .post('/api/v1/intelligence/events/batch')
+            .set('X-Api-Key', 'test-intel-ingest-key')
+            .send({ schema: 'event-contract-v2', events: [ev] });
+        expect(res.status).toBe(200);
+        expect(res.body.accepted).toBe(1);
+        expect(res.body.rejected).toBe(0);
+    });
+
+    it('dedupes on device_id + correlation_id + runtime_sequence', async () => {
+        const key = 'test-intel-ingest-key';
+        const base = sampleEvent({
+            correlationId: 'c-dup-seq',
+            deviceId: 'd-dup',
+            runtimeSequence: 42,
+            eventId: `e-dup-a-${Date.now()}`
+        });
+        const r1 = await request(app())
+            .post('/api/v1/intelligence/events/batch')
+            .set('X-Api-Key', key)
+            .send({ events: [base] });
+        expect(r1.status).toBe(200);
+        expect(r1.body.accepted).toBe(1);
+        const r2 = await request(app())
+            .post('/api/v1/intelligence/events/batch')
+            .set('X-Api-Key', key)
+            .send({
+                events: [{ ...base, eventId: `e-dup-b-${Date.now()}` }]
+            });
+        expect(r2.status).toBe(200);
+        expect(r2.body.duplicate).toBe(1);
+        expect(r2.body.accepted).toBe(0);
+    });
+
+    it('ADMIN GET journey lists events by correlationId', async () => {
+        const cid = `c-journey-${Date.now()}`;
+        const ev = sampleEvent({
+            correlationId: cid,
+            deviceId: 'dj-1',
+            runtimeSequence: 1,
+            eventId: `j1-${Date.now()}`
+        });
+        await request(app())
+            .post('/api/v1/intelligence/events/batch')
+            .set('X-Api-Key', 'test-intel-ingest-key')
+            .send({ events: [ev] })
+            .expect(200);
+        const adminTok = await login('admin@test.local', 'password123');
+        const jr = await request(app())
+            .get(`/api/v1/admin/intelligence/journeys/${cid}`)
+            .set('Authorization', `Bearer ${adminTok}`);
+        expect(jr.status).toBe(200);
+        expect(jr.body.success).toBe(true);
+        expect(jr.body.data.events.length).toBe(1);
+        expect(jr.body.data.events[0].correlation_id).toBe(cid);
+    });
+
+    it('USER forbidden from admin intelligence summary', async () => {
+        const token = await login('user@test.local', 'password123');
+        const res = await request(app())
+            .get('/api/v1/admin/intelligence/summary')
+            .set('Authorization', `Bearer ${token}`);
+        expect(res.status).toBe(403);
+    });
+});

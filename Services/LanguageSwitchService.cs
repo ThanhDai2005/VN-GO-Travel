@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
+using MauiApp1.Services.MapUi;
 
 namespace MauiApp1.Services;
 
@@ -24,6 +25,7 @@ public class LanguageSwitchService
     private readonly PoiHydrationService       _hydrationService;
     private readonly PoiNarrationService       _narrationService;
     private readonly AppState                 _appState;
+    private readonly IMapUiStateArbitrator    _mapUi;
 
     // Prevents concurrent execution of ApplyLanguageSelectionAsync (BUG-4 fix).
     private readonly SemaphoreSlim _langSwitchGate = new(1, 1);
@@ -39,13 +41,15 @@ public class LanguageSwitchService
         ILocalizationService locService,
         PoiHydrationService hydrationService,
         PoiNarrationService narrationService,
-        AppState appState)
+        AppState appState,
+        IMapUiStateArbitrator mapUi)
     {
         _languagePrefs    = languagePrefs;
         _locService       = locService;
         _hydrationService = hydrationService;
         _narrationService = narrationService;
         _appState         = appState;
+        _mapUi            = mapUi;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -91,7 +95,7 @@ public class LanguageSwitchService
             await _hydrationService.RefreshPoisCollectionAsync(rehydrated);
 
             // THREAD SAFETY: All UI state changes must happen on the main thread
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 _appState.CurrentLanguage = n;
 
@@ -100,10 +104,11 @@ public class LanguageSwitchService
                 {
                     var selectedCode = _appState.SelectedPoi.Code;
                     var newCore = rehydrated.FirstOrDefault(p => p.Code == selectedCode);
-                    _appState.SelectedPoi = newCore != null
+                    var newPoi = newCore != null
                         ? PoiHydrationService.CreateHydratedPoi(newCore, _locService.GetLocalizationResult(selectedCode, n))
                         : null;
-                    Debug.WriteLine($"[LANG] SelectedPoi re-resolved: code={selectedCode} null={_appState.SelectedPoi == null}");
+                    await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.LanguageRehydrate, newPoi).ConfigureAwait(false);
+                    Debug.WriteLine($"[LANG] SelectedPoi re-resolved: code={selectedCode} null={newPoi == null}");
                 }
 
                 PoisRefreshed?.Invoke(this, EventArgs.Empty);

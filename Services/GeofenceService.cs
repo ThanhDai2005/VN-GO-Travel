@@ -166,6 +166,14 @@ public class GeofenceService : IGeofenceService
                 return;
             }
 
+            // 7.2 — avoid double audio when map/detail already selected this POI (UI narration + proximity)
+            if (!string.IsNullOrEmpty(poi.Code) &&
+                string.Equals(_appState.SelectedPoi?.Code, poi.Code, StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.WriteLine($"[GEOFENCE] Trigger suppressed: same POI as UI selection code={poi.Code}");
+                return;
+            }
+
             // Trigger narration
             _currentActivePoiId = poi.Id;
             lock (_lastTriggeredAt)

@@ -80,7 +80,7 @@ public class AppState : INotifyPropertyChanged
     public Poi? SelectedPoi
     {
         get => _selectedPoi;
-        set
+        private set
         {
             if (_selectedPoi != value)
             {
@@ -90,6 +90,11 @@ public class AppState : INotifyPropertyChanged
             }
         }
     }
+
+    /// <summary>
+    /// Map State Arbitration Layer (7.2.4): the only supported mutation path for map selection.
+    /// </summary>
+    internal void CommitSelectedPoiForUi(Poi? value) => SelectedPoi = value;
 
     private string? _activeNarrationCode;
     public string? ActiveNarrationCode
@@ -125,26 +130,4 @@ public class AppState : INotifyPropertyChanged
     public event EventHandler<Poi?>? SelectedPoiChanged;
     public event EventHandler? PoisChanged;
 
-    /// <summary>
-    /// Lightweight method to update selection by code.
-    /// Used by services that don't hold the full list of Poi objects.
-    /// </summary>
-    public void SetSelectedPoiByCode(string? code)
-    {
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            MainThread.BeginInvokeOnMainThread(() => SelectedPoi = null);
-            return;
-        }
-
-        var normalized = code.Trim().ToUpperInvariant();
-
-        // THREAD SAFETY: Capture snapshot and dispatch mutation to main thread.
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            var match = _pois.FirstOrDefault(p => p.Code == normalized);
-            if (match != null)
-                SelectedPoi = match;
-        });
-    }
 }

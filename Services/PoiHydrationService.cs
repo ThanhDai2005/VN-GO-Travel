@@ -27,6 +27,9 @@ public class PoiHydrationService
     private readonly AppState _appState;
     private readonly ApiService? _api;
     private readonly AuthService? _auth;
+    private readonly IEventTracker _eventTracker;
+    private readonly IUserContextSnapshotProvider _userContext;
+    private readonly TranslationTrackingSession _trackingSession;
     private readonly SemaphoreSlim _loadGate = new(1, 1);
 
     public PoiHydrationService(
@@ -36,7 +39,10 @@ public class PoiHydrationService
         IPreferredLanguageService languagePrefs,
         AppState appState,
         ApiService api,
-        AuthService auth)
+        AuthService auth,
+        IEventTracker eventTracker,
+        IUserContextSnapshotProvider userContext,
+        TranslationTrackingSession trackingSession)
     {
         _poiQuery = poiQuery;
         _poiCommand = poiCommand;
@@ -45,6 +51,9 @@ public class PoiHydrationService
         _appState = appState;
         _api = api;
         _auth = auth;
+        _eventTracker = eventTracker;
+        _userContext = userContext;
+        _trackingSession = trackingSession;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -185,6 +194,7 @@ public class PoiHydrationService
 
         try
         {
+            var sw = Stopwatch.StartNew();
             await _poiQuery.InitAsync(cancellationToken).ConfigureAwait(false);
             await _locService.InitializeAsync(cancellationToken).ConfigureAwait(false);
 
@@ -264,10 +274,50 @@ public class PoiHydrationService
                 .Select(p => CreateHydratedPoi(p, _locService.GetLocalizationResult(p.Code, targetLang)))
                 .ToList();
             await RefreshPoisCollectionAsync(hydrated).ConfigureAwait(false);
+
+            sw.Stop();
+            await TrackNearbySyncAnalyticsAsync(n, sw.ElapsedMilliseconds, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[SYNC] Failed: {ex.Message}");
+        }
+    }
+
+    private async Task TrackNearbySyncAnalyticsAsync(int batchItemCount, long durationMs, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var ctx = await _userContext.GetAsync(cancellationToken).ConfigureAwait(false);
+            var loc = _appState.CurrentLocation;
+            var geoSource = loc != null ? EventGeoSource.Gps : EventGeoSource.Unknown;
+            _eventTracker.Track(new TranslationEvent
+            {
+                RequestId = Guid.NewGuid().ToString("N"),
+                SessionId = _trackingSession.SessionId,
+                PoiCode = "",
+                Language = "",
+                UserType = ctx.UserType,
+                UserId = ctx.UserId,
+                DeviceId = ctx.DeviceId,
+                Status = TranslationEventStatus.AppEvent,
+                DurationMs = durationMs,
+                Timestamp = DateTimeOffset.UtcNow,
+                Source = "nearby_sync",
+                ActionType = EventActionKind.Manual,
+                NetworkType = NetworkTypeResolver.Resolve(),
+                FetchTriggered = true,
+                UserApproved = null,
+                Latitude = loc?.Latitude,
+                Longitude = loc?.Longitude,
+                GeoRadiusMeters = null,
+                GeoSource = geoSource,
+                BatchItemCount = batchItemCount
+            });
+        }
+        catch
+        {
+            // analytics only
         }
     }
 

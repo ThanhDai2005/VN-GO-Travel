@@ -1,6 +1,7 @@
 using System.Threading;
 using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.Models;
+using Microsoft.Extensions.Logging;
 using SQLite;
 
 namespace MauiApp1.Services;
@@ -8,10 +9,12 @@ namespace MauiApp1.Services;
 public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslationRepository
 {
     private readonly SQLiteAsyncConnection _db;
+    private readonly ILogger<PoiDatabase> _logger;
     private bool _inited;
 
-    public PoiDatabase()
+    public PoiDatabase(ILogger<PoiDatabase> logger)
     {
+        _logger = logger;
         var path = Path.Combine(FileSystem.AppDataDirectory, "pois.db");
         _db = new SQLiteAsyncConnection(path);
     }
@@ -108,6 +111,14 @@ public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslat
         if (string.IsNullOrWhiteSpace(code)) return null;
         code = code.Trim();
 
+        if (!string.IsNullOrWhiteSpace(lang))
+        {
+            _logger.LogWarning(
+                "[TranslationWarning] GetByCodeAsync ignores Lang parameter for code-only lookup | Code={Code} | Lang={Lang}",
+                code,
+                lang);
+        }
+
         return await _db.Table<Poi>()
             .Where(p => p.Code == code)
             .FirstOrDefaultAsync();
@@ -116,11 +127,35 @@ public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslat
     public Task<Poi?> GetAnyLanguageByCodeAsync(string code, CancellationToken cancellationToken = default)
         => GetByCodeAsync(code, null, cancellationToken);
 
-    public Task<Poi?> GetExactByCodeAndLanguageAsync(
+    public async Task<Poi?> GetExactByCodeAndLanguageAsync(
         string code,
         string languageCode,
         CancellationToken cancellationToken = default)
-        => GetByCodeAsync(code, null, cancellationToken);
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(languageCode))
+            return null;
+
+        var normCode = code.Trim().ToUpperInvariant();
+        var normLang = languageCode.Trim().ToLowerInvariant();
+
+        var matches = await _db.Table<Poi>()
+            .Where(p => p.Code == normCode && p.LanguageCode == normLang)
+            .Take(2)
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        if (matches.Count > 1)
+        {
+            _logger.LogWarning(
+                "[TranslationWarning] Multiple POI rows for same code and language | Code={Code} | Lang={Lang} | Count={Count}",
+                normCode,
+                normLang,
+                matches.Count);
+        }
+
+        return matches.Count == 0 ? null : matches[0];
+    }
 
     public Task<PoiTranslationCacheEntry?> GetTranslationCacheAsync(
         string code,

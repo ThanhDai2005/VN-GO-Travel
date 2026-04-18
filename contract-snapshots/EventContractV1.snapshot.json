@@ -1,0 +1,53 @@
+{
+  "contractId": "EventContractV1",
+  "contractVersion": "v1",
+  "snapshotToolingVersion": "1",
+  "description": "Immutable wire-shape baseline for CI drift detection. Any change requires updating this file and bumping contractVersion (or introducing EventContractV2).",
+  "fields": [
+    { "jsonName": "contractVersion", "mauiProperty": "ContractVersion", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "eventId", "mauiProperty": "EventId", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "requestId", "mauiProperty": "RequestId", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "sessionId", "mauiProperty": "SessionId", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "poiCode", "mauiProperty": "PoiCode", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "language", "mauiProperty": "Language", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "userType", "mauiProperty": "UserType", "wireKinds": [ "string" ], "allowsNull": false },
+    { "jsonName": "userId", "mauiProperty": "UserId", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "deviceId", "mauiProperty": "DeviceId", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "status", "mauiProperty": "StatusSnake", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "durationMs", "mauiProperty": "DurationMs", "wireKinds": [ "integer" ], "allowsNull": false },
+    { "jsonName": "timestamp", "mauiProperty": "Timestamp", "wireKinds": [ "string" ], "allowsNull": false },
+    { "jsonName": "source", "mauiProperty": "Source", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "actionType", "mauiProperty": "ActionType", "wireKinds": [ "string" ], "allowsNull": false },
+    { "jsonName": "networkType", "mauiProperty": "NetworkType", "wireKinds": [ "string" ], "allowsNull": true },
+    { "jsonName": "userApproved", "mauiProperty": "UserApproved", "wireKinds": [ "boolean" ], "allowsNull": true },
+    { "jsonName": "fetchTriggered", "mauiProperty": "FetchTriggered", "wireKinds": [ "boolean" ], "allowsNull": false },
+    { "jsonName": "latitude", "mauiProperty": "Latitude", "wireKinds": [ "number" ], "allowsNull": true },
+    { "jsonName": "longitude", "mauiProperty": "Longitude", "wireKinds": [ "number" ], "allowsNull": true },
+    { "jsonName": "geoRadiusMeters", "mauiProperty": "GeoRadiusMeters", "wireKinds": [ "number" ], "allowsNull": true },
+    { "jsonName": "geoSource", "mauiProperty": "GeoSource", "wireKinds": [ "string" ], "allowsNull": false },
+    { "jsonName": "batchItemCount", "mauiProperty": "BatchItemCount", "wireKinds": [ "integer" ], "allowsNull": true }
+  ],
+  "enums": {
+    "actionType": [ "unknown", "scan", "navigate", "geofence", "deepLink", "manual" ],
+    "geoSource": [ "unknown", "gps", "qr", "db" ],
+    "userType": [ "guest", "user", "premium" ]
+  },
+  "mauiSources": {
+    "translationEvent": "Models/TranslationEvent.cs",
+    "eventContractVersion": "ContractDefinition/Core/EventContractV1.cs",
+    "actionWire": "Models/AnalyticsActionKindNormalizer.cs",
+    "geoWire": "Models/AnalyticsJsonConverters.cs"
+  },
+  "compatibility": {
+    "riskMatrix": [
+      { "change": "Remove or rename jsonName", "severity": "breaking", "mitigation": "Ship EventContractV2, dual-write, migrate consumers." },
+      { "change": "Optional (nullable) → required non-null on wire", "severity": "breaking", "mitigation": "Version bump + coordinated producer/consumer rollout." },
+      { "change": "Enum wire value change", "severity": "breaking", "mitigation": "Keep old values readable or bump contract; never silently remap." },
+      { "change": "Add jsonName (silent evolution)", "severity": "governance", "mitigation": "Forbidden for V1 lock: add V2 or extend snapshot + explicit approval." }
+    ],
+    "notes": [
+      "MAUI actionType uses AnalyticsActionKindConverter + ToJsonName; API uses JsonStringEnumConverter camelCase on EventActionKind — serialized strings must match snapshot enums.actionType.",
+      "MAUI geoSource uses GeoSnapshotSourceConverter write mapping; API uses JsonStringEnumConverter on EventGeoSource — must match snapshot enums.geoSource."
+    ]
+  }
+}

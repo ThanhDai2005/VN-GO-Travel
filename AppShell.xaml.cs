@@ -6,6 +6,7 @@ namespace MauiApp1;
 
 public partial class AppShell : Shell
 {
+    private readonly IServiceProvider _services;
     private readonly DeepLinkCoordinator? _deepLinkCoordinator;
     private readonly AuthService _auth;
     private ShellContent? _adminTab;
@@ -13,6 +14,7 @@ public partial class AppShell : Shell
     public AppShell(IServiceProvider services)
     {
         InitializeComponent();
+        _services = services;
 
         _deepLinkCoordinator = services.GetService<DeepLinkCoordinator>();
         _auth = services.GetRequiredService<AuthService>();
@@ -86,6 +88,6 @@ public partial class AppShell : Shell
     {
         base.OnAppearing();
         System.Diagnostics.Debug.WriteLine("[DL-DISPATCH] AppShell OnAppearing");
-        _deepLinkCoordinator?.OnShellAppeared();
+        _ = AppBootstrapPipeline.OnShellReadyAsync(_services, _deepLinkCoordinator);
     }
 }

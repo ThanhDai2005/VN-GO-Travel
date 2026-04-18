@@ -26,7 +26,7 @@ public partial class AuthStartupPage : ContentPage
         try
         {
             var auth = _services.GetRequiredService<AuthService>();
-            await auth.RestoreSessionAsync().ConfigureAwait(false);
+            await AppBootstrapPipeline.RestoreSessionAsync(auth).ConfigureAwait(false);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

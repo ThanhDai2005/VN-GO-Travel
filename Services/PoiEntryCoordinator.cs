@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Threading;
 using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
+using MauiApp1.Services.MapUi;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 
@@ -20,9 +22,17 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
     private readonly IQrScannerService _qr;
     private readonly INavigationService _navService;
     private readonly AppState _appState;
-    private bool _isHandling;
+    private readonly IMapUiStateArbitrator _mapUi;
+    private readonly IEventTracker _eventTracker;
+    private readonly IUserContextSnapshotProvider _userContext;
+    private readonly TranslationTrackingSession _trackingSession;
+    /// <summary>Serializes all POI entry work across await points (7.2 — replaces non-async-safe bool gate).</summary>
+    private readonly SemaphoreSlim _handleMutex = new(1, 1);
     private string? _lastHandledCode;
     private DateTime _lastHandledAt = DateTime.MinValue;
+
+    /// <summary>Duplicate QR / same-code entry suppression window (session-scoped, process memory).</summary>
+    private const int DuplicateEntrySuppressionMs = 2500;
 
     public PoiEntryCoordinator(
         IPoiQueryRepository poiQuery,
@@ -32,7 +42,11 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
         AuthService auth,
         IQrScannerService qr,
         INavigationService navService,
-        AppState appState)
+        AppState appState,
+        IMapUiStateArbitrator mapUi,
+        IEventTracker eventTracker,
+        IUserContextSnapshotProvider userContext,
+        TranslationTrackingSession trackingSession)
     {
         _poiQuery = poiQuery;
         _poiCommand = poiCommand;
@@ -42,16 +56,17 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
         _qr = qr;
         _navService = navService;
         _appState = appState;
+        _mapUi = mapUi;
+        _eventTracker = eventTracker;
+        _userContext = userContext;
+        _trackingSession = trackingSession;
     }
 
     public async Task<PoiEntryResult> HandleEntryAsync(PoiEntryRequest request, CancellationToken cancellationToken = default)
     {
         if (request == null) return new PoiEntryResult { Success = false, Error = "Request is null" };
 
-        if (_isHandling)
-            return new PoiEntryResult { Success = false, Error = "Busy" };
-
-        _isHandling = true;
+        await _handleMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var raw = request.RawInput;
@@ -73,8 +88,24 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
         }
         finally
         {
-            _isHandling = false;
+            _handleMutex.Release();
         }
+    }
+
+    private bool ShouldSuppressDuplicateNavigation(string code)
+    {
+        if (string.IsNullOrEmpty(_lastHandledCode) || string.IsNullOrEmpty(code))
+            return false;
+        if (!string.Equals(_lastHandledCode, code, StringComparison.OrdinalIgnoreCase))
+            return false;
+        var since = (DateTime.UtcNow - _lastHandledAt).TotalMilliseconds;
+        return since >= 0 && since < DuplicateEntrySuppressionMs;
+    }
+
+    private void MarkHandled(string code)
+    {
+        _lastHandledCode = code;
+        _lastHandledAt = DateTime.UtcNow;
     }
 
     private async Task<PoiEntryResult> HandleSecureScanAsync(PoiEntryRequest request, string token, CancellationToken cancellationToken)
@@ -106,26 +137,18 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
 
         var code = data.Code.Trim().ToUpperInvariant();
 
+        if (ShouldSuppressDuplicateNavigation(code))
+        {
+            Debug.WriteLine($"[QR-NAV] Duplicate secure scan suppressed code='{code}' (pre-mutation)");
+            return new PoiEntryResult { Success = true, Navigated = false };
+        }
+
         await MergeScanResultIntoLocalAsync(data, cancellationToken).ConfigureAwait(false);
 
         try
         {
-            _appState.SetSelectedPoiByCode(code);
+            await _mapUi.ApplySelectedPoiByCodeAsync(MapUiSelectionSource.CoordinatorQrOrDeepLink, code, cancellationToken).ConfigureAwait(false);
             Debug.WriteLine($"[QR-NAV] secure scan set current POI code={code}");
-        }
-        catch { }
-
-        try
-        {
-            if (!string.IsNullOrEmpty(_lastHandledCode) && string.Equals(_lastHandledCode, code, StringComparison.OrdinalIgnoreCase))
-            {
-                var since = (DateTime.UtcNow - _lastHandledAt).TotalMilliseconds;
-                if (since >= 0 && since < 2000)
-                {
-                    Debug.WriteLine($"[QR-NAV] Duplicate secure scan suppressed code='{code}' since={since}ms");
-                    return new PoiEntryResult { Success = true, Navigated = false };
-                }
-            }
         }
         catch { }
 
@@ -139,12 +162,18 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
         Debug.WriteLine($"[QR-NAV] secure scan navigating mode={request.NavigationMode} route={route}");
         await _navService.NavigateToAsync(route);
 
-        try
-        {
-            _lastHandledCode = code;
-            _lastHandledAt = DateTime.UtcNow;
-        }
-        catch { }
+        MarkHandled(code);
+
+        await TrackQrScanAnalyticsAsync(
+                code,
+                preferred,
+                fetchTriggered: true,
+                cancellationToken,
+                data.Location?.Lat,
+                data.Location?.Lng,
+                50,
+                EventGeoSource.Qr)
+            .ConfigureAwait(false);
 
         return new PoiEntryResult { Success = true, Navigated = true };
     }
@@ -179,24 +208,16 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
 
     private async Task<PoiEntryResult> NavigateByCodeAsync(PoiEntryRequest request, string code, CancellationToken cancellationToken)
     {
-        try
+        if (ShouldSuppressDuplicateNavigation(code))
         {
-            _appState.SetSelectedPoiByCode(code);
-            Debug.WriteLine($"[QR-NAV] PoiEntryCoordinator set current POI code={code}");
+            Debug.WriteLine($"[QR-NAV] Duplicate handle suppressed for code='{code}' (pre-mutation)");
+            return new PoiEntryResult { Success = true, Navigated = false };
         }
-        catch { }
 
         try
         {
-            if (!string.IsNullOrEmpty(_lastHandledCode) && string.Equals(_lastHandledCode, code, StringComparison.OrdinalIgnoreCase))
-            {
-                var since = (DateTime.UtcNow - _lastHandledAt).TotalMilliseconds;
-                if (since >= 0 && since < 2000)
-                {
-                    Debug.WriteLine($"[QR-NAV] Duplicate handle suppressed for code='{code}' since={since}ms");
-                    return new PoiEntryResult { Success = true, Navigated = false };
-                }
-            }
+            await _mapUi.ApplySelectedPoiByCodeAsync(MapUiSelectionSource.CoordinatorQrOrDeepLink, code, cancellationToken).ConfigureAwait(false);
+            Debug.WriteLine($"[QR-NAV] PoiEntryCoordinator set current POI code={code}");
         }
         catch { }
 
@@ -232,16 +253,67 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
             Debug.WriteLine("[DL-NAV] Navigation completed");
         }
 
-        try
-        {
-            _lastHandledCode = code;
-            _lastHandledAt = DateTime.UtcNow;
-        }
-        catch { }
+        MarkHandled(code);
 
         Debug.WriteLine($"[QR-NAV] PoiEntryCoordinator completed for code={code}");
 
+        await TrackQrScanAnalyticsAsync(
+                code,
+                preferred,
+                fetchTriggered: false,
+                cancellationToken,
+                core.Latitude,
+                core.Longitude,
+                core.Radius > 0 ? core.Radius : null,
+                EventGeoSource.Qr)
+            .ConfigureAwait(false);
+
         return new PoiEntryResult { Success = true, Navigated = true };
+    }
+
+    /// <summary>Best-effort analytics; must not affect QR navigation.</summary>
+    private async Task TrackQrScanAnalyticsAsync(
+        string poiCode,
+        string? language,
+        bool fetchTriggered,
+        CancellationToken cancellationToken,
+        double? poiLatitude,
+        double? poiLongitude,
+        double? poiRadiusMeters,
+        EventGeoSource geoSource)
+    {
+        try
+        {
+            var ctx = await _userContext.GetAsync(cancellationToken).ConfigureAwait(false);
+            var reqId = Guid.NewGuid().ToString("N");
+            _eventTracker.Track(new TranslationEvent
+            {
+                RequestId = reqId,
+                SessionId = _trackingSession.SessionId,
+                PoiCode = poiCode ?? "",
+                Language = language ?? "",
+                UserType = ctx.UserType,
+                UserId = ctx.UserId,
+                DeviceId = ctx.DeviceId,
+                Status = TranslationEventStatus.AppEvent,
+                DurationMs = 0,
+                Timestamp = DateTimeOffset.UtcNow,
+                Source = "qr_scan",
+                ActionType = EventActionKind.Scan,
+                NetworkType = NetworkTypeResolver.Resolve(),
+                FetchTriggered = fetchTriggered,
+                UserApproved = null,
+                Latitude = poiLatitude,
+                Longitude = poiLongitude,
+                GeoRadiusMeters = poiRadiusMeters,
+                GeoSource = geoSource,
+                BatchItemCount = null
+            });
+        }
+        catch
+        {
+            // intentional: never fail QR flow for analytics
+        }
     }
 
     private static string BuildRoute(PoiEntryRequest request, string code, string preferred)

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vn-go-travel.local/schemas/EventContractV1.json",
+  "title": "EventContractV1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "contractVersion": { "type": [ "string", "null" ] },
+    "eventId": { "type": [ "string", "null" ] },
+    "requestId": { "type": [ "string", "null" ] },
+    "sessionId": { "type": [ "string", "null" ] },
+    "poiCode": { "type": [ "string", "null" ] },
+    "language": { "type": [ "string", "null" ] },
+    "userType": { "type": "string", "enum": [ "guest", "user", "premium" ] },
+    "userId": { "type": [ "string", "null" ] },
+    "deviceId": { "type": [ "string", "null" ] },
+    "status": { "type": [ "string", "null" ] },
+    "durationMs": { "type": "integer", "minimum": 0 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "source": { "type": [ "string", "null" ] },
+    "actionType": { "type": "string", "enum": [ "unknown", "scan", "navigate", "geofence", "deepLink", "manual" ] },
+    "networkType": { "type": [ "string", "null" ] },
+    "userApproved": { "type": [ "boolean", "null" ] },
+    "fetchTriggered": { "type": "boolean" },
+    "latitude": { "type": [ "number", "null" ] },
+    "longitude": { "type": [ "number", "null" ] },
+    "geoRadiusMeters": { "type": [ "number", "null" ] },
+    "geoSource": { "type": "string", "enum": [ "unknown", "gps", "qr", "db" ] },
+    "batchItemCount": { "type": [ "integer", "null" ] }
+  },
+  "required": [
+    "eventId",
+    "requestId",
+    "sessionId",
+    "deviceId",
+    "status",
+    "durationMs",
+    "timestamp",
+    "actionType",
+    "fetchTriggered",
+    "geoSource"
+  ]
+}

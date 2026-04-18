@@ -6,6 +6,7 @@ using MauiApp1.Application.UseCases;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
 using MauiApp1.Services;
+using MauiApp1.Services.MapUi;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 
@@ -22,6 +23,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
     private readonly INavigationService      _navService;
     private readonly AppState                _appState;
     private readonly AuthService             _auth;
+    private readonly IMapUiStateArbitrator    _mapUi;
 
     public System.Windows.Input.ICommand UpgradeCommand { get; }
 
@@ -38,7 +40,8 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         IPreferredLanguageService languagePrefs,
         INavigationService navService,
         AppState appState,
-        AuthService auth)
+        AuthService auth,
+        IMapUiStateArbitrator mapUi)
     {
         _getPoiDetailUseCase = getPoiDetailUseCase;
         _playPoiAudioUseCase = playPoiAudioUseCase;
@@ -49,6 +52,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         _navService       = navService;
         _appState         = appState;
         _auth             = auth;
+        _mapUi            = mapUi;
 
         UpgradeCommand = new Command(async () => await UpgradeAsync());
         _auth.PropertyChanged += (_, e) =>
@@ -232,12 +236,12 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
             };
             poi.Localization = locResult.Localization;
             
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 Poi = poi;
                 // Keep global state and MapViewModel in sync
                 _mapVm?.RequestFocusOnPoiCode(code, effectiveLang);
-                _appState.SetSelectedPoiByCode(code);
+                await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.PoiDetailPageLoad, poi).ConfigureAwait(false);
             });
 
             Debug.WriteLine($"[POI-DETAIL] LoadPoiAsync completed for {_lastLoadedCode}");

@@ -30,7 +30,9 @@ const config = {
      * Base URL encoded into QR (no trailing slash). Query `?t=<jwt>` is appended by the service.
      * Must match what the mobile app parses (see QrResolver scan URL).
      */
-    scanQrUrlBase: (process.env.SCAN_QR_URL_BASE || 'https://thuyetminh.netlify.app/app/scan').replace(/\/$/, '')
+    scanQrUrlBase: (process.env.SCAN_QR_URL_BASE || 'https://thuyetminh.netlify.app/app/scan').replace(/\/$/, ''),
+    /** Optional. When set, `POST /api/v1/intelligence/events/*` accepts `X-Api-Key` for guest/device ingestion (RBEL). */
+    intelligenceIngestApiKey: process.env.INTELLIGENCE_INGEST_API_KEY || ''
 };
 
 console.log('[INIT] Configuration loaded and validated successfully');

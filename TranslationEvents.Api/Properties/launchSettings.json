@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "TranslationEvents.Api": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5288"
+    }
+  }
+}

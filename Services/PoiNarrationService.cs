@@ -2,6 +2,8 @@ using System.Diagnostics;
 using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
+using MauiApp1.Services.MapUi;
+using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Networking;
 using Microsoft.Maui.Controls;
 
@@ -23,23 +25,29 @@ public class PoiNarrationService
 {
     private readonly IAudioPlayerService _audioService;
     private readonly ILocalizationService _locService;
-    private readonly IPoiTranslationService _poiTranslationService;
+    private readonly TranslationOrchestrator _translationOrchestrator;
     private readonly IPoiQueryRepository _poiQuery;
     private readonly AppState _appState;
+    private readonly IMapUiStateArbitrator _mapUi;
+    private readonly ILogger<PoiNarrationService> _logger;
     private readonly SemaphoreSlim _translationGate = new(1, 1);
 
     public PoiNarrationService(
         IAudioPlayerService audioService,
         ILocalizationService locService,
-        IPoiTranslationService poiTranslationService,
+        TranslationOrchestrator translationOrchestrator,
         IPoiQueryRepository poiQuery,
-        AppState appState)
+        AppState appState,
+        IMapUiStateArbitrator mapUi,
+        ILogger<PoiNarrationService> logger)
     {
         _audioService = audioService;
         _locService = locService;
-        _poiTranslationService = poiTranslationService;
+        _translationOrchestrator = translationOrchestrator;
         _poiQuery = poiQuery;
         _appState = appState;
+        _mapUi = mapUi;
+        _logger = logger;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -201,7 +209,15 @@ public class PoiNarrationService
             
             try
             {
-                var translatedPoi = await _poiTranslationService.GetOrTranslateAsync(normalizedCode, language, cts.Token).ConfigureAwait(false);
+                _logger.LogInformation(
+                    "[TranslationTrigger] Source={Source} | PoiId={PoiId} | Lang={Lang}",
+                    "Narration",
+                    normalizedCode,
+                    language);
+
+                var translatedPoi = await _translationOrchestrator
+                    .RequestTranslationAsync(normalizedCode, language, TranslationSource.Narration, cts.Token)
+                    .ConfigureAwait(false);
                 if (translatedPoi?.Localization != null)
                 {
                     _locService.RegisterDynamicTranslation(normalizedCode, language, translatedPoi.Localization);
@@ -239,13 +255,13 @@ public class PoiNarrationService
     /// </summary>
     private async Task SyncUiAsync(Poi hydratedPoi)
     {
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             // Update bottom panel if this is the currently selected POI
             if (_appState.SelectedPoi != null &&
                 string.Equals(_appState.SelectedPoi.Code, hydratedPoi.Code, StringComparison.OrdinalIgnoreCase))
             {
-                _appState.SelectedPoi = hydratedPoi;
+                await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.NarrationSync, hydratedPoi).ConfigureAwait(false);
             }
 
             // Update the map pin label in the Pois collection

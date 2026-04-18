@@ -44,6 +44,11 @@ public class QrScannerViewModel : INotifyPropertyChanged
     private string? _lastAcceptedNormalizedKey;
     private DateTime _lastAcceptedAtUtc = DateTime.MinValue;
 
+    /// <summary>7.2 — drop identical raw payloads from the camera pipeline within a short window.</summary>
+    private string? _lastSubmittedRaw;
+    private DateTime _lastSubmittedUtc = DateTime.MinValue;
+    private const int SamePayloadDebounceMs = 1200;
+
     public QrScannerViewModel(IPoiEntryCoordinator coordinator, IQrScannerService qr, MapViewModel mapVm, INavigationService navService)
     {
         _coordinator = coordinator;
@@ -142,6 +147,8 @@ public class QrScannerViewModel : INotifyPropertyChanged
         _isHandlingScan = false;
         IsProcessingScan = false;
         UxDetailError = string.Empty;
+        _lastSubmittedRaw = null;
+        _lastSubmittedUtc = DateTime.MinValue;
         ApplyPhase(QrScannerUxPhase.Ready);
         UxStatusText = "Đưa mã QR vào khung quét";
         (ScanCommand as Command)?.ChangeCanExecute();
@@ -175,6 +182,18 @@ public class QrScannerViewModel : INotifyPropertyChanged
             Debug.WriteLine($"[QR-SCAN] Ignored: processing lock (VM) source={source}");
             return false;
         }
+
+        var trimmedRaw = (rawText ?? string.Empty).Trim();
+        if (trimmedRaw.Length > 0 &&
+            string.Equals(trimmedRaw, _lastSubmittedRaw, StringComparison.Ordinal) &&
+            (DateTime.UtcNow - _lastSubmittedUtc).TotalMilliseconds is >= 0 and < SamePayloadDebounceMs)
+        {
+            Debug.WriteLine($"[QR-SCAN] Ignored: same raw payload debounce source={source}");
+            return false;
+        }
+
+        _lastSubmittedRaw = trimmedRaw;
+        _lastSubmittedUtc = DateTime.UtcNow;
 
         _errorResetCts?.Cancel();
 
@@ -237,7 +256,7 @@ public class QrScannerViewModel : INotifyPropertyChanged
 
             success = true;
             var preview = await _qr.ParseAsync(rawText, token).ConfigureAwait(false);
-            var key = preview.Success ? preview.Code! : rawText.Trim();
+            var key = preview.Success ? preview.Code! : trimmedRaw;
             _lastAcceptedNormalizedKey = key;
             _lastAcceptedAtUtc = DateTime.UtcNow;
             Debug.WriteLine($"[QR-SCAN] Accepted scan value={key} source={source}");

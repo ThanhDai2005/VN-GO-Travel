@@ -12,6 +12,8 @@ const ownerRoutes = require('./routes/owner.routes');
 const premiumRoutes = require('./routes/premium.routes');
 const adminPoiRoutes = require('./routes/admin-poi.routes');
 const adminUserRoutes = require('./routes/admin-user.routes');
+const intelligenceRoutes = require('./routes/intelligence.routes');
+const intelligenceAdminRoutes = require('./routes/intelligence-admin.routes');
 
 const app = express();
 
@@ -53,6 +55,8 @@ app.use('/api/v1/owner', ownerRoutes);
 app.use('/api/v1/premium', premiumRoutes);
 app.use('/api/v1/admin/pois', adminPoiRoutes);
 app.use('/api/v1/admin/users', adminUserRoutes);
+app.use('/api/v1/intelligence/events', intelligenceRoutes);
+app.use('/api/v1/admin/intelligence', intelligenceAdminRoutes);
 
 // 404 Route Handler
 app.use((req, res, next) => {
