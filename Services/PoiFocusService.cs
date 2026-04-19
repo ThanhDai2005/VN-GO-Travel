@@ -1,7 +1,10 @@
 using System.Diagnostics;
+using System.Threading;
 using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
+using MauiApp1.Services.MapUi;
+using Microsoft.Extensions.Logging;
 
 namespace MauiApp1.Services;
 
@@ -16,23 +19,31 @@ public class PoiFocusService
 {
     private readonly IPoiQueryRepository _poiQuery;
     private readonly ILocalizationService _locService;
-    private readonly IPoiTranslationService _poiTranslationService;
+    private readonly TranslationOrchestrator _translationOrchestrator;
     private readonly AppState _appState;
+    private readonly IMapUiStateArbitrator _mapUi;
+    private readonly ILogger<PoiFocusService> _logger;
 
     // Pending focus request — written by PoiDetailPage, consumed by MapPage on Appearing.
     private string? _pendingFocusPoiCode;
     private string? _pendingFocusPoiLang;
 
+    private readonly SemaphoreSlim _focusMutex = new(1, 1);
+
     public PoiFocusService(
         IPoiQueryRepository poiQuery,
         ILocalizationService locService,
-        IPoiTranslationService poiTranslationService,
-        AppState appState)
+        TranslationOrchestrator translationOrchestrator,
+        AppState appState,
+        IMapUiStateArbitrator mapUi,
+        ILogger<PoiFocusService> logger)
     {
         _poiQuery = poiQuery;
         _locService = locService;
-        _poiTranslationService = poiTranslationService;
+        _translationOrchestrator = translationOrchestrator;
         _appState = appState;
+        _mapUi = mapUi;
+        _logger = logger;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -52,6 +63,19 @@ public class PoiFocusService
     {
         if (string.IsNullOrWhiteSpace(code)) return;
 
+        await _focusMutex.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await FocusOnPoiByCodeCoreAsync(code, lang).ConfigureAwait(false);
+        }
+        finally
+        {
+            _focusMutex.Release();
+        }
+    }
+
+    private async Task FocusOnPoiByCodeCoreAsync(string code, string? lang)
+    {
         var normalizedCode = code.Trim().ToUpperInvariant();
         var preferred      = string.IsNullOrWhiteSpace(lang)
                              ? _appState.CurrentLanguage
@@ -93,7 +117,15 @@ public class PoiFocusService
             // On-demand dynamic translation check
             if (locResult.IsFallback && preferred != "vi" && preferred != "en")
             {
-                var translatedPoi = await _poiTranslationService.GetOrTranslateAsync(normalizedCode, preferred).ConfigureAwait(false);
+                _logger.LogInformation(
+                    "[TranslationTrigger] Source={Source} | PoiId={PoiId} | Lang={Lang}",
+                    "PoiFocus",
+                    normalizedCode,
+                    preferred);
+
+                var translatedPoi = await _translationOrchestrator
+                    .RequestTranslationAsync(normalizedCode, preferred, TranslationSource.PoiFocus)
+                    .ConfigureAwait(false);
                 if (translatedPoi != null && translatedPoi.Localization != null)
                 {
                     _locService.RegisterDynamicTranslation(normalizedCode, preferred, translatedPoi.Localization);
@@ -104,10 +136,7 @@ public class PoiFocusService
 
             // Always a new instance → fires PropertyChanged("SelectedPoi") → MAUI re-reads bindings (BUG-3 fix)
             var hydratedPoi = PoiHydrationService.CreateHydratedPoi(core, locResult);
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                _appState.SelectedPoi = hydratedPoi;
-            });
+            await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.PoiFocusFromQuery, hydratedPoi).ConfigureAwait(false);
         }
         finally
         {

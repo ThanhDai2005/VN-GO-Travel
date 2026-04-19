@@ -1,0 +1,43 @@
+name: validate-contract-schema
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-contract-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Schema drift check (SchemaDiffChecker)
+        run: >-
+          dotnet run
+          --project tools/SchemaDiffChecker/SchemaDiffChecker.csproj
+          --configuration Release
+          --
+          --repo-root "${{ github.workspace }}"
+          --out "${{ github.workspace }}/contract-snapshots/contract-schema-report.md"
+
+      - name: Upload contract schema report
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-schema-report
+          path: contract-snapshots/contract-schema-report.md

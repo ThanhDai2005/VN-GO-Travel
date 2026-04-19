@@ -1,4 +1,6 @@
 using MauiApp1.Services;
+using MauiApp1.Services.Observability;
+using MauiApp1.Services.RBEL;
 using MauiApp1.Views;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -39,6 +41,34 @@ public partial class App : Microsoft.Maui.Controls.Application
         _services = services;
         MainPage = services.GetRequiredService<AuthStartupPage>();
 
+        // RDGL (7.2.5): eager attach DEBUG thread-affinity checks for GAK/MSAL surface properties.
+        _ = services.GetRequiredService<RuntimeDeterminismGuard>();
+
+        // ROEL (7.2.6): start telemetry processor + ring buffer early (non-blocking decorators).
+        _ = services.GetRequiredService<RuntimeTelemetryService>();
+
+        // 7.3.1 RBEL client bridge: background poll of ROEL snapshot → batch → 7.3.0 ingestion (no kernel edits).
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                services.GetRequiredService<RbelBackgroundDispatcher>().Start();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RBEL] dispatcher start: {ex.Message}");
+            }
+        });
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await services.GetRequiredService<IDeviceIdProvider>().GetOrCreateDeviceIdAsync().ConfigureAwait(false);
+            }
+            catch { }
+        });
+
         StartBackgroundServices();
 
         System.Diagnostics.Debug.WriteLine("[DeepLink] App constructor exit");
@@ -76,6 +106,12 @@ public partial class App : Microsoft.Maui.Controls.Application
 
     protected override void OnSleep()
     {
+        try
+        {
+            _services.GetService<QueuedEventTracker>()?.FlushAsync().GetAwaiter().GetResult();
+        }
+        catch { }
+
         base.OnSleep();
         try
         {

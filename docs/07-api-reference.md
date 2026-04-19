@@ -439,3 +439,33 @@ Any path not mounted:
 | GET | `/api/v1/owner/me` | Yes | OWNER | No |
 | POST | `/api/v1/owner/pois` | Yes | OWNER | No |
 | GET | `/api/v1/premium/advanced-poi` | Yes | Any | Yes (`isPremium`) |
+| POST | `/api/v1/intelligence/events/batch` | JWT **or** `X-Api-Key` | Any / ingest key | No |
+| POST | `/api/v1/intelligence/events/single` | JWT **or** `X-Api-Key` | Any / ingest key | No |
+| GET | `/api/v1/admin/intelligence/summary` | Yes | ADMIN | No |
+| GET | `/api/v1/admin/intelligence/journeys/:correlationId` | Yes | ADMIN | No |
+
+---
+
+## 9. User intelligence (7.3.0 — RBEL ingestion)
+
+**Spec:** [intelligence/user_intelligence_system_v7_3_0_spec.md](intelligence/user_intelligence_system_v7_3_0_spec.md)
+
+### `POST /api/v1/intelligence/events/batch`
+
+**Auth:** `Authorization: Bearer <JWT>` **or** `X-Api-Key: <INTELLIGENCE_INGEST_API_KEY>` (server env; guest/device ingestion).
+
+**Body:** `{ "schema": "event-contract-v2", "events": [ /* EventContractV2 objects */ ] }` — see RBEL spec for required fields (`deviceId`, `correlationId`, `authState`, `sourceSystem`, `rbelEventFamily`, `timestamp`, …).
+
+**Success `200`:** `{ "accepted", "rejected", "duplicate", "requestId", "errors" }`.
+
+### `POST /api/v1/intelligence/events/single`
+
+Same validation as one element of `events[]`.
+
+### `GET /api/v1/admin/intelligence/summary?from=&to=`
+
+**Auth:** JWT **ADMIN**. Returns aggregate counts by `auth_state` and `event_family`.
+
+### `GET /api/v1/admin/intelligence/journeys/:correlationId`
+
+**Auth:** JWT **ADMIN**. Returns ordered raw events for replay / timeline.

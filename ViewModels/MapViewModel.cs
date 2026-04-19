@@ -1,11 +1,13 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Threading;
 using System.Runtime.CompilerServices;
 using System.Diagnostics;
 using MauiApp1.ApplicationContracts.Providers;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
 using MauiApp1.Services;
+using MauiApp1.Services.MapUi;
 using Microsoft.Maui.Devices.Sensors;
 using System.Windows.Input;
 using Microsoft.Maui.ApplicationModel;
@@ -32,10 +34,11 @@ public class MapViewModel : INotifyPropertyChanged
 {
     // ── Injected services ─────────────────────────────────────────────────────
     private readonly ILocationProvider _locationService;
-    private readonly IGeofenceService _geofenceService;
+    private readonly IGeofenceArbitrationKernel _geofenceArbitrationKernel;
     private readonly IPreferredLanguageService _languagePrefs;
     private readonly INavigationService        _navService;
     private readonly AppState                  _appState;
+    private readonly IMapUiStateArbitrator     _mapUi;
 
     // ── Domain services (the four extracted responsibilities) ─────────────────
     private readonly PoiHydrationService   _hydrationService;
@@ -49,20 +52,22 @@ public class MapViewModel : INotifyPropertyChanged
 
     public MapViewModel(
         ILocationProvider locationService,
-        IGeofenceService geofenceService,
+        IGeofenceArbitrationKernel geofenceArbitrationKernel,
         IPreferredLanguageService languagePrefs,
         INavigationService navService,
         AppState appState,
+        IMapUiStateArbitrator mapUi,
         PoiHydrationService hydrationService,
         PoiNarrationService narrationService,
         PoiFocusService focusService,
         LanguageSwitchService langSwitchService)
     {
         _locationService   = locationService;
-        _geofenceService   = geofenceService;
+        _geofenceArbitrationKernel = geofenceArbitrationKernel;
         _languagePrefs     = languagePrefs;
         _navService        = navService;
         _appState          = appState;
+        _mapUi             = mapUi;
         _hydrationService  = hydrationService;
         _narrationService  = narrationService;
         _focusService      = focusService;
@@ -166,12 +171,10 @@ public class MapViewModel : INotifyPropertyChanged
         get => _appState.SelectedPoi;
         set
         {
-            if (_appState.SelectedPoi != value)
-            {
-                _appState.SelectedPoi = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(IsPoiPanelVisible));
-            }
+            if (ReferenceEquals(_appState.SelectedPoi, value))
+                return;
+
+            _ = _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.DataBindingOrUnknown, value);
         }
     }
 
@@ -252,23 +255,20 @@ public class MapViewModel : INotifyPropertyChanged
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Polls the device GPS and updates <see cref="Services.AppState.CurrentLocation"/>.
-    /// If a location is obtained, also forwards it to <see cref="GeofenceService"/> for
-    /// proximity-triggered narration. Called on a periodic timer by MapPage.StartTrackingAsync.
+    /// Polls the device GPS and publishes the fix to <see cref="IGeofenceArbitrationKernel"/> (7.2.3),
+    /// which owns UI-thread <see cref="AppState.CurrentLocation"/> updates and serialized geofence evaluation.
+    /// Called on a periodic timer by <see cref="Views.MapPage"/>.
     /// </summary>
-    public async Task UpdateLocationAsync()
+    public async Task UpdateLocationAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             var location = await _locationService.GetCurrentLocationAsync().ConfigureAwait(false);
             if (location == null) return;
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                _appState.CurrentLocation = location;
-            });
-
-            await _geofenceService.CheckLocationAsync(location).ConfigureAwait(false);
+            await _geofenceArbitrationKernel
+                .PublishLocationAsync(location, "map", cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (Exception ex)
         {

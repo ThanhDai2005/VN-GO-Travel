@@ -2,13 +2,15 @@ using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
 using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace MauiApp1.Services;
 
 /// <summary>
 /// Singleton, in-memory localization service.
 /// Loads all POI text content from <c>pois.json</c> exactly once at startup.
-/// All subsequent lookups are O(1) and fully synchronous — safe to call from any thread.
+/// All subsequent lookups are O(1) and fully synchronous; the lookup dictionary is
+/// guarded by <c>lock (_lookup)</c> for reads and writes so dynamic injection is thread-safe.
 /// </summary>
 public sealed class LocalizationService : ILocalizationService
 {
@@ -21,6 +23,12 @@ public sealed class LocalizationService : ILocalizationService
 
     private bool _initialized;
     private readonly SemaphoreSlim _initGate = new(1, 1);
+    private readonly ILogger<LocalizationService> _logger;
+
+    public LocalizationService(ILogger<LocalizationService> logger)
+    {
+        _logger = logger;
+    }
 
     public bool IsInitialized => _initialized;
 
@@ -74,7 +82,10 @@ public sealed class LocalizationService : ILocalizationService
                     NarrationLong = r.NarrationLong ?? ""
                 };
 
-                _lookup[(code, lang)] = loc;
+                lock (_lookup)
+                {
+                    _lookup[(code, lang)] = loc;
+                }
 
                 // One geo-only core row per Code for DB seeding.
                 if (seenCodes.Add(code))
@@ -132,32 +143,49 @@ public sealed class LocalizationService : ILocalizationService
 
         code = code.Trim().ToUpperInvariant();
 
-        // 1. Exact match — user's requested language
-        if (_lookup.TryGetValue((code, lang), out var exact))
+        lock (_lookup)
         {
-            Debug.WriteLine($"[LOC-SVC] SUCCESS: Code={code} | Requested={lang} | Used={lang} | Fallback=False");
-            return new LocalizationResult { Localization = exact, IsFallback = false, UsedLang = lang, RequestedLang = lang };
-        }
-
-        // 2. Base Language fallback ('vi')
-        if (_lookup.TryGetValue((code, "vi"), out var vi))
-        {
-            Debug.WriteLine($"[LOC-SVC] FALLBACK: Code={code} | Requested={lang} | Used=vi | Fallback=True");
-            return new LocalizationResult { Localization = vi, IsFallback = true, UsedLang = "vi", RequestedLang = lang };
-        }
-
-        // Final fallback: Any available language for this code (last resort)
-        foreach (var kv in _lookup)
-        {
-            if (kv.Key.Code == code)
+            // 1. Exact match — user's requested language
+            if (_lookup.TryGetValue((code, lang), out var exact))
             {
-                Debug.WriteLine($"[LOC-SVC] FALLBACK: Code={code} | Requested={lang} | Used={kv.Key.Lang} | Fallback=True");
-                return new LocalizationResult { Localization = kv.Value, IsFallback = true, UsedLang = kv.Key.Lang, RequestedLang = lang };
+                Debug.WriteLine($"[LOC-SVC] SUCCESS: Code={code} | Requested={lang} | Used={lang} | Fallback=False");
+                return new LocalizationResult { Localization = exact, IsFallback = false, UsedLang = lang, RequestedLang = lang };
             }
-        }
 
-        Debug.WriteLine($"[LOC-SVC] MISS: Code={code} | Requested={lang} | No translations available.");
-        return LocalizationResult.Miss(lang);
+            // 2. Base Language fallback ('vi')
+            if (_lookup.TryGetValue((code, "vi"), out var vi))
+            {
+                Debug.WriteLine($"[LOC-SVC] FALLBACK: Code={code} | Requested={lang} | Used=vi | Fallback=True");
+                _logger.LogWarning(
+                    "[TranslationWarning] Fallback language used | Code={Code} | RequestedLang={RequestedLang} | UsedLang={UsedLang}",
+                    code,
+                    lang,
+                    "vi");
+                return new LocalizationResult { Localization = vi, IsFallback = true, UsedLang = "vi", RequestedLang = lang };
+            }
+
+            // Final fallback: Any available language for this code (last resort)
+            foreach (var kv in _lookup)
+            {
+                if (kv.Key.Code == code)
+                {
+                    Debug.WriteLine($"[LOC-SVC] FALLBACK: Code={code} | Requested={lang} | Used={kv.Key.Lang} | Fallback=True");
+                    _logger.LogWarning(
+                        "[TranslationWarning] Fallback language used | Code={Code} | RequestedLang={RequestedLang} | UsedLang={UsedLang}",
+                        code,
+                        lang,
+                        kv.Key.Lang);
+                    return new LocalizationResult { Localization = kv.Value, IsFallback = true, UsedLang = kv.Key.Lang, RequestedLang = lang };
+                }
+            }
+
+            Debug.WriteLine($"[LOC-SVC] MISS: Code={code} | Requested={lang} | No translations available.");
+            _logger.LogWarning(
+                "[TranslationWarning] Missing translation | Code={Code} | Lang={Lang}",
+                code,
+                lang);
+            return LocalizationResult.Miss(lang);
+        }
     }
 
     /// <summary>
@@ -184,7 +212,13 @@ public sealed class LocalizationService : ILocalizationService
             var missing = new List<string>();
             foreach (var lang in supportedLangs)
             {
-                if (!_lookup.ContainsKey((poi.Code, lang)))
+                bool hasEntry;
+                lock (_lookup)
+                {
+                    hasEntry = _lookup.ContainsKey((poi.Code, lang));
+                }
+
+                if (!hasEntry)
                 {
                     missing.Add(lang);
                     totalMissing++;
@@ -214,9 +248,24 @@ public sealed class LocalizationService : ILocalizationService
     {
         if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(lang) || loc == null) return;
         
+        var normCode = code.Trim().ToUpperInvariant();
+        var normLang = lang.Trim().ToLowerInvariant();
         lock (_lookup)
         {
-            _lookup[(code.Trim().ToUpperInvariant(), lang.Trim().ToLowerInvariant())] = loc;
+            if (_lookup.TryGetValue((normCode, normLang), out var existing))
+            {
+                var sameName = string.Equals(existing.Name, loc.Name, StringComparison.Ordinal);
+                var sameSummary = string.Equals(existing.Summary, loc.Summary, StringComparison.Ordinal);
+                if (!sameName || !sameSummary)
+                {
+                    _logger.LogWarning(
+                        "[TranslationWarning] Inconsistent dynamic translation overwrite | Code={Code} | Lang={Lang}",
+                        normCode,
+                        normLang);
+                }
+            }
+
+            _lookup[(normCode, normLang)] = loc;
         }
         Debug.WriteLine($"[LOC-SVC] Injected dynamic translation for Code={code}, Lang={lang}");
     }

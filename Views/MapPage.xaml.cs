@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using MauiApp1.Models;
 using MauiApp1.Services;
+using MauiApp1.Services.MapUi;
 using MauiApp1.ViewModels;
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Maps;
@@ -18,6 +19,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
     private readonly AppState _appState;
     private readonly INavigationService _navService;
     private readonly AuthService _auth;
+    private readonly IMapUiStateArbitrator _mapUi;
 
     private bool _pendingNarrateAfterFocus;
     private PeriodicTimer? _timer;
@@ -33,7 +35,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
     private string? _lastAutoPoiId;
     private bool _isUserSelecting;
 
-    public MapPage(MapViewModel vm, LanguageSelectorViewModel langSelectorVm, AppState appState, INavigationService navService, AuthService auth)
+    public MapPage(MapViewModel vm, LanguageSelectorViewModel langSelectorVm, AppState appState, INavigationService navService, AuthService auth, IMapUiStateArbitrator mapUi)
     {
         InitializeComponent();
         BindingContext = _vm = vm;
@@ -41,6 +43,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
         _appState = appState;
         _navService = navService;
         _auth = auth;
+        _mapUi = mapUi;
 
         InitBottomPanel();
 
@@ -263,7 +266,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
     {
         _isUserSelecting = false;
 
-        _vm.SelectedPoi = null;
+        await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.ManualMapBackgroundTap, null);
         _lastAutoPoiId = null;
 
         _vm.StopAudio();
@@ -291,7 +294,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
                 }
 
                 var iterStart = swLoop.ElapsedMilliseconds;
-                await _vm.UpdateLocationAsync();
+                await _vm.UpdateLocationAsync(ct);
                 var iterAfterLocation = swLoop.ElapsedMilliseconds;
 
                 if (firstIteration)
@@ -337,18 +340,18 @@ public partial class MapPage : ContentPage, IQueryAttributable
                 if (nearest != null && _lastAutoPoiId != nearest.Poi.Id)
                 {
                     _lastAutoPoiId = nearest.Poi.Id;
-                    _vm.SelectedPoi = nearest.Poi;
-
+                    var autoPoi = nearest.Poi;
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
+                        await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.MapAutoProximity, autoPoi);
                         await ShowBottomPanelAsync();
 
                         Map.MoveToRegion(
                             MapSpan.FromCenterAndRadius(
-                                new Location(nearest.Poi.Latitude, nearest.Poi.Longitude),
+                                new Location(autoPoi.Latitude, autoPoi.Longitude),
                                 Distance.FromMeters(220)));
 
-                        await _vm.PlayPoiAsync(nearest.Poi, _vm.CurrentLanguage);
+                        await _vm.PlayPoiAsync(autoPoi, _vm.CurrentLanguage);
                     });
                 }
                 else if (nearest == null && _vm.SelectedPoi != null)
@@ -356,10 +359,10 @@ public partial class MapPage : ContentPage, IQueryAttributable
                     _isUserSelecting = false;
 
                     _lastAutoPoiId = null;
-                    _vm.SelectedPoi = null;
 
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
+                        await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.MapAutoProximity, null);
                         await HideBottomPanelAsync();
                         _vm.StopAudio();
                     });
@@ -458,7 +461,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
         Map.MoveToRegion(
             MapSpan.FromCenterAndRadius(pin.Location, Distance.FromMeters(220)));
 
-        _vm.SelectedPoi = poi;
+        await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.ManualMapPinTap, poi);
         _lastAutoPoiId = poi.Id;
 
         await ShowBottomPanelAsync();

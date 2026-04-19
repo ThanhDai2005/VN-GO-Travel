@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Contracts.Generated</RootNamespace>
+    <Description>Compile-time generated wire contract (EventContractV1). MAUI and TranslationEvents.Api reference this assembly only.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="..\ContractDefinition\Core\EventContractV1.cs" />
+    <ProjectReference Include="..\ContractSourceGenerator\ContractSourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\ContractDefinition\ContractDefinition.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>false</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="ContractGenerationTask" BeforeTargets="CoreCompile">
+    <Error Text="Contract spec file missing: ../ContractDefinition/Core/EventContractV1.cs"
+           Condition="!Exists('$(MSBuildThisFileDirectory)..\ContractDefinition\Core\EventContractV1.cs')" />
+  </Target>
+</Project>

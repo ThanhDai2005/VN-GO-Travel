@@ -5,6 +5,30 @@ Mục tiêu của thư mục `docs/` là phản ánh **đúng trạng thái hi�
 1. **`SYSTEM_CURRENT_STATE.md`** — tóm tắt các stage đã làm, client (`admin-web`, `web`, MAUI), và việc còn lại.
 2. **`../README.md`** (root) — bố cục monorepo và chạy nhanh từng phần.
 
+## 0) MAUI runtime 7.2 stack (GAK → PCGL) — governance index
+
+| Layer | Role | Doc |
+|-------|------|-----|
+| **7.2.3 GAK** | Location + geofence evaluation authority | [geofence_arbitration_kernel_design.md](geofence_arbitration_kernel_design.md), [geofence_arbitration_kernel_v7_2_3.md](geofence_arbitration_kernel_v7_2_3.md) |
+| **7.2.4 MSAL** | UI selection (`SelectedPoi`) authority | [map_state_arbitration_layer_v7_2_4.md](map_state_arbitration_layer_v7_2_4.md) |
+| **7.2.5 RDGL** | Invariant / regression guard | [runtime_determinism_guard_layer_v7_2_5.md](runtime_determinism_guard_layer_v7_2_5.md) |
+| **7.2.6 ROEL** | Observability + passive efficiency | [runtime_observability_efficiency_layer_v7_2_6.md](runtime_observability_efficiency_layer_v7_2_6.md) |
+| **7.2.7 PCSL** | DEBUG chaos / resilience validation | [production_chaos_simulation_layer_v7_2_7.md](production_chaos_simulation_layer_v7_2_7.md) |
+| **7.2.8 PCGL** | Certification + governance + handover | [production_certification_report_v7_2_8.md](production_certification_report_v7_2_8.md), [governance/runtime_governance_policy_v7_2_8.md](governance/runtime_governance_policy_v7_2_8.md), [handover/system_handover_guide_v7_2.md](handover/system_handover_guide_v7_2.md) |
+| **7.2.9 RBEL** | Runtime → business event bridge (design-only; no code) | [bridge/runtime_to_business_event_bridge_layer_rbel_spec.md](bridge/runtime_to_business_event_bridge_layer_rbel_spec.md) |
+
+**Curated folders (indexes):** [architecture/README.md](architecture/README.md) · [bridge/README.md](bridge/README.md) · [observability/README.md](observability/README.md) · [chaos/README.md](chaos/README.md) · [governance/README.md](governance/README.md) · [flows/README.md](flows/README.md) · [replay/README.md](replay/README.md)
+
+**Pre–7.3 baseline (single reconciliation):** [architecture_v7_2_system_reconciliation_baseline.md](architecture_v7_2_system_reconciliation_baseline.md) — truth matrix, risks, ROEL vs business gap, 7.3 attach boundary.
+
+## 0b) 7.3 User intelligence (business layer — spec only)
+
+| Release | Role | Doc |
+|---------|------|-----|
+| **7.3.0 UIS** | Ingestion, Mongo, identity, pipeline, admin analytics — **RBEL input only** | [intelligence/user_intelligence_system_v7_3_0_spec.md](intelligence/user_intelligence_system_v7_3_0_spec.md) |
+
+**Index:** [intelligence/README.md](intelligence/README.md)
+
 ## 1) Runtime Contract (ưu tiên cao)
 
 - [SYSTEM_CURRENT_STATE.md](SYSTEM_CURRENT_STATE.md) — handoff cho AI/dev và team.

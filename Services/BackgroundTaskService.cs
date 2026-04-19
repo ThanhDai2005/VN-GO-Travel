@@ -3,6 +3,7 @@ using System.Diagnostics;
 using MauiApp1.ApplicationContracts.Providers;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
+using Microsoft.Extensions.Logging;
 
 namespace MauiApp1.Services;
 
@@ -14,7 +15,7 @@ namespace MauiApp1.Services;
 public class BackgroundTaskService
 {
     private readonly ILocationProvider _locationService;
-    private readonly IGeofenceService _geofenceService;
+    private readonly IGeofenceArbitrationKernel _geofenceArbitrationKernel;
     private readonly IPoiTranslationService _poiTranslationService;
     private readonly ILocalizationService _locService;
     private readonly AppState _appState;
@@ -26,14 +27,14 @@ public class BackgroundTaskService
 
     public BackgroundTaskService(
         ILocationProvider locationService,
-        IGeofenceService geofenceService,
+        IGeofenceArbitrationKernel geofenceArbitrationKernel,
         IPoiTranslationService poiTranslationService,
         ILocalizationService locService,
         AppState appState,
         DevicePresenceService devicePresenceService)
     {
         _locationService = locationService;
-        _geofenceService = geofenceService;
+        _geofenceArbitrationKernel = geofenceArbitrationKernel;
         _poiTranslationService = poiTranslationService;
         _locService = locService;
         _appState = appState;
@@ -115,10 +116,7 @@ public class BackgroundTaskService
 
                 var loc = await _locationService.GetCurrentLocationAsync();
                 if (loc != null)
-                {
-                    _appState.CurrentLocation = loc;
-                    await _geofenceService.CheckLocationAsync(loc);
-                }
+                    await _geofenceArbitrationKernel.PublishLocationAsync(loc, "background", ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) { break; }
             catch (Exception ex)
@@ -131,6 +129,10 @@ public class BackgroundTaskService
 
     private async Task RunPreloaderLoopAsync(CancellationToken ct)
     {
+        // TEMP: Disabled for stabilization phase
+        await Task.CompletedTask;
+        return;
+
         while (!ct.IsCancellationRequested)
         {
             try
@@ -154,6 +156,12 @@ public class BackgroundTaskService
                 if (target == null) continue;
 
                 Debug.WriteLine($"[BACK-SVC] Preloading {target.Code} to {lang}...");
+
+                _logger.LogInformation(
+                    "[TranslationTrigger] Source={Source} | PoiId={PoiId} | Lang={Lang}",
+                    "BackgroundPreload",
+                    target.Code,
+                    lang);
 
                 var translatedPoi = await _poiTranslationService.GetOrTranslateAsync(target.Code, lang, ct);
 

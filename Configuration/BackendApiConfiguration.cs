@@ -16,7 +16,7 @@ public static class BackendApiConfiguration
     /// </list>
     /// </summary>
     // Emulator: "10.0.2.2". Điện thoại thật (Samsung, …) + Wi‑Fi: đổi thành IPv4 máy Windows (CMD: ipconfig).
-    private const string AndroidDevApiHost = "192.168.89.169";
+    private const string AndroidDevApiHost = "10.186.18.125";
 
     public static string BaseUrl { get; set; } = $"http://{AndroidDevApiHost}:3000/api/v1/";
 #elif DEBUG

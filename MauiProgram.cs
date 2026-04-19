@@ -1,8 +1,14 @@
+using ContractObservability.Replay;
 using MauiApp1.ApplicationContracts.Providers;
 using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Configuration;
 using MauiApp1.Services;
+using MauiApp1.Services.MapUi;
+using MauiApp1.Services.Chaos;
+using MauiApp1.Services.Governance;
+using MauiApp1.Services.Observability;
+using MauiApp1.Services.RBEL;
 using MauiApp1.ViewModels;
 using MauiApp1.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,6 +71,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<GTranslateTranslationProvider>();
         builder.Services.AddSingleton<ITranslationProvider, LangblyTranslationProvider>();
         builder.Services.AddSingleton<IPoiTranslationService, PoiTranslationService>();
+        builder.Services.AddSingleton<TranslationOrchestrator>();
 
         builder.Services.AddSingleton<QrScannerService>();
         builder.Services.AddSingleton<IQrScannerService>(sp => sp.GetRequiredService<QrScannerService>());
@@ -82,13 +89,65 @@ public static class MauiProgram
         builder.Services.AddSingleton<AudioService>();
         builder.Services.AddSingleton<IAudioPlayerService>(sp => sp.GetRequiredService<AudioService>());
 
+        // ── ROEL 7.2.6: runtime observability + passive efficiency signals (decorators; kernels unchanged)
+        builder.Services.AddSingleton<RuntimeTelemetryService>();
+        builder.Services.AddSingleton<IRuntimeTelemetry>(sp => sp.GetRequiredService<RuntimeTelemetryService>());
+        builder.Services.AddSingleton<BatteryEfficiencyMonitor>();
+
         builder.Services.AddSingleton<GeofenceService>();
-        builder.Services.AddSingleton<IGeofenceService>(sp => sp.GetRequiredService<GeofenceService>());
+        builder.Services.AddSingleton<IGeofenceService>(sp => new ObservingGeofenceService(
+            sp.GetRequiredService<GeofenceService>(),
+            sp.GetRequiredService<IRuntimeTelemetry>()));
+
+        builder.Services.AddSingleton<GeofenceArbitrationKernel>();
+        builder.Services.AddSingleton<ObservingGeofenceArbitrationKernel>(sp => new ObservingGeofenceArbitrationKernel(
+            sp.GetRequiredService<GeofenceArbitrationKernel>(),
+            sp.GetRequiredService<IRuntimeTelemetry>(),
+            sp.GetRequiredService<BatteryEfficiencyMonitor>()));
+
+#if DEBUG
+        builder.Services.AddSingleton<IGeofenceArbitrationKernel>(sp => new ChaosGeofenceArbitrationKernel(
+            sp.GetRequiredService<ObservingGeofenceArbitrationKernel>(),
+            sp.GetRequiredService<IRuntimeTelemetry>()));
+#else
+        builder.Services.AddSingleton<IGeofenceArbitrationKernel>(sp => sp.GetRequiredService<ObservingGeofenceArbitrationKernel>());
+#endif
 
         builder.Services.AddSingleton<DevicePresenceService>();
         builder.Services.AddSingleton<BackgroundTaskService>();
         builder.Services.AddSingleton<AppState>();
-        builder.Services.AddSingleton<INavigationService, NavigationService>();
+        builder.Services.AddSingleton<RuntimeDeterminismGuard>();
+        builder.Services.AddSingleton<MapUiStateArbitrator>();
+        builder.Services.AddSingleton<ObservingMapUiStateArbitrator>(sp => new ObservingMapUiStateArbitrator(
+            sp.GetRequiredService<MapUiStateArbitrator>(),
+            sp.GetRequiredService<IRuntimeTelemetry>(),
+            sp.GetRequiredService<AppState>()));
+
+#if DEBUG
+        builder.Services.AddSingleton<IMapUiStateArbitrator>(sp => new ChaosMapUiStateArbitrator(
+            sp.GetRequiredService<ObservingMapUiStateArbitrator>()));
+#else
+        builder.Services.AddSingleton<IMapUiStateArbitrator>(sp => sp.GetRequiredService<ObservingMapUiStateArbitrator>());
+#endif
+
+        builder.Services.AddSingleton<NavigationService>();
+        builder.Services.AddSingleton<ObservingNavigationService>(sp => new ObservingNavigationService(
+            sp.GetRequiredService<NavigationService>(),
+            sp.GetRequiredService<IRuntimeTelemetry>()));
+
+#if DEBUG
+        builder.Services.AddSingleton<INavigationService>(sp => new ChaosNavigationService(
+            sp.GetRequiredService<ObservingNavigationService>()));
+#else
+        builder.Services.AddSingleton<INavigationService>(sp => sp.GetRequiredService<ObservingNavigationService>());
+#endif
+
+        builder.Services.AddSingleton<ChaosSimulationService>();
+        builder.Services.AddSingleton<ProductionReadinessEvaluator>();
+#if DEBUG
+        builder.Services.AddSingleton<ChaosValidationEngine>();
+        builder.Services.AddSingleton<RuntimeReplayEngine>();
+#endif
 
         static Uri NormalizeApiBase(string raw)
         {
@@ -110,6 +169,43 @@ public static class MauiProgram
             };
             return new AuthService(loginClient, sp.GetRequiredService<AuthTokenStore>());
         });
+        builder.Services.AddSingleton<IDeviceIdProvider, DeviceIdProvider>();
+        builder.Services.AddSingleton<IUserContextSnapshotProvider, UserContextSnapshotProvider>();
+        builder.Services.AddSingleton<IEventBatchSink, LoggingTranslationEventBatchSink>();
+        builder.Services.AddSingleton<TranslationTrackingSession>();
+        builder.Services.AddSingleton(sp => new ContractObservability.ContractTelemetryTracker(
+            sp.GetService<ILogger<ContractObservability.ContractTelemetryTracker>>()));
+        builder.Services.AddSingleton<ContractObservability.IContractTelemetryTracker>(sp =>
+            sp.GetRequiredService<ContractObservability.ContractTelemetryTracker>());
+#if DEBUG
+        builder.Services.AddSingleton<ContractEventJournal>();
+        builder.Services.AddSingleton<IContractReplayCapture>(sp => sp.GetRequiredService<ContractEventJournal>());
+        builder.Services.AddSingleton<ContractReplayDebugService>();
+#else
+        builder.Services.AddSingleton<IContractReplayCapture, NoOpContractReplayCapture>();
+#endif
+        builder.Services.AddSingleton<QueuedEventTracker>(sp => new QueuedEventTracker(
+            sp.GetRequiredService<IEventBatchSink>(),
+            sp.GetRequiredService<ILogger<QueuedEventTracker>>(),
+            sp.GetService<ContractObservability.IContractTelemetryTracker>(),
+            sp.GetRequiredService<IContractReplayCapture>()));
+        builder.Services.AddSingleton<IEventTracker>(sp => sp.GetRequiredService<QueuedEventTracker>());
+
+        // ── 7.3.1 RBEL client bridge (read-only ROEL tap → batch → 7.3.0 ingestion; no kernel changes)
+        builder.Services.AddSingleton<RbelCorrelationScope>();
+        builder.Services.AddSingleton<RbelRuntimeSequenceSource>();
+        builder.Services.AddSingleton<IRbelEventQueue, RbelEventQueue>();
+        builder.Services.AddSingleton(sp =>
+        {
+            var client = new HttpClient
+            {
+                BaseAddress = apiBase,
+                Timeout = TimeSpan.FromSeconds(35)
+            };
+            return new RbelHttpClient(client, sp.GetRequiredService<AuthTokenStore>());
+        });
+        builder.Services.AddSingleton<RbelBackgroundDispatcher>();
+
         builder.Services.AddSingleton(sp =>
         {
             var handler = new AuthDelegatingHandler(
