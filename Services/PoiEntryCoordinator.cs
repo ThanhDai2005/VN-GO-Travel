@@ -110,9 +110,6 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
 
     private async Task<PoiEntryResult> HandleSecureScanAsync(PoiEntryRequest request, string token, CancellationToken cancellationToken)
     {
-        if (!_auth.IsAuthenticated)
-            return new PoiEntryResult { Success = false, Error = "Đăng nhập để quét mã QR bảo mật" };
-
         using var resp = await _api.PostAsJsonAsync("pois/scan", new { token }, cancellationToken).ConfigureAwait(false);
         var bodyText = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         if (!resp.IsSuccessStatusCode)
@@ -191,10 +188,28 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
             Code = code,
             Latitude = data.Location.Lat,
             Longitude = data.Location.Lng,
-            Radius = 50,
-            Priority = 1
+            Radius = data.Radius > 0 ? data.Radius : 50,
+            Priority = data.Priority != 0 ? data.Priority : 1
         };
         await _poiCommand.UpsertAsync(poi, cancellationToken).ConfigureAwait(false);
+
+        if (!string.IsNullOrWhiteSpace(data.Name))
+        {
+            var vi = new PoiLocalization
+            {
+                Code = code,
+                LanguageCode = "vi",
+                Name = data.Name?.Trim() ?? "",
+                Summary = data.Summary?.Trim() ?? "",
+                NarrationShort = string.IsNullOrWhiteSpace(data.NarrationShort)
+                    ? (data.Summary?.Trim() ?? data.Name?.Trim() ?? "")
+                    : data.NarrationShort!.Trim(),
+                NarrationLong = string.IsNullOrWhiteSpace(data.NarrationLong)
+                    ? (data.NarrationShort?.Trim() ?? data.Summary?.Trim() ?? data.Name?.Trim() ?? "")
+                    : data.NarrationLong!.Trim()
+            };
+            _localization.RegisterDynamicTranslation(code, "vi", vi);
+        }
 
         void Reg(string lang, string? text)
         {
@@ -203,7 +218,8 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
         }
 
         Reg("en", data.Content?.En);
-        Reg("vi", data.Content?.Vi);
+        if (string.IsNullOrWhiteSpace(data.Name))
+            Reg("vi", data.Content?.Vi);
     }
 
     private async Task<PoiEntryResult> NavigateByCodeAsync(PoiEntryRequest request, string code, CancellationToken cancellationToken)

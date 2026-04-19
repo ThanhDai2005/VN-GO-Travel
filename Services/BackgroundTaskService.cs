@@ -19,10 +19,11 @@ public class BackgroundTaskService
     private readonly IPoiTranslationService _poiTranslationService;
     private readonly ILocalizationService _locService;
     private readonly AppState _appState;
-    private readonly ILogger<BackgroundTaskService> _logger;
+    private readonly DevicePresenceService _devicePresenceService;
 
     private CancellationTokenSource? _cts;
     private readonly object _lock = new();
+    private Task? _presenceLoopTask;
 
     public BackgroundTaskService(
         ILocationProvider locationService,
@@ -30,14 +31,14 @@ public class BackgroundTaskService
         IPoiTranslationService poiTranslationService,
         ILocalizationService locService,
         AppState appState,
-        ILogger<BackgroundTaskService> logger)
+        DevicePresenceService devicePresenceService)
     {
         _locationService = locationService;
         _geofenceArbitrationKernel = geofenceArbitrationKernel;
         _poiTranslationService = poiTranslationService;
         _locService = locService;
         _appState = appState;
-        _logger = logger;
+        _devicePresenceService = devicePresenceService;
     }
 
     public void StartServices()
@@ -54,6 +55,9 @@ public class BackgroundTaskService
             // 2. Start POI Content Preloader (Translation) Loop
             _ = Task.Run(() => RunPreloaderLoopAsync(token), token);
 
+            // 3. Start device heartbeat loop
+            _presenceLoopTask = Task.Run(() => RunDevicePresenceLoopAsync(token), token);
+
             Debug.WriteLine("[BACK-SVC] Background services STARTED");
         }
     }
@@ -66,6 +70,31 @@ public class BackgroundTaskService
             _cts.Cancel();
             _cts.Dispose();
             _cts = null;
+
+            // Avoid heartbeat/offline race: wait briefly for heartbeat loop to stop,
+            // then mark offline as the final state.
+            try
+            {
+                _presenceLoopTask?.Wait(1200);
+            }
+            catch { /* best effort */ }
+            finally
+            {
+                _presenceLoopTask = null;
+            }
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(150).ConfigureAwait(false);
+                    await _devicePresenceService.SendOfflineAsync().ConfigureAwait(false);
+                    // Send once more to override any late-arriving network retry.
+                    await Task.Delay(150).ConfigureAwait(false);
+                    await _devicePresenceService.SendOfflineAsync().ConfigureAwait(false);
+                }
+                catch { /* best effort */ }
+            });
             Debug.WriteLine("[BACK-SVC] Background services STOPPED");
         }
     }
@@ -180,5 +209,26 @@ public class BackgroundTaskService
         };
         poi.Localization = result.Localization;
         return poi;
+    }
+
+    private async Task RunDevicePresenceLoopAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await _devicePresenceService.SendHeartbeatAsync(ct);
+                await Task.Delay(12000, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[BACK-SVC] Device presence loop error: {ex.Message}");
+                await Task.Delay(5000, ct);
+            }
+        }
     }
 }

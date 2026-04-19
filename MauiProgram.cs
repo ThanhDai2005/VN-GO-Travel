@@ -113,6 +113,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IGeofenceArbitrationKernel>(sp => sp.GetRequiredService<ObservingGeofenceArbitrationKernel>());
 #endif
 
+        builder.Services.AddSingleton<DevicePresenceService>();
         builder.Services.AddSingleton<BackgroundTaskService>();
         builder.Services.AddSingleton<AppState>();
         builder.Services.AddSingleton<RuntimeDeterminismGuard>();

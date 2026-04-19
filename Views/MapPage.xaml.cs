@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using MauiApp1.Models;
 using MauiApp1.Services;
 using MauiApp1.Services.MapUi;
@@ -110,7 +111,22 @@ public partial class MapPage : ContentPage, IQueryAttributable
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        _auth.PropertyChanged -= OnAuthPropertyChanged;
+        _auth.PropertyChanged += OnAuthPropertyChanged;
+        UpdatePlayAudioButtonText();
         _ = OnAppearingAsync();
+    }
+
+    private void OnAuthPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(AuthService.IsAuthenticated))
+            UpdatePlayAudioButtonText();
+    }
+
+    private void UpdatePlayAudioButtonText()
+    {
+        if (PlayAudioButton == null) return;
+        PlayAudioButton.Text = _auth.IsAuthenticated ? "🔊 Nghe chi tiết" : "🔊 Nghe tóm tắt";
     }
 
     private async Task OnAppearingAsync()
@@ -233,6 +249,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        _auth.PropertyChanged -= OnAuthPropertyChanged;
 
         _isTracking = false;
         _poisDrawn = false;
@@ -505,6 +522,13 @@ public partial class MapPage : ContentPage, IQueryAttributable
     {
         var poi = _vm.SelectedPoi;
         if (poi == null) return;
+
+        // Chưa đăng nhập: nút hiển thị "Nghe tóm tắt" — chỉ phát NarrationShort (không mở đăng nhập).
+        if (!_auth.IsAuthenticated)
+        {
+            await _vm.PlayPoiAsync(poi, _vm.CurrentLanguage);
+            return;
+        }
 
         // Thuyết minh chi tiết (NarrationLong) chỉ trên map khi Premium — tránh lỗ hổng "Mở trên bản đồ" rồi nghe full chi tiết khi vẫn là user thường.
         if (!_auth.IsPremium)

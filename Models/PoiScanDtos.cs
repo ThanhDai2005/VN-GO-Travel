@@ -12,6 +12,12 @@ public sealed class PoiScanData
     public string? Id { get; set; }
     public string? Code { get; set; }
     public PoiScanLocation? Location { get; set; }
+    public double Radius { get; set; }
+    public int Priority { get; set; }
+    public string? Name { get; set; }
+    public string? Summary { get; set; }
+    public string? NarrationShort { get; set; }
+    public string? NarrationLong { get; set; }
     public PoiScanContent? Content { get; set; }
     public bool IsPremiumOnly { get; set; }
     public string? Status { get; set; }

@@ -107,20 +107,4 @@
 	</ItemGroup>
 
 <!-- Exclude the AdminWeb (ASP.NET Core MVC) project from MAUI compilation globs -->
-	<ItemGroup>
-	  <Compile Remove="AdminWeb\**\*.cs" />
-	  <MauiXaml Remove="AdminWeb\**\*.xaml" />
-	  <Content Remove="AdminWeb\**\*" />
-	  <None Remove="AdminWeb\**\*" />
-	</ItemGroup>
-
-	<!-- Other repo projects / tools live under the same directory as MauiApp1.csproj; keep them out of MAUI compile. -->
-	<ItemGroup>
-	  <Compile Remove="TranslationEvents.Api\**\*.cs" />
-	  <Compile Remove="ContractDefinition\**\*.cs" />
-	  <Compile Remove="ContractSourceGenerator\**\*.cs" />
-	  <Compile Remove="Contracts.Generated\**\*.cs" />
-	  <Compile Remove="tools\**\*.cs" />
-	  <Compile Remove="ContractObservability\**\*.cs" />
-	</ItemGroup>
 </Project>

@@ -76,14 +76,11 @@ public sealed class ProfileViewModel : INotifyPropertyChanged
     private async Task LogoutCoreAsync()
     {
         await _auth.LogoutAsync().ConfigureAwait(false);
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            var login = _services.GetRequiredService<LoginPage>();
-            global::Microsoft.Maui.Controls.Application.Current!.MainPage = new NavigationPage(login)
-            {
-                BarBackgroundColor = Color.FromArgb("#1B3A5F"),
-                BarTextColor = Colors.White
-            };
+            RefreshFromAuth();
+            if (Shell.Current != null)
+                await _nav.NavigateToAsync("//profile");
         });
     }
 

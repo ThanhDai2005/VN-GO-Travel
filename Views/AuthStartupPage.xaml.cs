@@ -30,17 +30,8 @@ public partial class AuthStartupPage : ContentPage
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                if (auth.IsAuthenticated)
-                    global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<AppShell>();
-                else
-                {
-                    var login = _services.GetRequiredService<LoginPage>();
-                    global::Microsoft.Maui.Controls.Application.Current!.MainPage = new NavigationPage(login)
-                    {
-                        BarBackgroundColor = Color.FromArgb("#1B3A5F"),
-                        BarTextColor = Colors.White
-                    };
-                }
+                // New flow: always enter app shell first (guest mode allowed).
+                global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<AppShell>();
             });
         }
         catch (Exception ex)
@@ -48,12 +39,7 @@ public partial class AuthStartupPage : ContentPage
             Debug.WriteLine($"[AUTH-START] {ex}");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                var login = _services.GetRequiredService<LoginPage>();
-                global::Microsoft.Maui.Controls.Application.Current!.MainPage = new NavigationPage(login)
-                {
-                    BarBackgroundColor = Color.FromArgb("#1B3A5F"),
-                    BarTextColor = Colors.White
-                };
+                global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<AppShell>();
             });
         }
     }

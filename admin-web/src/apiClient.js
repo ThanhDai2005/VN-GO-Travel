@@ -160,6 +160,7 @@ export async function submitOwnerPoi(body) {
   return apiRequest('/api/v1/owner/pois', { method: 'POST', body });
 }
 
+<<<<<<< HEAD
 /** @returns {Promise<Array<{ event_family: string, total_events: number }>>} */
 export async function fetchIntelligenceEventsByFamily(start, end, granularity = 'daily') {
   const q = new URLSearchParams({
@@ -194,4 +195,6 @@ export async function fetchIntelligenceTimeline(start, end, granularity = 'daily
 export async function fetchIntelligenceHeatmap(start, end) {
   const q = new URLSearchParams({ start, end });
   return apiRequest(`/api/v1/admin/intelligence/heatmap?${q}`);
+=======
+
 }

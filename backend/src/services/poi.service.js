@@ -636,7 +636,9 @@ class PoiService {
     }
 
     /**
-     * Authenticated user: redeem QR JWT and return full POI when allowed.
+     * Redeem QR JWT and return POI.
+     * - Guest users are allowed to scan and consume summary flow in app.
+     * - Logged-in non-premium users still consume QR quota.
      */
     async resolveQrScanToken(rawToken, user) {
         if (!rawToken || typeof rawToken !== 'string' || !rawToken.trim()) {
@@ -669,12 +671,12 @@ class PoiService {
         if (st && st !== POI_STATUS.APPROVED) {
             throw new AppError('POI is not available for scanning', 403);
         }
-        if (poi.isPremiumOnly && !user.isPremium) {
+        if (poi.isPremiumOnly && !(user && user.isPremium)) {
             throw new AppError('Premium subscription required for this POI', 403);
         }
 
-        // Non-premium users: max 10 scans total. Premium users: unlimited.
-        if (!user.isPremium) {
+        // Non-premium logged-in users: max 10 scans total. Premium users: unlimited.
+        if (user && !user.isPremium) {
             const updated = await userRepository.incrementQrScanCountIfAllowed(
                 user._id,
                 PoiService.USER_QR_SCAN_LIMIT
