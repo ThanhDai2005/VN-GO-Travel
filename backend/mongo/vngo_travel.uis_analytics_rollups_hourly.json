@@ -1,0 +1,190 @@
+[{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f0004a"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T13:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 10,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f0004b"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T12:00:00.000Z"
+  },
+  "event_family": "NavigationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "logged_in",
+  "total_events": 13,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f0004c"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T11:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 16,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f0004d"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T10:00:00.000Z"
+  },
+  "event_family": "NavigationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "logged_in",
+  "total_events": 19,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f0004e"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T09:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 22,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f0004f"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T08:00:00.000Z"
+  },
+  "event_family": "NavigationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "logged_in",
+  "total_events": 25,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f00050"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T07:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 28,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f00051"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T06:00:00.000Z"
+  },
+  "event_family": "NavigationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "logged_in",
+  "total_events": 31,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f00052"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T05:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 34,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f00053"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T04:00:00.000Z"
+  },
+  "event_family": "NavigationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "logged_in",
+  "total_events": 37,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+}]

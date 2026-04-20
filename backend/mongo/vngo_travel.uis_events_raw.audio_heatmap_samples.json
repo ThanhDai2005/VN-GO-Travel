@@ -1,0 +1,52 @@
+[
+  {
+    "event_id": "sample_audio_heat_001",
+    "correlation_id": "corr_audio_heat_001",
+    "user_id": "67f0f1f2f3f4f5f6f7f8f9a0",
+    "device_id": "android-demo-device-001",
+    "auth_state": "logged_in",
+    "source_system": "MSAL",
+    "event_family": "UserInteractionEvent",
+    "payload": {
+      "roelKind": "UiStateCommitted",
+      "producerId": "audio",
+      "detail": "action=audio_play_short;poi=POI_HO_GUOM",
+      "routeOrAction": "audio_play_short",
+      "poiCode": "POI_HO_GUOM",
+      "latitude": 21.028511,
+      "longitude": 105.804817
+    },
+    "runtime_tick_utc_ticks": 638807040000000000,
+    "runtime_sequence": 120001,
+    "contract_version": "v2",
+    "rbel_mapping_version": "rbel-1.0.1",
+    "timestamp": {
+      "$date": "2026-04-20T09:00:00.000Z"
+    }
+  },
+  {
+    "event_id": "sample_audio_heat_002",
+    "correlation_id": "corr_audio_heat_002",
+    "user_id": "67f0f1f2f3f4f5f6f7f8f9a0",
+    "device_id": "android-demo-device-001",
+    "auth_state": "logged_in",
+    "source_system": "MSAL",
+    "event_family": "UserInteractionEvent",
+    "payload": {
+      "roelKind": "UiStateCommitted",
+      "producerId": "audio",
+      "detail": "action=audio_play_long;poi=POI_HO_GUOM",
+      "routeOrAction": "audio_play_long",
+      "poiCode": "POI_HO_GUOM",
+      "latitude": 21.028511,
+      "longitude": 105.804817
+    },
+    "runtime_tick_utc_ticks": 638807040300000000,
+    "runtime_sequence": 120002,
+    "contract_version": "v2",
+    "rbel_mapping_version": "rbel-1.0.1",
+    "timestamp": {
+      "$date": "2026-04-20T09:00:03.000Z"
+    }
+  }
+]

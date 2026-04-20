@@ -72,7 +72,7 @@ export default function Heatmap({
   cells = [],
   rangeStartIso,
   rangeEndIso,
-  title = 'Activity heatmap (UTC)',
+  title = 'Bản đồ nhiệt hoạt động (UTC)',
   subtitle,
 }) {
   const { start, end } = useMemo(() => {

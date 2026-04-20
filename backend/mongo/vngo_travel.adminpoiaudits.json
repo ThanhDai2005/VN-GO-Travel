@@ -1,0 +1,44 @@
+[{
+  "_id": {
+    "$oid": "69dfc453c46adef3e829c07e"
+  },
+  "poiId": {
+    "$oid": "69dfc43c087c183f8f132992"
+  },
+  "adminId": {
+    "$oid": "69dcea8e5ba759947dddb94c"
+  },
+  "action": "APPROVE",
+  "previousStatus": "PENDING",
+  "newStatus": "APPROVED",
+  "reason": null,
+  "createdAt": {
+    "$date": "2026-04-15T17:01:07.085Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-15T17:01:07.085Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69dfef9a603e23b154e55498"
+  },
+  "poiId": {
+    "$oid": "69dfcb636dbe17964cd3b6dd"
+  },
+  "adminId": {
+    "$oid": "69dcea8e5ba759947dddb94c"
+  },
+  "action": "APPROVE",
+  "previousStatus": "PENDING",
+  "newStatus": "APPROVED",
+  "reason": null,
+  "createdAt": {
+    "$date": "2026-04-15T20:05:46.582Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-15T20:05:46.582Z"
+  },
+  "__v": 0
+}]

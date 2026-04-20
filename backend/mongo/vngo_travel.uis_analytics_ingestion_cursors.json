@@ -1,0 +1,20 @@
+[{
+  "_id": "raw_to_hourly",
+  "updated_at": {
+    "$date": "2026-04-19T14:16:14.941Z"
+  },
+  "watermark_last_raw_id": null,
+  "watermark_timestamp": {
+    "$date": "1970-01-01T00:00:00.000Z"
+  }
+},
+{
+  "_id": "raw_to_daily",
+  "updated_at": {
+    "$date": "2026-04-19T14:16:14.941Z"
+  },
+  "watermark_last_raw_id": null,
+  "watermark_timestamp": {
+    "$date": "1970-01-01T00:00:00.000Z"
+  }
+}]

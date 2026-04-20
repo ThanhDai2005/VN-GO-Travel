@@ -3,6 +3,7 @@ using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
 using MauiApp1.Services.MapUi;
+using MauiApp1.Services.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Networking;
 using Microsoft.Maui.Controls;
@@ -29,6 +30,7 @@ public class PoiNarrationService
     private readonly IPoiQueryRepository _poiQuery;
     private readonly AppState _appState;
     private readonly IMapUiStateArbitrator _mapUi;
+    private readonly IRuntimeTelemetry _telemetry;
     private readonly ILogger<PoiNarrationService> _logger;
     private readonly SemaphoreSlim _translationGate = new(1, 1);
 
@@ -39,6 +41,7 @@ public class PoiNarrationService
         IPoiQueryRepository poiQuery,
         AppState appState,
         IMapUiStateArbitrator mapUi,
+        IRuntimeTelemetry telemetry,
         ILogger<PoiNarrationService> logger)
     {
         _audioService = audioService;
@@ -47,6 +50,7 @@ public class PoiNarrationService
         _poiQuery = poiQuery;
         _appState = appState;
         _mapUi = mapUi;
+        _telemetry = telemetry;
         _logger = logger;
     }
 
@@ -82,6 +86,7 @@ public class PoiNarrationService
             return;
         }
 
+        TrackNarrationInteraction(poi.Code, "audio_play_short");
         await SpeakSafeAsync(poi.Code, text, language);
     }
 
@@ -139,6 +144,7 @@ public class PoiNarrationService
             return;
         }
 
+        TrackNarrationInteraction(poi.Code, "audio_play_long");
         await SpeakSafeAsync(poi.Code, text, language);
     }
 
@@ -315,6 +321,31 @@ public class PoiNarrationService
         catch (Exception ex)
         {
             Debug.WriteLine($"[AUDIO] SpeakAsync ERROR for code={poiCode}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Emits ROEL telemetry each time user intentionally plays POI narration.
+    /// This enables heatmap intensity to grow with real usage behavior.
+    /// </summary>
+    private void TrackNarrationInteraction(string? poiCode, string action)
+    {
+        try
+        {
+            var loc = _appState.CurrentLocation;
+            _telemetry.TryEnqueue(new RuntimeTelemetryEvent(
+                RuntimeTelemetryEventKind.UiStateCommitted,
+                DateTime.UtcNow.Ticks,
+                producerId: "audio",
+                latitude: loc?.Latitude,
+                longitude: loc?.Longitude,
+                poiCode: poiCode,
+                routeOrAction: action,
+                detail: $"action={action};poi={poiCode ?? ""}"));
+        }
+        catch
+        {
+            // telemetry must never break narration
         }
     }
 }

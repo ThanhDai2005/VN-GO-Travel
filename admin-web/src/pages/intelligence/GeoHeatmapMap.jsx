@@ -48,7 +48,6 @@ function FitBounds({ points }) {
 
 export default function GeoHeatmapMap({ rows = [], fallbackRows = [] }) {
   const activeRows = Array.isArray(rows) && rows.length > 0 ? rows : fallbackRows;
-  const usingFallback = (!rows || rows.length === 0) && Array.isArray(fallbackRows) && fallbackRows.length > 0;
 
   const points = useMemo(() => {
     const maxEvents = Math.max(1, ...activeRows.map((r) => Number(r.total_events) || 0));
@@ -73,11 +72,6 @@ export default function GeoHeatmapMap({ rows = [], fallbackRows = [] }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200">
-      {usingFallback ? (
-        <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          Chưa có payload vị trí từ events trong khoảng thời gian lọc. Đang hiển thị heatmap từ tọa độ POI đã duyệt.
-        </div>
-      ) : null}
       <MapContainer
         center={[10.7769, 106.7009]}
         zoom={12}

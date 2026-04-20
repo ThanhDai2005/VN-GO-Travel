@@ -1,0 +1,360 @@
+[{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2ca"
+  },
+  "session_id": "local-intel-seed-sess-0",
+  "__v": 0,
+  "auth_state_current": "guest",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "device_id": "local-intel-seed-d0",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-18T02:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "user_id": null
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2cb"
+  },
+  "session_id": "local-intel-seed-sess-1",
+  "__v": 0,
+  "auth_state_current": "logged_in",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.731Z"
+  },
+  "device_id": "local-intel-seed-d1",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-16T14:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.731Z"
+  },
+  "user_id": "69e4e3af1f249e1768777184"
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2cc"
+  },
+  "session_id": "local-intel-seed-sess-2",
+  "__v": 0,
+  "auth_state_current": "logged_in",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.733Z"
+  },
+  "device_id": "local-intel-seed-d2",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-15T02:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.733Z"
+  },
+  "user_id": "69e4e3af1f249e1768777185"
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2cd"
+  },
+  "session_id": "local-intel-seed-sess-3",
+  "__v": 0,
+  "auth_state_current": "guest",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.734Z"
+  },
+  "device_id": "local-intel-seed-d3",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-13T14:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.734Z"
+  },
+  "user_id": null
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2ce"
+  },
+  "session_id": "local-intel-seed-sess-4",
+  "__v": 0,
+  "auth_state_current": "logged_in",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.736Z"
+  },
+  "device_id": "local-intel-seed-d4",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-12T02:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.736Z"
+  },
+  "user_id": "69e4e3b01f249e1768777187"
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2cf"
+  },
+  "session_id": "local-intel-seed-sess-5",
+  "__v": 0,
+  "auth_state_current": "logged_in",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.739Z"
+  },
+  "device_id": "local-intel-seed-d0",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-10T14:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.739Z"
+  },
+  "user_id": "69e4e3ae1f249e1768777183"
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2d0"
+  },
+  "session_id": "local-intel-seed-sess-6",
+  "__v": 0,
+  "auth_state_current": "guest",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.740Z"
+  },
+  "device_id": "local-intel-seed-d1",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-09T02:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.740Z"
+  },
+  "user_id": null
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2d1"
+  },
+  "session_id": "local-intel-seed-sess-7",
+  "__v": 0,
+  "auth_state_current": "logged_in",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.742Z"
+  },
+  "device_id": "local-intel-seed-d2",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-07T14:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.742Z"
+  },
+  "user_id": "69e4e3af1f249e1768777185"
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2d2"
+  },
+  "session_id": "local-intel-seed-sess-8",
+  "__v": 0,
+  "auth_state_current": "logged_in",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.743Z"
+  },
+  "device_id": "local-intel-seed-d3",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-06T02:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.743Z"
+  },
+  "user_id": "69e4e3b01f249e1768777186"
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2d3"
+  },
+  "session_id": "local-intel-seed-sess-9",
+  "__v": 0,
+  "auth_state_current": "guest",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.746Z"
+  },
+  "device_id": "local-intel-seed-d4",
+  "last_seen": {
+    "$date": "2026-04-19T14:16:16.726Z"
+  },
+  "start_time": {
+    "$date": "2026-04-04T14:16:16.726Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.746Z"
+  },
+  "user_id": null
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2d9"
+  },
+  "session_id": "minimal-intel-sess-0",
+  "__v": 0,
+  "auth_state_current": "logged_in",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.928Z"
+  },
+  "device_id": "minimal-intel-d0",
+  "last_seen": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "start_time": {
+    "$date": "2026-04-19T13:26:40.861Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.928Z"
+  },
+  "user_id": "69e4e62039ded43fe0f00024"
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2da"
+  },
+  "session_id": "minimal-intel-sess-1",
+  "__v": 0,
+  "auth_state_current": "guest",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.931Z"
+  },
+  "device_id": "minimal-intel-d1",
+  "last_seen": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "start_time": {
+    "$date": "2026-04-19T12:26:40.861Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.931Z"
+  },
+  "user_id": null
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2db"
+  },
+  "session_id": "minimal-intel-sess-2",
+  "__v": 0,
+  "auth_state_current": "logged_in",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.932Z"
+  },
+  "device_id": "minimal-intel-d2",
+  "last_seen": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "start_time": {
+    "$date": "2026-04-19T11:26:40.861Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.932Z"
+  },
+  "user_id": "69e4e62039ded43fe0f00024"
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2dc"
+  },
+  "session_id": "minimal-intel-sess-3",
+  "__v": 0,
+  "auth_state_current": "guest",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.933Z"
+  },
+  "device_id": "minimal-intel-d0",
+  "last_seen": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "start_time": {
+    "$date": "2026-04-19T10:26:40.861Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.933Z"
+  },
+  "user_id": null
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2dd"
+  },
+  "session_id": "minimal-intel-sess-4",
+  "__v": 0,
+  "auth_state_current": "logged_in",
+  "auth_transitions": [],
+  "correlation_ids_sample": [],
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.935Z"
+  },
+  "device_id": "minimal-intel-d1",
+  "last_seen": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "start_time": {
+    "$date": "2026-04-19T09:26:40.861Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.935Z"
+  },
+  "user_id": "69e4e62039ded43fe0f00024"
+}]

@@ -1,0 +1,144 @@
+[{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2c2"
+  },
+  "device_id": "local-intel-seed-d0",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.692Z"
+  },
+  "guest_role": "guest",
+  "last_active_at": {
+    "$date": "2026-04-19T14:16:16.691Z"
+  },
+  "linked_user_id": "69e4e3ae1f249e1768777183",
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.692Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2c3"
+  },
+  "device_id": "local-intel-seed-d1",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.705Z"
+  },
+  "guest_role": "guest",
+  "last_active_at": {
+    "$date": "2026-04-19T14:16:16.691Z"
+  },
+  "linked_user_id": "69e4e3af1f249e1768777184",
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.705Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2c4"
+  },
+  "device_id": "local-intel-seed-d2",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.708Z"
+  },
+  "guest_role": "guest",
+  "last_active_at": {
+    "$date": "2026-04-19T14:16:16.691Z"
+  },
+  "linked_user_id": "69e4e3af1f249e1768777185",
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.708Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2c5"
+  },
+  "device_id": "local-intel-seed-d3",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.711Z"
+  },
+  "guest_role": "guest",
+  "last_active_at": {
+    "$date": "2026-04-19T14:16:16.691Z"
+  },
+  "linked_user_id": null,
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.711Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2c6"
+  },
+  "device_id": "local-intel-seed-d4",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.714Z"
+  },
+  "guest_role": "guest",
+  "last_active_at": {
+    "$date": "2026-04-19T14:16:16.691Z"
+  },
+  "linked_user_id": null,
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.714Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2d4"
+  },
+  "device_id": "minimal-intel-d0",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.915Z"
+  },
+  "guest_role": "guest",
+  "last_active_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "linked_user_id": "69e4e62039ded43fe0f00024",
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.915Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2d5"
+  },
+  "device_id": "minimal-intel-d1",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.920Z"
+  },
+  "guest_role": "guest",
+  "last_active_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "linked_user_id": "69e4e62139ded43fe0f00025",
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.920Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2d6"
+  },
+  "device_id": "minimal-intel-d2",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.923Z"
+  },
+  "guest_role": "guest",
+  "last_active_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "linked_user_id": null,
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.923Z"
+  }
+}]

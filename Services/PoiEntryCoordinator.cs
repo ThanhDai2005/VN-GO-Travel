@@ -5,6 +5,7 @@ using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
 using MauiApp1.Services.MapUi;
+using MauiApp1.Services.Observability;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 
@@ -24,6 +25,7 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
     private readonly AppState _appState;
     private readonly IMapUiStateArbitrator _mapUi;
     private readonly IEventTracker _eventTracker;
+    private readonly IRuntimeTelemetry _telemetry;
     private readonly IUserContextSnapshotProvider _userContext;
     private readonly TranslationTrackingSession _trackingSession;
     /// <summary>Serializes all POI entry work across await points (7.2 — replaces non-async-safe bool gate).</summary>
@@ -45,6 +47,7 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
         AppState appState,
         IMapUiStateArbitrator mapUi,
         IEventTracker eventTracker,
+        IRuntimeTelemetry telemetry,
         IUserContextSnapshotProvider userContext,
         TranslationTrackingSession trackingSession)
     {
@@ -58,6 +61,7 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
         _appState = appState;
         _mapUi = mapUi;
         _eventTracker = eventTracker;
+        _telemetry = telemetry;
         _userContext = userContext;
         _trackingSession = trackingSession;
     }
@@ -300,6 +304,16 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
     {
         try
         {
+            _telemetry.TryEnqueue(new RuntimeTelemetryEvent(
+                RuntimeTelemetryEventKind.UiStateCommitted,
+                DateTime.UtcNow.Ticks,
+                producerId: "qr",
+                latitude: poiLatitude,
+                longitude: poiLongitude,
+                poiCode: poiCode,
+                routeOrAction: "qr_scan",
+                detail: $"action=qr_scan;poi={poiCode ?? ""}"));
+
             var ctx = await _userContext.GetAsync(cancellationToken).ConfigureAwait(false);
             var reqId = Guid.NewGuid().ToString("N");
             _eventTracker.Track(new TranslationEvent

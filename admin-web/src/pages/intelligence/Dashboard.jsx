@@ -45,6 +45,23 @@ function toIso(d) {
   return d instanceof Date ? d.toISOString() : new Date(d).toISOString();
 }
 
+function mapFamilyLabel(family) {
+  const x = String(family || '').trim();
+  if (x === 'LocationEvent') return 'Sự kiện vị trí';
+  if (x === 'UserInteractionEvent') return 'Sự kiện tương tác người dùng';
+  if (x === 'NavigationEvent') return 'Sự kiện điều hướng';
+  if (x === 'ObservabilityEvent') return 'Sự kiện quan sát hệ thống';
+  return x || 'Không xác định';
+}
+
+function mapAuthLabel(auth) {
+  const x = String(auth || '').trim().toLowerCase();
+  if (x === 'guest') return 'Khách';
+  if (x === 'logged_in') return 'Đã đăng nhập';
+  if (x === 'premium') return 'Premium';
+  return auth || 'Không xác định';
+}
+
 export default function IntelligenceDashboard() {
   const [{ start, end }, setRange] = useState(() => defaultRange());
   const [granularity, setGranularity] = useState('daily');
@@ -86,8 +103,14 @@ export default function IntelligenceDashboard() {
       setByAuth(Array.isArray(auth) ? auth : []);
       setGeoHeatmapRows(Array.isArray(geo) ? geo : []);
       setHeatmapCells(Array.isArray(hm) ? hm : []);
-      const fallback = Array.isArray(masterPois?.items)
-        ? masterPois.items
+      const masterPoiRows = Array.isArray(masterPois?.data)
+        ? masterPois.data
+        : Array.isArray(masterPois?.items)
+          ? masterPois.items
+          : [];
+
+      const fallback = masterPoiRows.length > 0
+        ? masterPoiRows
             .filter((p) => p?.status === 'APPROVED' && p?.location)
             .map((p) => ({
               lat: Number(
@@ -137,7 +160,7 @@ export default function IntelligenceDashboard() {
   const familyBarData = useMemo(
     () =>
       byFamily.map((r) => ({
-        name: r.event_family ?? '—',
+        name: mapFamilyLabel(r.event_family),
         total_events: Number(r.total_events) || 0,
       })),
     [byFamily],
@@ -146,7 +169,7 @@ export default function IntelligenceDashboard() {
   const authPieData = useMemo(
     () =>
       byAuth.map((r) => ({
-        name: r.auth_state ?? '—',
+        name: mapAuthLabel(r.auth_state),
         value: Number(r.total_events) || 0,
       })),
     [byAuth],
@@ -154,9 +177,9 @@ export default function IntelligenceDashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">Intelligence Dashboard</h1>
+      <h1 className="text-2xl font-semibold text-slate-900">Bảng điều khiển Intelligence</h1>
       <p className="mt-1 text-sm text-slate-600">
-        Số liệu từ rollup (hourly/daily) — không truy vấn raw events.
+        Số liệu lấy từ rollup (giờ/ngày) — không truy vấn trực tiếp dữ liệu sự kiện thô.
       </p>
 
       <div className="mt-6 flex flex-wrap items-end gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -195,8 +218,8 @@ export default function IntelligenceDashboard() {
             value={granularity}
             onChange={(e) => setGranularity(e.target.value)}
           >
-            <option value="daily">Daily rollup</option>
-            <option value="hourly">Hourly rollup</option>
+            <option value="daily">Rollup theo ngày</option>
+            <option value="hourly">Rollup theo giờ</option>
           </select>
         </label>
         <button
@@ -218,9 +241,6 @@ export default function IntelligenceDashboard() {
         <div className="mt-8 space-y-10">
           <section>
             <h2 className="text-lg font-medium text-slate-800">Heatmap vị trí khách theo POI</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Cường độ dựa trên tổng sự kiện vào POI trong khoảng thời gian đang lọc.
-            </p>
             <div className="mt-3">
               <GeoHeatmapMap rows={geoHeatmapRows} fallbackRows={geoFallbackRows} />
             </div>
@@ -234,7 +254,7 @@ export default function IntelligenceDashboard() {
           />
 
           <section>
-            <h2 className="text-lg font-medium text-slate-800">Timeline (tổng sự kiện)</h2>
+            <h2 className="text-lg font-medium text-slate-800">Dòng thời gian (tổng sự kiện)</h2>
             <div className="mt-3 h-80 w-full rounded-xl border border-slate-200 bg-white p-4">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={timelineChartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>

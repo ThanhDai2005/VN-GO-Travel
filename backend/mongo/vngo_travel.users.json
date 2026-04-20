@@ -1,0 +1,58 @@
+[{
+  "_id": {
+    "$oid": "69dff87ca42440b189d726de"
+  },
+  "email": "user@vngo.com",
+  "fullName": "Demo User",
+  "password": "$2b$12$cFnC5fVwHwjVwdcrHZP8Tes4oUWxED65b2fm34a3WdQFCcwvDcObO",
+  "role": "USER",
+  "isPremium": false,
+  "isActive": true,
+  "qrScanCount": 3,
+  "updatedAt": {
+    "$date": "2026-04-16T03:02:01.672Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69dff87ca42440b189d726df"
+  },
+  "email": "admin@vngo.com",
+  "fullName": "System Admin",
+  "password": "$2b$12$cFnC5fVwHwjVwdcrHZP8Tes4oUWxED65b2fm34a3WdQFCcwvDcObO",
+  "role": "ADMIN",
+  "isPremium": false,
+  "isActive": true,
+  "qrScanCount": 0
+},
+{
+  "_id": {
+    "$oid": "69dff87ca42440b189d726e0"
+  },
+  "email": "owner@vngo.com",
+  "fullName": "Content Owner",
+  "password": "$2b$12$cFnC5fVwHwjVwdcrHZP8Tes4oUWxED65b2fm34a3WdQFCcwvDcObO",
+  "role": "OWNER",
+  "isPremium": false,
+  "isActive": true,
+  "qrScanCount": 0
+},
+{
+  "_id": {
+    "$oid": "69dff8f5b218e160d35e562e"
+  },
+  "email": "levan@vngo.com",
+  "fullName": "nguyen van thanh dai",
+  "password": "$2b$12$3aVonSmVjF/MFgg3UJA61uP4o8pm7IZ5xiVr.d3zr3Gc/Yp9LS4R2",
+  "role": "USER",
+  "isPremium": false,
+  "isActive": true,
+  "qrScanCount": 1,
+  "createdAt": {
+    "$date": "2026-04-15T20:45:41.818Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-15T20:48:51.464Z"
+  },
+  "__v": 0
+}]

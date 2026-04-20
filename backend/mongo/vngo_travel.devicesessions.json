@@ -1,0 +1,126 @@
+[{
+  "_id": {
+    "$oid": "69e055a2e549cd7110f62f22"
+  },
+  "deviceId": "e2a7079f82c7417bb2a0ab3fe7585dd1",
+  "__v": 0,
+  "appVersion": "1.0",
+  "createdAt": {
+    "$date": "2026-04-16T03:21:05.181Z"
+  },
+  "deviceName": "A54 của Dai",
+  "email": "",
+  "ipAddress": "::ffff:10.186.18.150",
+  "isOnline": true,
+  "lastOfflineAt": null,
+  "lastSeenAt": {
+    "$date": "2026-04-16T03:21:35.707Z"
+  },
+  "manufacturer": "samsung",
+  "model": "SM-A546E",
+  "osVersion": "16",
+  "platform": "Android",
+  "sessionStartedAt": {
+    "$date": "2026-04-16T03:21:05.095Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-16T03:21:35.781Z"
+  },
+  "user": null
+},
+{
+  "_id": {
+    "$oid": "69e05949e549cd7110f62f26"
+  },
+  "deviceId": "df15bfa2be53465ea2f87b36c885ea7d",
+  "__v": 0,
+  "appVersion": "1.0",
+  "createdAt": {
+    "$date": "2026-04-16T03:36:39.987Z"
+  },
+  "deviceName": "A54 của Dai",
+  "email": "",
+  "ipAddress": "::ffff:10.186.18.150",
+  "isOnline": false,
+  "lastOfflineAt": {
+    "$date": "2026-04-16T03:46:50.268Z"
+  },
+  "lastSeenAt": {
+    "$date": "2026-04-16T03:46:43.635Z"
+  },
+  "manufacturer": "samsung",
+  "model": "SM-A546E",
+  "osVersion": "16",
+  "platform": "Android",
+  "sessionStartedAt": {
+    "$date": "2026-04-16T03:36:39.907Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-16T03:46:50.268Z"
+  },
+  "user": null
+},
+{
+  "_id": {
+    "$oid": "69e076f0e549cd7110f630ec"
+  },
+  "deviceId": "2d83aa06f3da423082688961794abd66",
+  "__v": 0,
+  "appVersion": "1.0",
+  "createdAt": {
+    "$date": "2026-04-16T05:43:10.933Z"
+  },
+  "deviceName": "A54 của Dai",
+  "email": "",
+  "ipAddress": "::ffff:192.168.89.141",
+  "isOnline": false,
+  "lastOfflineAt": {
+    "$date": "2026-04-16T07:19:08.718Z"
+  },
+  "lastSeenAt": {
+    "$date": "2026-04-16T07:19:07.624Z"
+  },
+  "manufacturer": "samsung",
+  "model": "SM-A546E",
+  "osVersion": "16",
+  "platform": "Android",
+  "sessionStartedAt": {
+    "$date": "2026-04-16T05:43:10.869Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-16T07:19:08.718Z"
+  },
+  "user": null
+},
+{
+  "_id": {
+    "$oid": "69e08dc8e549cd7110f63120"
+  },
+  "deviceId": "8dbaffc9fbc2475cbeb5c5f09fb09f14",
+  "__v": 0,
+  "appVersion": "1.0",
+  "createdAt": {
+    "$date": "2026-04-16T07:20:38.616Z"
+  },
+  "deviceName": "A54 của Dai",
+  "email": "",
+  "ipAddress": "::ffff:192.168.89.141",
+  "isOnline": false,
+  "lastOfflineAt": {
+    "$date": "2026-04-16T07:22:41.490Z"
+  },
+  "lastSeenAt": {
+    "$date": "2026-04-16T07:22:31.072Z"
+  },
+  "manufacturer": "samsung",
+  "model": "SM-A546E",
+  "osVersion": "16",
+  "platform": "Android",
+  "sessionStartedAt": {
+    "$date": "2026-04-16T07:20:38.568Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-16T07:22:41.491Z"
+  },
+  "user": null
+}]

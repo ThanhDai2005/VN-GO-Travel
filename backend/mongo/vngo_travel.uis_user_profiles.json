@@ -1,0 +1,105 @@
+[{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2c7"
+  },
+  "user_id": "69e4e3ae1f249e1768777183",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.717Z"
+  },
+  "device_ids": [
+    "local-intel-seed-d0"
+  ],
+  "last_active_at": {
+    "$date": "2026-04-19T14:16:16.717Z"
+  },
+  "merged_from_user_ids": [],
+  "role": "login",
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.717Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2c8"
+  },
+  "user_id": "69e4e3af1f249e1768777184",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.722Z"
+  },
+  "device_ids": [
+    "local-intel-seed-d1"
+  ],
+  "last_active_at": {
+    "$date": "2026-04-19T14:16:16.717Z"
+  },
+  "merged_from_user_ids": [],
+  "role": "login",
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.722Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e3b0d19acda799bdc2c9"
+  },
+  "user_id": "69e4e3af1f249e1768777185",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:16:16.724Z"
+  },
+  "device_ids": [
+    "local-intel-seed-d2"
+  ],
+  "last_active_at": {
+    "$date": "2026-04-19T14:16:16.717Z"
+  },
+  "merged_from_user_ids": [],
+  "role": "premium",
+  "updatedAt": {
+    "$date": "2026-04-19T14:16:16.724Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2d7"
+  },
+  "user_id": "69e4e62039ded43fe0f00024",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.925Z"
+  },
+  "device_ids": [
+    "minimal-intel-d0"
+  ],
+  "last_active_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "merged_from_user_ids": [],
+  "role": "login",
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.925Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "69e4e621d19acda799bdc2d8"
+  },
+  "user_id": "69e4e62139ded43fe0f00025",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-04-19T14:26:41.927Z"
+  },
+  "device_ids": [
+    "minimal-intel-d1"
+  ],
+  "last_active_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "merged_from_user_ids": [],
+  "role": "login",
+  "updatedAt": {
+    "$date": "2026-04-19T14:26:41.927Z"
+  }
+}]

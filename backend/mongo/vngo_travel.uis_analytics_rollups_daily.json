@@ -1,0 +1,95 @@
+[{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f00054"
+  },
+  "bucket_start": {
+    "$date": "2026-04-19T00:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 50,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f00055"
+  },
+  "bucket_start": {
+    "$date": "2026-04-18T00:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 60,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f00056"
+  },
+  "bucket_start": {
+    "$date": "2026-04-17T00:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 70,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f00057"
+  },
+  "bucket_start": {
+    "$date": "2026-04-16T00:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 80,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+},
+{
+  "_id": {
+    "$oid": "69e4e62139ded43fe0f00058"
+  },
+  "bucket_start": {
+    "$date": "2026-04-15T00:00:00.000Z"
+  },
+  "event_family": "LocationEvent",
+  "source_system": "mobile_app",
+  "auth_state": "guest",
+  "total_events": 90,
+  "created_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "updated_at": {
+    "$date": "2026-04-19T14:26:40.861Z"
+  },
+  "seed_tag": "minimal-intel"
+}]
