@@ -22,6 +22,7 @@ public class PoiFocusService
     private readonly TranslationOrchestrator _translationOrchestrator;
     private readonly AppState _appState;
     private readonly IMapUiStateArbitrator _mapUi;
+    private readonly TranslationQueueService _translationQueue;
     private readonly ILogger<PoiFocusService> _logger;
 
     // Pending focus request — written by PoiDetailPage, consumed by MapPage on Appearing.
@@ -36,6 +37,7 @@ public class PoiFocusService
         TranslationOrchestrator translationOrchestrator,
         AppState appState,
         IMapUiStateArbitrator mapUi,
+        TranslationQueueService translationQueue,
         ILogger<PoiFocusService> logger)
     {
         _poiQuery = poiQuery;
@@ -43,6 +45,7 @@ public class PoiFocusService
         _translationOrchestrator = translationOrchestrator;
         _appState = appState;
         _mapUi = mapUi;
+        _translationQueue = translationQueue;
         _logger = logger;
     }
 
@@ -114,24 +117,17 @@ public class PoiFocusService
             var locResult = _locService.GetLocalizationResult(normalizedCode, preferred);
             Debug.WriteLine($"[Map-VM] FocusOnPoiByCodeAsync: loc found={locResult.Localization != null} name='{locResult.Localization?.Name}' fallback={locResult.IsFallback}");
 
-            // On-demand dynamic translation check
+            // On-demand dynamic translation check (Queue-based)
             if (locResult.IsFallback && preferred != "vi" && preferred != "en")
             {
                 _logger.LogInformation(
-                    "[TranslationTrigger] Source={Source} | PoiId={PoiId} | Lang={Lang}",
+                    "[TranslationTrigger-Queue] Source={Source} | PoiId={PoiId} | Lang={Lang}",
                     "PoiFocus",
                     normalizedCode,
                     preferred);
 
-                var translatedPoi = await _translationOrchestrator
-                    .RequestTranslationAsync(normalizedCode, preferred, TranslationSource.PoiFocus)
-                    .ConfigureAwait(false);
-                if (translatedPoi != null && translatedPoi.Localization != null)
-                {
-                    _locService.RegisterDynamicTranslation(normalizedCode, preferred, translatedPoi.Localization);
-                    locResult = _locService.GetLocalizationResult(normalizedCode, preferred);
-                    Debug.WriteLine($"[Map-VM] Dynamic translation activated for {normalizedCode}");
-                }
+                core.IsTranslating = true;
+                _translationQueue.Enqueue(normalizedCode, preferred);
             }
 
             // Always a new instance → fires PropertyChanged("SelectedPoi") → MAUI re-reads bindings (BUG-3 fix)

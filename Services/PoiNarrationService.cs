@@ -7,6 +7,8 @@ using MauiApp1.Services.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Networking;
 using Microsoft.Maui.Controls;
+using CommunityToolkit.Mvvm.Messaging;
+using MauiApp1.Messages;
 
 namespace MauiApp1.Services;
 
@@ -26,6 +28,7 @@ public class PoiNarrationService
 {
     private readonly IAudioPlayerService _audioService;
     private readonly ILocalizationService _locService;
+    private readonly TranslationQueueService _translationQueue;
     private readonly TranslationOrchestrator _translationOrchestrator;
     private readonly IPoiQueryRepository _poiQuery;
     private readonly AppState _appState;
@@ -41,11 +44,13 @@ public class PoiNarrationService
         IPoiQueryRepository poiQuery,
         AppState appState,
         IMapUiStateArbitrator mapUi,
+        TranslationQueueService translationQueue,
         IRuntimeTelemetry telemetry,
         ILogger<PoiNarrationService> logger)
     {
         _audioService = audioService;
         _locService = locService;
+        _translationQueue = translationQueue;
         _translationOrchestrator = translationOrchestrator;
         _poiQuery = poiQuery;
         _appState = appState;
@@ -195,48 +200,34 @@ public class PoiNarrationService
             if (locResult.Localization != null && !locResult.IsFallback)
                 return (PoiHydrationService.CreateHydratedPoi(poi, locResult), locResult);
 
-            // 1. Connectivity Check (Fail-fast)
-            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
-            {
-                Debug.WriteLine("[AUDIO] Translation failed: No internet access.");
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    if (Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Page is Page page)
-                    {
-                        await page.DisplayAlert("Lỗi kết nối", "Cần có internet để dịch ngôn ngữ này. Vui lòng kiểm tra lại kết nối.", "OK");
-                    }
-                });
-                return (PoiHydrationService.CreateHydratedPoi(poi, locResult), locResult);
-            }
-
-            // 2. State & Timeout Management
-            _appState.IsTranslating = true;
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)); // 15s timeout for API
+            // 2. State & Queue Management
+            poi.IsTranslating = true;
+            var tcs = new TaskCompletionSource<bool>();
             
+            // Subscribe to completion for this specific POI
+            WeakReferenceMessenger.Default.Register<TranslationCompletedMessage>(this, (r, m) =>
+            {
+                if (m.Code == normalizedCode && m.Language == language)
+                {
+                    tcs.TrySetResult(true);
+                    WeakReferenceMessenger.Default.Unregister<TranslationCompletedMessage>(this);
+                }
+            });
+
+            _translationQueue.Enqueue(normalizedCode, language);
+
             try
             {
-                _logger.LogInformation(
-                    "[TranslationTrigger] Source={Source} | PoiId={PoiId} | Lang={Lang}",
-                    "Narration",
-                    normalizedCode,
-                    language);
-
-                var translatedPoi = await _translationOrchestrator
-                    .RequestTranslationAsync(normalizedCode, language, TranslationSource.Narration, cts.Token)
-                    .ConfigureAwait(false);
-                if (translatedPoi?.Localization != null)
-                {
-                    _locService.RegisterDynamicTranslation(normalizedCode, language, translatedPoi.Localization);
-                    locResult = _locService.GetLocalizationResult(normalizedCode, language);
-                }
+                // Wait for the message for up to 15s
+                await tcs.Task.WaitAsync(TimeSpan.FromSeconds(15)).ConfigureAwait(false);
+                
+                // Re-fetch result after completion
+                locResult = _locService.GetLocalizationResult(normalizedCode, language);
             }
-            catch (OperationCanceledException)
+            catch (TimeoutException)
             {
-                Debug.WriteLine($"[AUDIO] Translation timed out for {normalizedCode} ({language})");
-                await MainThread.InvokeOnMainThreadAsync(async () => {
-                    if (Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Page is Page page)
-                        await page.DisplayAlert("Lỗi", "Quá trình dịch quá lâu hoặc kết nối kém. Thử lại sau.", "OK");
-                });
+                Debug.WriteLine($"[AUDIO] Narration wait timed out for {normalizedCode}");
+                WeakReferenceMessenger.Default.Unregister<TranslationCompletedMessage>(this);
             }
             catch (Exception ex)
             {
@@ -244,7 +235,7 @@ public class PoiNarrationService
             }
             finally
             {
-                _appState.IsTranslating = false;
+                poi.IsTranslating = false;
             }
         }
         finally

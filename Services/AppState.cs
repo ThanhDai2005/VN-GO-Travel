@@ -124,6 +124,37 @@ public class AppState : INotifyPropertyChanged
         }
     }
 
+    // ── Conveniences ─────────────────────────────────────────────────────────
+    private Microsoft.Maui.Maps.MapSpan? _currentMapRegion;
+    public Microsoft.Maui.Maps.MapSpan? CurrentMapRegion
+    {
+        get => _currentMapRegion;
+        set
+        {
+            _currentMapRegion = value;
+            // No PropertyChanged needed typically, just for caching
+        }
+    }
+
+    public IEnumerable<Poi> GetVisiblePois()
+    {
+        if (_currentMapRegion == null || _pois == null)
+            return Enumerable.Empty<Poi>();
+
+        var center = _currentMapRegion.Center;
+        var latHalf = _currentMapRegion.LatitudeDegrees / 2;
+        var lonHalf = _currentMapRegion.LongitudeDegrees / 2;
+
+        var minLat = center.Latitude - latHalf;
+        var maxLat = center.Latitude + latHalf;
+        var minLon = center.Longitude - lonHalf;
+        var maxLon = center.Longitude + lonHalf;
+
+        return _pois.Where(p => 
+            p.Latitude >= minLat && p.Latitude <= maxLat &&
+            p.Longitude >= minLon && p.Longitude <= maxLon);
+    }
+
     // ── Convenience Events for Services ──────────────────────────────────────
 
     public event EventHandler<string>? LanguageChanged;

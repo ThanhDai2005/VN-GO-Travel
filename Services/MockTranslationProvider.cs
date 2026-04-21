@@ -17,4 +17,11 @@ public sealed class MockTranslationProvider : ITranslationProvider
 
         return Task.FromResult(new TranslationResult($"[{to}]{text}", true));
     }
+
+    public async Task<List<TranslationResult>> TranslateBatchAsync(List<TranslationRequest> requests, CancellationToken cancellationToken = default)
+    {
+        var tasks = requests.Select(r => TranslateAsync(r.Text, r.FromLang, r.ToLang, cancellationToken));
+        var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+        return results.ToList();
+    }
 }

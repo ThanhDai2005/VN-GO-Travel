@@ -97,12 +97,21 @@
                              Padding="20,2,20,4"
                              Spacing="4">
 
-                    <Label Text="{Binding SelectedPoi.Localization.Name}"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           LineBreakMode="TailTruncation"
-                           MaxLines="2" />
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="{Binding SelectedPoi.Localization.Name}"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"
+                               LineBreakMode="TailTruncation"
+                               VerticalOptions="Center"
+                               MaxLines="2" />
+                        <ActivityIndicator IsRunning="{Binding SelectedPoi.IsTranslating}"
+                                           IsVisible="{Binding SelectedPoi.IsTranslating}"
+                                           Color="{StaticResource BrandPrimary}"
+                                           WidthRequest="20"
+                                           HeightRequest="20"
+                                           VerticalOptions="Center" />
+                    </HorizontalStackLayout>
                 </VerticalStackLayout>
 
             <!-- BUTTONS -->

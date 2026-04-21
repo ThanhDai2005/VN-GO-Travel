@@ -61,6 +61,14 @@ public partial class MapPage : ContentPage, IQueryAttributable
                 }
             });
         };
+
+        Map.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(Map.VisibleRegion))
+            {
+                _appState.CurrentMapRegion = Map.VisibleRegion;
+            }
+        };
     }
 
     /// <summary>Shell query from coordinator: <c>code</c>, <c>lang</c>, optional <c>narrate=1</c> after QR scan.</summary>

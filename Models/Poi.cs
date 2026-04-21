@@ -77,6 +77,12 @@ public class Poi
     [Ignore]
     public string RequestedLanguage { get; set; } = "";
 
+    /// <summary>
+    /// Indicates if a background translation is currently in progress for this POI.
+    /// </summary>
+    [Ignore]
+    public bool IsTranslating { get; set; }
+
     // ── Navigation property ──────────────────────────────────────────────────
 
     /// <summary>

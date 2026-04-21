@@ -55,4 +55,24 @@ public sealed class GTranslateTranslationProvider : ITranslationProvider
             return new TranslationResult(text, false);
         }
     }
+
+    public async Task<List<TranslationResult>> TranslateBatchAsync(List<TranslationRequest> requests, CancellationToken cancellationToken = default)
+    {
+        if (requests == null || requests.Count == 0) return new List<TranslationResult>();
+
+        // --- STAGGERED PARALLELIZATION (Phase 4 Hardening) ---
+        // Public endpoints often flag rapid-fire parallel requests as bots.
+        // We stagger them by 50ms to appear more natural while maintaining high throughput.
+        var tasks = requests.Select(async (r, index) =>
+        {
+            if (index > 0)
+            {
+                await Task.Delay(index * 50, cancellationToken).ConfigureAwait(false);
+            }
+            return await TranslateAsync(r.Text, r.FromLang, r.ToLang, cancellationToken).ConfigureAwait(false);
+        });
+
+        var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+        return results.ToList();
+    }
 }

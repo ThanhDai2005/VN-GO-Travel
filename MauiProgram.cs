@@ -71,6 +71,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<GTranslateTranslationProvider>();
         builder.Services.AddSingleton<ITranslationProvider, LangblyTranslationProvider>();
         builder.Services.AddSingleton<IPoiTranslationService, PoiTranslationService>();
+        builder.Services.AddSingleton<TranslationQueueService>();
         builder.Services.AddSingleton<TranslationOrchestrator>();
 
         builder.Services.AddSingleton<QrScannerService>();

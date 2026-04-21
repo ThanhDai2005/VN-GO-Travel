@@ -10,12 +10,13 @@ namespace MauiApp1.Services;
 /// Singleton, in-memory localization service.
 /// Loads all POI text content from <c>pois.json</c> exactly once at startup.
 /// All subsequent lookups are O(1) and fully synchronous; the lookup dictionary is
-/// guarded by <c>lock (_lookup)</c> for reads and writes so dynamic injection is thread-safe.
+/// guarded by <see cref="ReaderWriterLockSlim"/> for optimized concurrent reads and safe background writes.
 /// </summary>
-public sealed class LocalizationService : ILocalizationService
+public sealed class LocalizationService : ILocalizationService, IDisposable
 {
     // (Code_UPPER, lang_lower) → localized text block
     private readonly Dictionary<(string Code, string Lang), PoiLocalization> _lookup = new();
+    private readonly ReaderWriterLockSlim _lock = new();
 
     // Geo-only Pois, one per unique Code — used for the initial SQLite seed.
     // Id = Code (single row per POI in DB after the Phase-1 refactor).
@@ -82,9 +83,14 @@ public sealed class LocalizationService : ILocalizationService
                     NarrationLong = r.NarrationLong ?? ""
                 };
 
-                lock (_lookup)
+                _lock.EnterWriteLock();
+                try
                 {
                     _lookup[(code, lang)] = loc;
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
                 }
 
                 // One geo-only core row per Code for DB seeding.
@@ -143,7 +149,8 @@ public sealed class LocalizationService : ILocalizationService
 
         code = code.Trim().ToUpperInvariant();
 
-        lock (_lookup)
+        _lock.EnterReadLock();
+        try
         {
             // 1. Exact match — user's requested language
             if (_lookup.TryGetValue((code, lang), out var exact))
@@ -186,6 +193,10 @@ public sealed class LocalizationService : ILocalizationService
                 lang);
             return LocalizationResult.Miss(lang);
         }
+        finally
+        {
+            _lock.ExitReadLock();
+        }
     }
 
     /// <summary>
@@ -213,9 +224,14 @@ public sealed class LocalizationService : ILocalizationService
             foreach (var lang in supportedLangs)
             {
                 bool hasEntry;
-                lock (_lookup)
+                _lock.EnterReadLock();
+                try
                 {
                     hasEntry = _lookup.ContainsKey((poi.Code, lang));
+                }
+                finally
+                {
+                    _lock.ExitReadLock();
                 }
 
                 if (!hasEntry)
@@ -250,7 +266,8 @@ public sealed class LocalizationService : ILocalizationService
         
         var normCode = code.Trim().ToUpperInvariant();
         var normLang = lang.Trim().ToLowerInvariant();
-        lock (_lookup)
+        _lock.EnterWriteLock();
+        try
         {
             if (_lookup.TryGetValue((normCode, normLang), out var existing))
             {
@@ -266,6 +283,10 @@ public sealed class LocalizationService : ILocalizationService
             }
 
             _lookup[(normCode, normLang)] = loc;
+        }
+        finally
+        {
+            _lock.ExitWriteLock();
         }
         Debug.WriteLine($"[LOC-SVC] Injected dynamic translation for Code={code}, Lang={lang}");
     }
@@ -285,5 +306,10 @@ public sealed class LocalizationService : ILocalizationService
         public double Longitude { get; set; }
         public double Radius { get; set; }
         public int Priority { get; set; }
+    }
+    public void Dispose()
+    {
+        _lock.Dispose();
+        _initGate.Dispose();
     }
 }

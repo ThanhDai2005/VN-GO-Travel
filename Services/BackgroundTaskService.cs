@@ -129,17 +129,12 @@ public class BackgroundTaskService
 
     private async Task RunPreloaderLoopAsync(CancellationToken ct)
     {
-        // TEMP: Disabled for stabilization phase
-        await Task.CompletedTask;
-        return;
-
-#pragma warning disable CS0162 // Unreachable code detected
         while (!ct.IsCancellationRequested)
         {
             try
             {
-                // Respect API rate limits and battery
-                await Task.Delay(8000, ct);
+                // Respect API rate limits and battery (45s minimum delay)
+                await Task.Delay(45000, ct);
 
                 if (_appState.IsModalOpen) continue;
 
@@ -152,7 +147,18 @@ public class BackgroundTaskService
                 Poi? target = null;
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    target = _appState.Pois.FirstOrDefault(p => p.IsFallback);
+                    // Highest priority: Selected POI
+                    var selected = _appState.SelectedPoi;
+                    if (selected != null && selected.IsFallback)
+                    {
+                        target = selected;
+                    }
+                    else
+                    {
+                        // Next priority: Visible POIs
+                        target = _appState.GetVisiblePois().FirstOrDefault(p => p.IsFallback);
+                    }
+                    // Others -> ignored by this background loop, they won't be translated until selected or visible.
                 });
                 if (target == null) continue;
 
@@ -167,19 +173,8 @@ public class BackgroundTaskService
                 {
                     _locService.RegisterDynamicTranslation(target.Code, lang, translatedPoi.Localization);
 
-                    // Update the POI in the global Pois collection on the main thread.
-                    // IndexOf uses reference equality, which is safe here because target
-                    // was captured from the same collection instance moments ago.
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        var index = _appState.Pois.IndexOf(target);
-                        if (index >= 0)
-                        {
-                            var locResult = _locService.GetLocalizationResult(target.Code, lang);
-                            _appState.Pois[index] = CreateHydratedPoi(target, locResult);
-                            Debug.WriteLine($"[BACK-SVC] Dynamic update for {target.Code}");
-                        }
-                    });
+                    // UI update logic has been removed to prevent background translation spamming visual refreshes.
+                    // Translated result is merely cached locally and loaded dynamically the next time UI evaluates.
                 }
             }
             catch (OperationCanceledException) { break; }
@@ -189,7 +184,6 @@ public class BackgroundTaskService
                 await Task.Delay(5000, ct);
             }
         }
-#pragma warning restore CS0162 // Unreachable code detected
     }
 
     private static Poi CreateHydratedPoi(Poi core, LocalizationResult result)

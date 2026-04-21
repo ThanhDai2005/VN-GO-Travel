@@ -6,15 +6,22 @@ This document describes the **current runtime behavior** of translation/localiza
 
 - Core POI geo data is stored in SQLite (`pois` table).
 - Localized text baseline is loaded into memory from `pois.json` by `LocalizationService`.
+- **Tech Stack**: Custom .NET MAUI implementation; no external i18n libraries (like i18next).
+- **Directory Structure**:
+    - `Resources/Raw/pois.json`: Primary seed database.
+    - `Services/`: Core i18n logic (`PreferredLanguageService`, `LocalizationService`, `LanguagePackService`).
 - On-demand translation is handled by `PoiTranslationService`.
 - Auto-translated text is persisted in SQLite cache table `poi_translation_cache`.
 - Dynamic localized text is injected into in-memory lookup using `LocalizationService.RegisterDynamicTranslation(...)`.
 - UI consumes localized content through hydrated `Poi` instances in `AppState`.
+- **UI Localization**: Static labels (e.g., "Scan QR") are currently hardcoded in XAML; localization primarily covers POI-specific content.
 
 Primary components:
 
 - `LocalizationService`
 - `PoiTranslationService`
+- `PreferredLanguageService` (Language state & persistence via `Preferences`)
+- `LanguagePackService` (Download/Network awareness)
 - `PoiDatabase` (`IPoiQueryRepository`, `ITranslationRepository`)
 - `PoiFocusService`
 - `PoiNarrationService`
@@ -22,6 +29,7 @@ Primary components:
 - `MapPage` / `MapViewModel`
 - `PoiDetailViewModel`
 - `QrScannerViewModel` + `PoiEntryCoordinator` (QR path)
+- `LanguageSelectorViewModel` / `AddLanguageViewModel`
 
 ---
 
@@ -163,6 +171,26 @@ Camera/manual QR
     - repeated QR/map navigation touching uncached POIs.
 - Per **same key** (`CODE|lang`), `PoiTranslationService` key-gate serializes calls and prevents parallel duplicate provider calls.
 - Across **different keys** (many POIs), calls can still fan out and produce high outbound provider traffic.
+
+---
+
+## 5.4 Language Detection & Persistence
+- **Bootstrapping**: `PreferredLanguageService` ctor checks `Preferences` for `preferred_language`.
+- **System Detection**: If first launch, uses `CultureInfo.CurrentUICulture.TwoLetterISOLanguageName` and defaults to `vi` if unsupported.
+- **Dynamic Languages**: Custom languages added via UI are persisted as a comma-separated list in `custom_dynamic_languages`.
+
+---
+
+## 5.5 Language Pack & Download Management
+- **State**: `LanguagePackService` tracks `NotDownloaded`, `Downloading`, `Downloaded`, `Failed`.
+- **Logic**:
+    - `vi` and `en` are pre-installed.
+    - Other languages require "EnsureAvailableAsync" call.
+- **Network Awareness**: 
+    - WiFi: Silent download.
+    - Cellular: User confirmation prompt.
+    - Offline: Shows "Unavailable" alert.
+- **Implementation**: Currently simulated (Task.Delay + memory flag) to prepare for future CDN integration.
 
 ---
 

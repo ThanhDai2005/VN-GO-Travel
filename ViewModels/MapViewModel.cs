@@ -11,6 +11,8 @@ using MauiApp1.Services.MapUi;
 using Microsoft.Maui.Devices.Sensors;
 using System.Windows.Input;
 using Microsoft.Maui.ApplicationModel;
+using CommunityToolkit.Mvvm.Messaging;
+using MauiApp1.Messages;
 
 namespace MauiApp1.ViewModels;
 
@@ -45,6 +47,7 @@ public class MapViewModel : INotifyPropertyChanged
     private readonly PoiNarrationService   _narrationService;
     private readonly PoiFocusService       _focusService;
     private readonly LanguageSwitchService _langSwitchService;
+    private readonly TranslationQueueService _translationQueue;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Constructor
@@ -60,7 +63,8 @@ public class MapViewModel : INotifyPropertyChanged
         PoiHydrationService hydrationService,
         PoiNarrationService narrationService,
         PoiFocusService focusService,
-        LanguageSwitchService langSwitchService)
+        LanguageSwitchService langSwitchService,
+        TranslationQueueService translationQueue)
     {
         _locationService   = locationService;
         _geofenceArbitrationKernel = geofenceArbitrationKernel;
@@ -72,6 +76,7 @@ public class MapViewModel : INotifyPropertyChanged
         _narrationService  = narrationService;
         _focusService      = focusService;
         _langSwitchService = langSwitchService;
+        _translationQueue  = translationQueue;
 
         // Initialize language from stored preference
         var initial = _languagePrefs.GetStoredOrDefault();
@@ -84,6 +89,38 @@ public class MapViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(SelectedPoi));
             OnPropertyChanged(nameof(IsPoiPanelVisible));
         };
+        
+        // --- NEW: MESSENGER SUBSCRIPTION for Progressive Translation ---
+        WeakReferenceMessenger.Default.Register<TranslationCompletedMessage>(this, async (r, m) =>
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                // 1. Update matching POI in the main collection
+                var idx = -1;
+                for (int i = 0; i < _appState.Pois.Count; i++)
+                {
+                    if (string.Equals(_appState.Pois[i].Code, m.Code, StringComparison.OrdinalIgnoreCase))
+                    {
+                        idx = i;
+                        break;
+                    }
+                }
+                
+                if (idx >= 0)
+                {
+                    m.Result.IsTranslating = false;
+                    _appState.Pois[idx] = m.Result;
+                }
+
+                // 2. Update SelectedPoi if it matches the translated POI
+                if (_appState.SelectedPoi != null && 
+                    string.Equals(_appState.SelectedPoi.Code, m.Code, StringComparison.OrdinalIgnoreCase))
+                {
+                    await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.TranslationSync, m.Result).ConfigureAwait(false);
+                }
+            });
+        });
+
         _appState.LanguageChanged += (s, lang) =>
         {
             OnPropertyChanged(nameof(CurrentLanguage));
