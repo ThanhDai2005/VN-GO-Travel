@@ -3,7 +3,15 @@
 ## Participants
 - Actor: Tourist/User (ngầm qua chọn ngôn ngữ)
 - View/ViewModel: `MapPage` / `MapViewModel`, `PoiDetailViewModel`
+
+> *Vị trí: `MapPage` nằm ở file `Views/MapPage.xaml.cs`, dòng `38`*
+> *Vị trí: `MapViewModel` nằm ở file `ViewModels/MapViewModel.cs`, dòng `56`*
+> *Vị trí: `PoiDetailViewModel` nằm ở file `ViewModels/PoiDetailViewModel.cs`, dòng `35`*
 - Services: `LocalizationService`, `PoiHydrationService`, `PoiTranslationService`
+
+> *Vị trí: `LocalizationService` nằm ở file `Services/LocalizationService.cs`, dòng `29`*
+> *Vị trí: `PoiHydrationService` nằm ở file `Services/PoiHydrationService.cs`, dòng `35`*
+> *Vị trí: `PoiTranslationService` nằm ở file `Services/PoiTranslationService.cs`, dòng `28`*
 - Database: SQLite (`pois`, `poi_translation_cache`)
 - In-memory data: localization lookup dictionary
 - External API: translation provider (qua `ITranslationProvider`)
@@ -12,6 +20,8 @@
 
 1. ViewModel yêu cầu load POIs theo target language.
 2. `PoiHydrationService` lấy core POIs từ SQLite.
+
+> *Vị trí: `PoiHydrationService` nằm ở file `Services/PoiHydrationService.cs`, dòng `35`*
 3. Mỗi POI gọi `LocalizationService.GetLocalizationResult(code, lang)`.
 4. Service áp dụng fallback chain:
    - requested lang
@@ -29,6 +39,8 @@
 4. Nếu toàn bộ segment success -> upsert `poi_translation_cache`.
 5. Merge thành POI object có localization đích.
 6. Inject dynamic translation vào `LocalizationService`.
+
+> *Vị trí: `LocalizationService` nằm ở file `Services/LocalizationService.cs`, dòng `29`*
 
 ## Thread Context
 

@@ -74,8 +74,31 @@ Giải pháp hiện tại là tổ hợp 3 lớp:
 
 ## Rủi ro/khiếm khuyết thực tế trong code hiện tại
 - **Race/thread-safety localization**: `LocalizationService` lock khi ghi nhưng đọc không lock toàn phần.
+
+> *Vị trí: `LocalizationService` nằm ở file `Services/LocalizationService.cs`, dòng `29`*
+  > *Vị trí: `LocalizationService` nằm ở file `Services/LocalizationService.cs`, dòng `29`*
+
+> *Vị trí: `LocalizationService` nằm ở file `Services/LocalizationService.cs`, dòng `29`*
 - **Duplicate trigger path narration**: `MapPage` có auto-play riêng, đồng thời `MapViewModel.UpdateLocationAsync` gọi `GeofenceService` cũng có trigger phát.
+
+> *Vị trí: `MapPage` nằm ở file `Views/MapPage.xaml.cs`, dòng `38`*
+> *Vị trí: `MapViewModel.UpdateLocationAsync` nằm ở file `ViewModels/MapViewModel.cs`, dòng `299`*
+> *Vị trí: `GeofenceService` nằm ở file `Services/GeofenceService.cs`, dòng `30`*
+  > *Vị trí: `MapPage` nằm ở file `Views/MapPage.xaml.cs`, dòng `38`*
+
+> *Vị trí: `MapPage` nằm ở file `Views/MapPage.xaml.cs`, dòng `38`*
+  > *Vị trí: `MapViewModel.UpdateLocationAsync` nằm ở file `ViewModels/MapViewModel.cs`, dòng `299`*
+
+> *Vị trí: `MapViewModel.UpdateLocationAsync` nằm ở file `ViewModels/MapViewModel.cs`, dòng `299`*
+  > *Vị trí: `GeofenceService` nằm ở file `Services/GeofenceService.cs`, dòng `30`*
+
+> *Vị trí: `GeofenceService` nằm ở file `Services/GeofenceService.cs`, dòng `30`*
 - **Navigation request drop**: `NavigationService` từ chối request khi đang navigate (`_isNavigating`), có thể mất thao tác hợp lệ.
+
+> *Vị trí: `NavigationService` nằm ở file `Services/NavigationService.cs`, dòng `17`*
+  > *Vị trí: `NavigationService` nằm ở file `Services/NavigationService.cs`, dòng `17`*
+
+> *Vị trí: `NavigationService` nằm ở file `Services/NavigationService.cs`, dòng `17`*
 - **Sync-over-async stop audio**: `PoiNarrationService.Stop()` dùng `.GetAwaiter().GetResult()` có nguy cơ block thread.
 - **Contract mismatch DB language API**: `GetExactByCodeAndLanguageAsync` hiện không lọc ngôn ngữ thực sự.
 - **Admin architecture split**: tồn tại cả `admin-web` (React, API-driven) và `AdminWeb` (ASP.NET MVC + SQLite riêng), chưa hợp nhất source-of-truth cho quản trị.

@@ -11,6 +11,8 @@
    - nếu đang xử lý -> bỏ qua input.
 4. VM chuyển phase `Recognizing` -> `OpeningPoi`.
 5. Gọi `PoiEntryCoordinator.HandleEntryAsync`.
+
+> *Vị trí: `PoiEntryCoordinator.HandleEntryAsync` nằm ở file `Services/PoiEntryCoordinator.cs`, dòng `69`*
 6. Coordinator parse input:
    - `poi:CODE` / `poi://CODE`
    - URL `/poi/{code}` hoặc `/scan?t=jwt`
@@ -28,6 +30,8 @@
 9. **Decision**: duplicate handling trong cửa sổ suppress?
    - **Yes** -> không navigate.
    - **No** -> gọi `NavigationService.NavigateToAsync`.
+
+> *Vị trí: `NavigationService.NavigateToAsync` nằm ở file `Services/Observability/ObservingNavigationService.cs`, dòng `47`*
 10. Kết thúc:
    - success: giữ trạng thái processing đến khi page lifecycle reset.
    - fail/cancel: về `Ready` hoặc `ReadyAgain`.

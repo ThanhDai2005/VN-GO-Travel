@@ -17,18 +17,33 @@ const poiSchema = new mongoose.Schema({
     // Legacy fallback (old schema). Kept for backward compatibility while migrating data.
     content: { type: mongoose.Schema.Types.Mixed, default: null },
     isPremiumOnly: { type: Boolean, default: false },
+    unlockPrice: { type: Number, default: 1, min: 0 }, // Credit cost to unlock (0 = free)
     status: {
         type: String,
         enum: Object.values(POI_STATUS),
         default: POI_STATUS.PENDING
     },
     submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-    rejectionReason: { type: String, default: null, maxlength: 2000 }
+    rejectionReason: { type: String, default: null, maxlength: 2000 },
+    lastUpdated: { type: Date, default: Date.now }, // For content sync
+    version: { type: Number, default: 1 } // Incremental version for reliable sync
 }, {
     timestamps: true
 });
 
+// Auto-increment version on update
+poiSchema.pre('save', function(next) {
+    if (this.isModified() && !this.isNew) {
+        this.version = (this.version || 1) + 1;
+        this.lastUpdated = new Date();
+    }
+    if (typeof next === 'function') {
+        next();
+    }
+});
+
 poiSchema.index({ location: '2dsphere' });
 poiSchema.index({ code: 1, status: 1 });
+poiSchema.index({ version: 1 }); // For version-based sync queries
 
 module.exports = mongoose.model('Poi', poiSchema);

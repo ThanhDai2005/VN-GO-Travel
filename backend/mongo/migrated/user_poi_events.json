@@ -1,0 +1,32 @@
+[
+  {
+    "_id": {
+      "$oid": "f3d756a338576fa2c81d4934"
+    },
+    "userId": "67f0f1f2f3f4f5f6f7f8f9a0",
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132994"
+    },
+    "eventType": "audio_start",
+    "duration": 0,
+    "deviceId": "android-demo-device-001",
+    "createdAt": {
+      "$date": "2026-04-20T09:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "77a41e3ed8837000c0df1480"
+    },
+    "userId": "67f0f1f2f3f4f5f6f7f8f9a0",
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132994"
+    },
+    "eventType": "audio_start",
+    "duration": 0,
+    "deviceId": "android-demo-device-001",
+    "createdAt": {
+      "$date": "2026-04-20T09:00:03.000Z"
+    }
+  }
+]

@@ -3,8 +3,14 @@
 ## Participants
 - Actor: System (auto), Tourist/User
 - View: `MapPage`
+
+> *Vị trí: `MapPage` nằm ở file `Views/MapPage.xaml.cs`, dòng `38`*
 - ViewModel: `MapViewModel`
+
+> *Vị trí: `MapViewModel` nằm ở file `ViewModels/MapViewModel.cs`, dòng `56`*
 - Services: `GeofenceService`, `AudioService/PoiNarrationService`
+
+> *Vị trí: `GeofenceService` nằm ở file `Services/GeofenceService.cs`, dòng `30`*
 - Data: `AppState.Pois`, SQLite-backed POIs (đã load trước đó)
 - Database: SQLite gián tiếp (dữ liệu đã được load vào AppState trước đó)
 - External API: Device location API, OS TTS engine
@@ -12,6 +18,9 @@
 ## Main Sequence
 
 1. `MapPage` timer tick (mỗi 5s) gọi `MapViewModel.UpdateLocationAsync`.
+
+> *Vị trí: `MapPage` nằm ở file `Views/MapPage.xaml.cs`, dòng `38`*
+> *Vị trí: `MapViewModel.UpdateLocationAsync` nằm ở file `ViewModels/MapViewModel.cs`, dòng `299`*
 2. ViewModel lấy location từ provider.
 3. ViewModel cập nhật `AppState.CurrentLocation` trên MainThread.
 4. ViewModel gọi `GeofenceService.CheckLocationAsync(location)`.
@@ -33,7 +42,12 @@
 ## Race Conditions / Duplicate Triggers
 
 - `MapPage.StartTrackingAsync` còn có auto-select nearest và gọi `_vm.PlayPoiAsync`.
+
+> *Vị trí: `MapPage.StartTrackingAsync` nằm ở file `Views/MapPage.xaml.cs`, dòng `287`*
+> *Vị trí: `_vm.PlayPoiAsync` nằm ở file `ViewModels/MapViewModel.cs`, dòng `270`*
 - Đồng thời `GeofenceService` cũng trigger speak.
+
+> *Vị trí: `GeofenceService` nằm ở file `Services/GeofenceService.cs`, dòng `30`*
 - Hai luồng có thể chồng nhau, đặc biệt khi vào vùng mới và pin auto-select trùng thời điểm.
 
 ## Real Suppression Conditions

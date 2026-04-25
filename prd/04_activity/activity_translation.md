@@ -6,6 +6,8 @@
 ## Step-by-step Activity
 
 1. App init `LocalizationService` từ `pois.json`.
+
+> *Vị trí: `LocalizationService` nằm ở file `Services/LocalizationService.cs`, dòng `29`*
 2. Tạo dictionary `(Code, Lang)` -> localization.
 3. Khi load POI:
    - lấy core POI từ SQLite.
@@ -21,6 +23,8 @@
    - nếu dịch thành công toàn phần: ghi cache.
 6. Inject dynamic translation vào `LocalizationService` để UI đọc ngay.
 
+> *Vị trí: `LocalizationService` nằm ở file `Services/LocalizationService.cs`, dòng `29`*
+
 ## Key Decisions/Conditions
 
 - Translation cache key chuẩn hóa `CODE|lang`.
@@ -30,4 +34,6 @@
 ## Known Imperfections
 
 - `LocalizationService` lock khi ghi nhưng đọc lookup không lock đồng bộ hoàn toàn.
+
+> *Vị trí: `LocalizationService` nằm ở file `Services/LocalizationService.cs`, dòng `29`*
 - Hàm `GetExactByCodeAndLanguageAsync` tại repository hiện không thực hiện language filter như tên hàm.

@@ -1,10 +1,44 @@
 const AudioQueueEntry = require('../models/audio-queue.model');
+const intelligenceEventsService = require('./intelligence-events.service');
 
 /**
  * Audio Queue Service
  * Manages audio playback queue to prevent conflicts when multiple users are at the same POI
  */
 class AudioQueueService {
+    /**
+     * Send audio event to intelligence system
+     */
+    async _sendAudioEventToIntelligence(entry, interactionType) {
+        const event = {
+            contractVersion: 'v2',
+            deviceId: entry.deviceId,
+            correlationId: `audio-${entry._id}`,
+            authState: entry.userId ? 'logged_in' : 'guest',
+            sourceSystem: 'GAK',
+            rbelEventFamily: 'user_interaction',
+            rbelMappingVersion: '7.3.1',
+            timestamp: new Date().toISOString(),
+            userId: entry.userId ? String(entry.userId) : null,
+            poiId: entry.poiCode,
+            payload: {
+                interaction_type: interactionType,
+                audio_type: entry.narrationLength,
+                duration_seconds: entry.actualDuration || 0,
+                queue_position: entry.queuePosition,
+                language: entry.language
+            }
+        };
+
+        try {
+            await intelligenceEventsService.ingestSingle(event, null, {
+                headerDeviceId: entry.deviceId
+            });
+            console.log(`[AUDIO-INTELLIGENCE] Sent ${interactionType} event for ${entry.deviceId} at ${entry.poiCode}`);
+        } catch (error) {
+            console.error('[AUDIO-INTELLIGENCE] Failed to send event:', error);
+        }
+    }
     /**
      * Add user to audio queue for a POI
      */
@@ -44,6 +78,12 @@ class AudioQueueService {
         });
 
         console.log(`[AUDIO-QUEUE] Enqueued ${userId} for ${poiCode} at position ${queueLength}`);
+
+        // Send audio_start event if immediately playing
+        if (queueLength === 0) {
+            await this._sendAudioEventToIntelligence(entry, 'audio_start');
+        }
+
         return entry;
     }
 
@@ -144,9 +184,13 @@ class AudioQueueService {
         // Mark as completed
         entry.status = 'COMPLETED';
         entry.completedAt = new Date();
+        entry.actualDuration = Math.round((entry.completedAt - entry.startedAt) / 1000);
         await entry.save();
 
         console.log(`[AUDIO-QUEUE] Completed audio for ${userId} at ${poiCode}`);
+
+        // Send audio_completed event
+        await this._sendAudioEventToIntelligence(entry, 'audio_completed');
 
         // Advance queue - start next person
         const nextEntry = await AudioQueueEntry.findOne({
@@ -159,6 +203,10 @@ class AudioQueueService {
             nextEntry.startedAt = new Date();
             await nextEntry.save();
             console.log(`[AUDIO-QUEUE] Started audio for ${nextEntry.userId} at ${poiCode}`);
+
+            // Send audio_start event for next user
+            await this._sendAudioEventToIntelligence(nextEntry, 'audio_start');
+
             return nextEntry;
         }
 
@@ -183,9 +231,15 @@ class AudioQueueService {
         const wasPlaying = entry.status === 'PLAYING';
         entry.status = 'CANCELLED';
         entry.completedAt = new Date();
+        if (wasPlaying && entry.startedAt) {
+            entry.actualDuration = Math.round((entry.completedAt - entry.startedAt) / 1000);
+        }
         await entry.save();
 
         console.log(`[AUDIO-QUEUE] Cancelled queue for ${userId} at ${poiCode}`);
+
+        // Send audio_cancelled event
+        await this._sendAudioEventToIntelligence(entry, 'audio_cancelled');
 
         // If was playing, advance to next
         if (wasPlaying) {

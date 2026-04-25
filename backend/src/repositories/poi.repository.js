@@ -129,6 +129,17 @@ class PoiRepository {
     async deleteById(id) {
         return await Poi.findByIdAndDelete(id);
     }
+
+    /**
+     * Find POIs by array of codes
+     * Used by zone download and sync operations
+     */
+    async findByCodes(codes) {
+        if (!Array.isArray(codes) || codes.length === 0) {
+            return [];
+        }
+        return await Poi.find({ code: { $in: codes } });
+    }
 }
 
 module.exports = new PoiRepository();

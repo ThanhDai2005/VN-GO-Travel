@@ -267,6 +267,42 @@ export async function fetchPoiChangeRequests(page = 1, limit = 50) {
   return apiRequest(`/api/v1/admin/pois/change-requests?${q}`);
 }
 
+// ============================================================================
+// ZONE MANAGEMENT APIs
+// ============================================================================
+
+export async function fetchZones(page = 1, limit = 50) {
+  const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return apiRequest(`/api/v1/admin/zones?${q}`);
+}
+
+export async function createZone(body) {
+  return apiRequest("/api/v1/admin/zones", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function updateZone(zoneId, body) {
+  return apiRequest(`/api/v1/admin/zones/${encodeURIComponent(zoneId)}`, {
+    method: "PUT",
+    body,
+  });
+}
+
+export async function deleteZone(zoneId) {
+  return apiRequest(`/api/v1/admin/zones/${encodeURIComponent(zoneId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function updateZonePois(zoneId, poiIds) {
+  return apiRequest(`/api/v1/admin/zones/${encodeURIComponent(zoneId)}/pois`, {
+    method: "PUT",
+    body: { poiIds },
+  });
+}
+
 export async function reviewPoiChangeRequest(requestId, status, reason) {
   return apiRequest(`/api/v1/admin/pois/change-requests/${encodeURIComponent(requestId)}/review`, {
     method: "POST",

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
 import {
   fetchOwnerIntelligenceHeatmap,
   fetchOwnerSubmissions,
-  fetchOwnerPoiQrToken,
   requestOwnerPoiUpdate,
   requestOwnerPoiDelete,
 } from '../apiClient.js';
@@ -37,10 +35,6 @@ export default function OwnerSubmissionsPage() {
   const [heatmapErr, setHeatmapErr] = useState('');
   const [selectedPoiId, setSelectedPoiId] = useState('');
 
-  const [qrModalRow, setQrModalRow] = useState(null);
-  const [qrModalUrl, setQrModalUrl] = useState('');
-  const [qrModalLoading, setQrModalLoading] = useState(false);
-  const [qrModalErr, setQrModalErr] = useState('');
   const [range, setRange] = useState(() => {
     const end = new Date();
     end.setUTCHours(23, 59, 59, 999);
@@ -96,30 +90,6 @@ export default function OwnerSubmissionsPage() {
 
   const toDateValue = (d) => d.toISOString().slice(0, 10);
   const approvedOptions = rows.filter((x) => x?.status === 'APPROVED');
-
-  async function openQrModal(row) {
-    const id = row.id || row._id;
-    if (!id) {
-      setErr('Thiếu id POI — không thể tạo QR token.');
-      return;
-    }
-    setQrModalRow(row);
-    setQrModalUrl('');
-    setQrModalErr('');
-    setQrModalLoading(true);
-    try {
-      const res = await fetchOwnerPoiQrToken(id);
-      const url = res?.data?.scanUrl;
-      if (!url || typeof url !== 'string') {
-        throw new Error('Phản hồi từ server không hợp lệ');
-      }
-      setQrModalUrl(url);
-    } catch (e) {
-      setQrModalErr(e.message || 'Không thể tải QR token');
-    } finally {
-      setQrModalLoading(false);
-    }
-  }
 
   function openEditModal(row) {
     setEditModalRow(row);
@@ -296,7 +266,7 @@ export default function OwnerSubmissionsPage() {
                 <th className="px-4 py-3 font-medium">Trạng thái</th>
                 <th className="px-4 py-3 font-medium">Nội dung</th>
                 <th className="px-4 py-3 font-medium">Tọa độ</th>
-                <th className="px-4 py-3 font-medium">QR</th>
+                <th className="px-4 py-3 font-medium">Hành động</th>
                 <th className="px-4 py-3 font-medium">Cập nhật</th>
               </tr>
             </thead>
@@ -317,33 +287,24 @@ export default function OwnerSubmissionsPage() {
                     <td className="max-w-xs truncate px-4 py-3 text-slate-800">{contentPreview(row.content)}</td>
                     <td className="px-4 py-3 text-slate-600">{locStr}</td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openQrModal(row)}
-                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 hover:bg-slate-50"
-                        >
-                          Xem QR
-                        </button>
-                        {row.status === 'APPROVED' && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(row)}
-                              className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-100"
-                            >
-                              Sửa
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => requestDelete(id)}
-                              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100"
-                            >
-                              Xóa
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      {row.status === 'APPROVED' && (
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(row)}
+                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-100"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => requestDelete(id)}
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {row.updatedAt ? new Date(row.updatedAt).toLocaleString() : '—'}
@@ -356,49 +317,6 @@ export default function OwnerSubmissionsPage() {
         </div>
       )}
 
-      {/* QR Modal (JWT) — large scannable, dark theme like admin */}
-      {qrModalRow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-white">QR quét (bảo mật)</h2>
-            <p className="mt-1 font-mono text-sm text-emerald-300">{qrModalRow.code}</p>
-            <p className="mt-2 text-xs text-slate-400">
-              Mã QR là token ký số vĩnh viễn (không hết hạn). Ứng dụng quét sẽ gửi token lên server để xác thực chữ ký.
-            </p>
-            
-            {qrModalErr && (
-              <p className="mt-3 text-sm text-red-300">{qrModalErr}</p>
-            )}
-            
-            {qrModalLoading && (
-              <p className="mt-6 text-center text-slate-400">Đang tạo mã…</p>
-            )}
-            
-            {!qrModalLoading && qrModalUrl && (
-              <div className="mt-6 flex flex-col items-center gap-3">
-                <div className="rounded-lg bg-white p-4">
-                  <QRCodeSVG value={qrModalUrl} size={240} level="M" includeMargin />
-                </div>
-                <p className="break-all text-center text-[10px] text-slate-500">{qrModalUrl}</p>
-              </div>
-            )}
-            
-            <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setQrModalRow(null);
-                  setQrModalUrl('');
-                  setQrModalErr('');
-                }}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Edit Modal */}
       {editModalRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">

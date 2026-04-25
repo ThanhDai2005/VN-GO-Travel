@@ -1,0 +1,482 @@
+[
+  {
+    "_id": {
+      "$oid": "ac9b5456125faee605276bc1"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132994"
+    },
+    "languageCode": "vi",
+    "name": "Hồ Hoàn Kiếm",
+    "summary": "Biểu tượng lịch sử và văn hóa của Hà Nội.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.428Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "1174ffd563bb83b643823bc6"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132995"
+    },
+    "languageCode": "vi",
+    "name": "Lăng Chủ tịch Hồ Chí Minh",
+    "summary": "Nơi an nghỉ của Chủ tịch Hồ Chí Minh.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "346d74db513333bea4b81c18"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132996"
+    },
+    "languageCode": "vi",
+    "name": "Văn Miếu Quốc Tử Giám",
+    "summary": "Trường đại học đầu tiên của Việt Nam.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "87ced8c9317f19cfb39d30be"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132997"
+    },
+    "languageCode": "vi",
+    "name": "Chùa Một Cột",
+    "summary": "Ngôi chùa có kiến trúc độc đáo của Hà Nội.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "b70a5257b2c3adf970a4fb0b"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132998"
+    },
+    "languageCode": "vi",
+    "name": "Hồ Tây",
+    "summary": "Hồ nước lớn nhất Hà Nội.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "ae2997edaec6c48296a0d0ed"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132999"
+    },
+    "languageCode": "vi",
+    "name": "Chùa Trấn Quốc",
+    "summary": "Ngôi chùa cổ hơn 1500 năm.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "818ade48d0706bc0cd84eaf9"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299a"
+    },
+    "languageCode": "vi",
+    "name": "Phố cổ Hà Nội",
+    "summary": "Khu phố cổ với lịch sử hàng trăm năm.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "efa75e0859af24f43aebbfd6"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299b"
+    },
+    "languageCode": "vi",
+    "name": "Nhà thờ Lớn Hà Nội",
+    "summary": "Nhà thờ cổ nổi tiếng tại Hà Nội.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "bef4cce7efde38e2e054e1a6"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299c"
+    },
+    "languageCode": "vi",
+    "name": "Hoàng Thành Thăng Long",
+    "summary": "Di sản thế giới UNESCO.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "fd52a57be03e8e0bf7b048b6"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299d"
+    },
+    "languageCode": "vi",
+    "name": "Bảo tàng Hồ Chí Minh",
+    "summary": "Bảo tàng về cuộc đời Chủ tịch Hồ Chí Minh.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "a7b9968ac4458d944d70cdb1"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299e"
+    },
+    "languageCode": "vi",
+    "name": "Thị trấn Sa Pa",
+    "summary": "Thị trấn du lịch nổi tiếng vùng núi phía Bắc.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "de8722b02028ac1eddf8de9a"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299f"
+    },
+    "languageCode": "vi",
+    "name": "Đỉnh Fansipan",
+    "summary": "Nóc nhà Đông Dương cao 3143m.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "0fb5ceea0f2589779ea70b4e"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a0"
+    },
+    "languageCode": "vi",
+    "name": "Bản Cát Cát",
+    "summary": "Ngôi làng du lịch của người H'Mông.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "0a4ae3c303f2517e3faae795"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a1"
+    },
+    "languageCode": "vi",
+    "name": "Thác Bạc",
+    "summary": "Thác nước nổi tiếng tại Sa Pa.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "b9b2ea18f21d35dc68d672db"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a2"
+    },
+    "languageCode": "vi",
+    "name": "Dinh Độc Lập",
+    "summary": "Di tích lịch sử nổi tiếng tại TP.HCM.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "2fcdb978cb29c7fee9c45def"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a3"
+    },
+    "languageCode": "vi",
+    "name": "Nhà thờ Đức Bà",
+    "summary": "Công trình kiến trúc tôn giáo nổi bật giữa trung tâm thành phố.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "9f7a64a460c09a08b8cc40dd"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a4"
+    },
+    "languageCode": "vi",
+    "name": "Bưu điện Trung tâm Sài Gòn",
+    "summary": "Công trình kiến trúc Pháp cổ nổi tiếng bên cạnh Nhà thờ Đức Bà.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "aeb99b0c7da8da374dfbfdaf"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a5"
+    },
+    "languageCode": "vi",
+    "name": "Chợ Bến Thành",
+    "summary": "Khu chợ truyền thống nổi tiếng và là biểu tượng du lịch của Sài Gòn.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "e2000abb78771846fa2e9c24"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a6"
+    },
+    "languageCode": "vi",
+    "name": "Nhà hát Thành phố",
+    "summary": "Công trình nghệ thuật và kiến trúc nổi bật tại trung tâm quận 1.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "83ba59f5dada8937ec8ff991"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a7"
+    },
+    "languageCode": "vi",
+    "name": "Trụ sở Ủy ban Nhân dân Thành phố",
+    "summary": "Tòa nhà kiến trúc Pháp cổ tiêu biểu ở trung tâm TP.HCM.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "0271a363bbec96e7b99a0d6d"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a8"
+    },
+    "languageCode": "vi",
+    "name": "Phố đi bộ Nguyễn Huệ",
+    "summary": "Không gian công cộng sôi động, hiện đại ở trung tâm thành phố.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "3cfbf9d0d1a86b486661983f"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a9"
+    },
+    "languageCode": "vi",
+    "name": "Bến Bạch Đằng",
+    "summary": "Khu vực ven sông thoáng đẹp, điểm ngắm cảnh nổi tiếng ở quận 1.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "2da765a84723889f862c871b"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329aa"
+    },
+    "languageCode": "vi",
+    "name": "Bảo tàng Chứng tích Chiến tranh",
+    "summary": "Bảo tàng lưu giữ nhiều tư liệu và hiện vật về chiến tranh Việt Nam.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "a06f5fb24dc77c5a09de6412"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329ab"
+    },
+    "languageCode": "vi",
+    "name": "Thảo Cầm Viên Sài Gòn",
+    "summary": "Một trong những sở thú và vườn bách thảo lâu đời nhất Việt Nam.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f0e2c2d5b8a0ff71756d109"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329ac"
+    },
+    "languageCode": "vi",
+    "name": "Landmark 81",
+    "summary": "Tòa nhà cao tầng nổi bật, biểu tượng hiện đại của TP.HCM.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "2c843f0892dcc59b75d11218"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329ad"
+    },
+    "languageCode": "vi",
+    "name": "Chùa Ngọc Hoàng",
+    "summary": "Ngôi chùa cổ nổi tiếng với kiến trúc và không gian tâm linh đặc sắc.",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "1d4940672592fff890a4d5dc"
+    },
+    "poiId": {
+      "$oid": "69e5be8e59c3cf3141c27bc6"
+    },
+    "languageCode": "vi",
+    "name": "hạ long bay",
+    "summary": "hạ long bay đẹp",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T12:41:05.538Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "1da8a1b97362bf66860e8b45"
+    },
+    "poiId": {
+      "$oid": "69e8c1bf8e85d733b5b1e75d"
+    },
+    "languageCode": "vi",
+    "name": "nnnn",
+    "summary": "nnnn",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T12:41:02.370Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "e2a03e60391a16673adb64aa"
+    },
+    "poiId": {
+      "$oid": "69e8d7d1ec224191923829de"
+    },
+    "languageCode": "vi",
+    "name": "jhuiguyi",
+    "summary": "hbjgfytu",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T15:11:42.235Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "a2d529c3422fb3ed202599a9"
+    },
+    "poiId": {
+      "$oid": "69e90008215ab8be745f7e95"
+    },
+    "languageCode": "vi",
+    "name": "Chùa bái đính",
+    "summary": "chùa bài đính rất đẹp",
+    "description": null,
+    "version": 1,
+    "updatedAt": {
+      "$date": "2026-04-22T17:06:16.939Z"
+    }
+  }
+]

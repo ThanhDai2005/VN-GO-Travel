@@ -1,5 +1,6 @@
 const { AppError } = require('./error.middleware');
 const config = require('../config');
+const { getClientIP } = require('../utils/ip-helper');
 
 const WINDOW_MS = config.rateLimit.windowMs;
 const MAX_REQUESTS = config.rateLimit.max;
@@ -12,8 +13,8 @@ setInterval(() => {
 }, WINDOW_MS);
 
 const rateLimiter = (req, res, next) => {
-    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    
+    const ip = getClientIP(req);
+
     const currentRequestCount = ipRequestMap.get(ip) || 0;
 
     if (currentRequestCount >= MAX_REQUESTS) {

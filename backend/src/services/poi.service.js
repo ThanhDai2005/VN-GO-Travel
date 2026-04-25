@@ -10,6 +10,8 @@ const { POI_STATUS } = require('../constants/poi-status');
 const userRepository = require('../repositories/user.repository');
 const PoiChangeRequest = require('../models/poi-change-request.model');
 const Poi = require('../models/poi.model');
+const poiContentService = require('./poi-content.service');
+const { getClientIP } = require('../utils/ip-helper');
 
 const poiCache = new Cache(config.cache.ttl);
 const ownerPoiSubmissionCache = new Cache(10);
@@ -221,6 +223,22 @@ class PoiService {
             throw new AppError('Name is required', 400);
         }
         const poi = await poiRepository.create(doc);
+
+        // PHASE 2B: Dual-write to poi_contents
+        try {
+            await poiContentService.createContent({
+                poiCode: poi.code,
+                language: doc.languageCode,
+                title: doc.name,
+                description: doc.summary,
+                narrationShort: doc.narrationShort,
+                narrationLong: doc.narrationLong,
+                version: 1
+            });
+        } catch (error) {
+            console.error('[DUAL-WRITE] Failed to create poi_content:', error);
+        }
+
         this._invalidateCache();
         return this.mapPoiDto(poi, 'en');
     }
@@ -262,6 +280,38 @@ class PoiService {
             update.isPremiumOnly = Boolean(body.isPremiumOnly);
         }
         const poi = await poiRepository.updateByCode(code, update);
+
+        // PHASE 2B: Dual-write to poi_contents
+        try {
+            const contentUpdate = {};
+            if (body.name !== undefined) contentUpdate.title = update.name;
+            if (body.summary !== undefined) contentUpdate.description = update.summary;
+            if (body.narrationShort !== undefined) contentUpdate.narrationShort = update.narrationShort;
+            if (body.narrationLong !== undefined) contentUpdate.narrationLong = update.narrationLong;
+
+            if (Object.keys(contentUpdate).length > 0) {
+                const language = update.languageCode || existing.languageCode || 'vi';
+                const contentExists = await poiContentService.contentExists(code, language);
+
+                if (contentExists) {
+                    await poiContentService.updateContent(code, language, contentUpdate);
+                } else {
+                    // Create if doesn't exist
+                    await poiContentService.createContent({
+                        poiCode: code,
+                        language,
+                        title: update.name || existing.name,
+                        description: update.summary || existing.summary || '',
+                        narrationShort: update.narrationShort || existing.narrationShort || '',
+                        narrationLong: update.narrationLong || existing.narrationLong || '',
+                        version: 1
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('[DUAL-WRITE] Failed to update poi_content:', error);
+        }
+
         this._invalidateCache();
         return this.mapPoiDto(poi, 'en');
     }
@@ -588,6 +638,22 @@ class PoiService {
         };
 
         const poi = await poiRepository.create(doc);
+
+        // PHASE 2B: Dual-write to poi_contents (even for pending POIs)
+        try {
+            await poiContentService.createContent({
+                poiCode: poi.code,
+                language: doc.languageCode,
+                title: doc.name,
+                description: doc.summary,
+                narrationShort: doc.narrationShort,
+                narrationLong: doc.narrationLong,
+                version: 1
+            });
+        } catch (error) {
+            console.error('[DUAL-WRITE] Failed to create poi_content for owner submission:', error);
+        }
+
         const submitKey = `ownerSubmit:${String(user._id)}:${payload.code}`;
         ownerPoiSubmissionCache.set(submitKey, true);
         this._invalidateCache();
@@ -614,114 +680,27 @@ class PoiService {
     }
 
     /**
-     * ADMIN: mint permanent signed JWT for printed QR (`type: static_secure_qr`).
-     * No exp — physical QR stays valid; tampering fails signature verify.
+     * DEPRECATED: POI QR system has been replaced with Zone QR
+     * This endpoint is disabled. Use Zone QR instead.
      */
     async generateQrScanTokenForAdmin(rawPoiId) {
-        if (!rawPoiId || typeof rawPoiId !== 'string') {
-            throw new AppError('POI id is required', 400);
-        }
-        if (!poiRepository.isValidObjectId(rawPoiId)) {
-            throw new AppError('Invalid POI id', 400);
-        }
-        const doc = await poiRepository.findById(rawPoiId);
-        if (!doc) {
-            throw new AppError('POI not found', 404);
-        }
-        const code = String(doc.code || '').trim();
-        const token = jwt.sign(
-            { code, type: 'static_secure_qr' },
-            config.jwtSecret
-        );
-        const scanUrl = `${config.scanQrUrlBase}?t=${encodeURIComponent(token)}`;
-        return { token, scanUrl, permanent: true };
+        throw new AppError('POI QR system has been deprecated. Use Zone QR instead. Contact admin for zone-based QR codes.', 410);
     }
 
     /**
-     * OWNER: mint permanent signed JWT for their OWN approved POIs.
+     * DEPRECATED: POI QR system has been replaced with Zone QR
+     * This endpoint is disabled. Use Zone QR instead.
      */
     async generateQrScanTokenForOwner(rawPoiId, user) {
-        if (!rawPoiId || typeof rawPoiId !== 'string') {
-            throw new AppError('POI id is required', 400);
-        }
-        if (!poiRepository.isValidObjectId(rawPoiId)) {
-            throw new AppError('Invalid POI id', 400);
-        }
-        const doc = await poiRepository.findById(rawPoiId);
-        if (!doc) {
-            throw new AppError('POI not found', 404);
-        }
-
-        if (String(doc.submittedBy) !== String(user._id)) {
-            throw new AppError('Bạn không có quyền tạo mã QR cho địa điểm này.', 403);
-        }
-
-        const code = String(doc.code || '').trim();
-        const token = jwt.sign(
-            { code, type: 'static_secure_qr' },
-            config.jwtSecret
-        );
-        const scanUrl = `${config.scanQrUrlBase}?t=${encodeURIComponent(token)}`;
-        return { token, scanUrl, permanent: true };
+        throw new AppError('POI QR system has been deprecated. Use Zone QR instead. Contact admin for zone-based QR codes.', 410);
     }
 
     /**
-     * Redeem QR JWT and return POI.
-     * - Guest users are allowed to scan and consume summary flow in app.
-     * - Logged-in non-premium users still consume QR quota.
+     * DEPRECATED: POI QR system has been replaced with Zone QR
+     * This endpoint is disabled. Use Zone QR instead.
      */
-    async resolveQrScanToken(rawToken, user) {
-        if (!rawToken || typeof rawToken !== 'string' || !rawToken.trim()) {
-            throw new AppError('token is required', 400);
-        }
-        let decoded;
-        try {
-            decoded = jwt.verify(rawToken.trim(), config.jwtSecret);
-        } catch (e) {
-            throw new AppError('Invalid or expired QR token', 401);
-        }
-
-        let poi = null;
-        if (decoded.type === 'static_secure_qr' && decoded.code) {
-            const code = String(decoded.code).trim();
-            console.log(`[QR-SCAN] Looking for POI with code: "${code}"`);
-            poi = await poiRepository.findByCode(code);
-            console.log(`[QR-SCAN] POI found: ${poi ? `${poi.code} (status: ${poi.status})` : 'null'}`);
-        } else if (decoded.type === 'qr_scan' && decoded.poiId) {
-            poi = await poiRepository.findById(decoded.poiId);
-        } else {
-            throw new AppError('Invalid QR token payload', 400);
-        }
-
-        if (!poi) {
-            console.log(`[QR-SCAN] ERROR: POI not found for code: "${decoded.code}"`);
-            throw new AppError('POI not found', 404);
-        }
-        const st = poi.status;
-        console.log(`[QR-SCAN] POI status check: ${st}, isPending: ${st === POI_STATUS.PENDING}, isRejected: ${st === POI_STATUS.REJECTED}`);
-        if (st === POI_STATUS.PENDING || st === POI_STATUS.REJECTED) {
-            throw new AppError('POI is not available for scanning', 403);
-        }
-        if (st && st !== POI_STATUS.APPROVED) {
-            throw new AppError('POI is not available for scanning', 403);
-        }
-        if (poi.isPremiumOnly && !(user && user.isPremium)) {
-            throw new AppError('Premium subscription required for this POI', 403);
-        }
-
-        // Non-premium logged-in users: max 20 scans total. Premium users: unlimited.
-        if (user && !user.isPremium) {
-            const updated = await userRepository.incrementQrScanCountIfAllowed(
-                user._id,
-                PoiService.USER_QR_SCAN_LIMIT
-            );
-            if (!updated) {
-                throw new AppError('Bạn đã dùng hết 20 lượt quét QR miễn phí. Vui lòng nâng cấp VIP để quét không giới hạn.', 403);
-            }
-        }
-
-        this._invalidateCache();
-        return this._mapModerationDto(poi);
+    async resolveQrScanToken(rawToken, user, req) {
+        throw new AppError('POI QR system has been deprecated. Use Zone QR scan endpoint: POST /api/v1/zones/scan', 410);
     }
 
     async requestPoiUpdate(poiId, user, body) {
@@ -805,6 +784,35 @@ class PoiService {
         }
 
         return req;
+    }
+
+    async checkContentSync(lastSyncTime) {
+        const lastSync = lastSyncTime ? new Date(lastSyncTime) : new Date(0);
+
+        // Find POIs updated after lastSyncTime
+        const updatedPois = await Poi.find({
+            status: POI_STATUS.APPROVED,
+            updatedAt: { $gt: lastSync }
+        }).select('code updatedAt');
+
+        // Find deleted POIs (status changed to REJECTED or deleted)
+        const deletedPois = await Poi.find({
+            status: { $in: [POI_STATUS.REJECTED] },
+            updatedAt: { $gt: lastSync }
+        }).select('code updatedAt');
+
+        return {
+            hasUpdates: updatedPois.length > 0 || deletedPois.length > 0,
+            updatedPois: updatedPois.map(p => ({
+                code: p.code,
+                updatedAt: p.updatedAt
+            })),
+            deletedPois: deletedPois.map(p => ({
+                code: p.code,
+                deletedAt: p.updatedAt
+            })),
+            serverTime: new Date().toISOString()
+        };
     }
 }
 

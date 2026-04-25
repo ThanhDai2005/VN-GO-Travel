@@ -128,6 +128,23 @@ class UserRepository {
     }
 
     async incrementQrScanCountIfAllowed(userId, limit = 10) {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD UTC
+
+        // Reset quota for all non-premium users if it's a new day
+        await User.updateMany(
+            {
+                qrScanLastResetDate: { $ne: today },
+                isPremium: false
+            },
+            {
+                $set: {
+                    qrScanCount: 0,
+                    qrScanLastResetDate: today
+                }
+            }
+        );
+
+        // Increment with daily limit check
         return await User.findOneAndUpdate(
             {
                 _id: userId,
@@ -135,7 +152,10 @@ class UserRepository {
                 isActive: true,
                 qrScanCount: { $lt: Number(limit) }
             },
-            { $inc: { qrScanCount: 1 } },
+            {
+                $inc: { qrScanCount: 1 },
+                $set: { qrScanLastResetDate: today }
+            },
             { new: true }
         );
     }

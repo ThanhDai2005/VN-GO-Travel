@@ -1,17 +1,11 @@
 const poiService = require('../services/poi.service');
 
-exports.scan = async (req, res, next) => {
-    try {
-        const token = req.body && typeof req.body.token === 'string' ? req.body.token : '';
-        const poi = await poiService.resolveQrScanToken(token, req.user);
-        res.status(200).json({
-            success: true,
-            data: poi
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+/**
+ * POI Controller
+ *
+ * NOTE: scan() method REMOVED - POI QR system deprecated.
+ * Use Zone QR system instead: POST /api/v1/zones/scan
+ */
 
 exports.getNearby = async (req, res, next) => {
     try {
@@ -76,6 +70,21 @@ exports.deleteByCode = async (req, res, next) => {
         const { code } = req.params;
         const result = await poiService.deletePoiByCode(code);
         res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.checkSync = async (req, res, next) => {
+    try {
+        const { lastSyncTime } = req.query;
+
+        const syncData = await poiService.checkContentSync(lastSyncTime);
+
+        res.status(200).json({
+            success: true,
+            data: syncData
+        });
     } catch (error) {
         next(error);
     }

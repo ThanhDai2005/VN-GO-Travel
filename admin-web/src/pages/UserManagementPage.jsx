@@ -133,7 +133,7 @@ export default function UserManagementPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Quản lý người dùng</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">Quản lý premium</h1>
           <p className="text-sm text-slate-600">Quản lý vai trò, trạng thái và thêm tài khoản mới.</p>
         </div>
         <div className="flex gap-2">

@@ -8,6 +8,8 @@
   - SQLite có dữ liệu hoặc có thể seed từ `pois.json`.
 - **Main Flow**:
   1. User mở `MapPage`.
+
+> *Vị trí: `MapPage` nằm ở file `Views/MapPage.xaml.cs`, dòng `38`*
   2. ViewModel gọi load POIs (init DB, init localization, seed nếu DB rỗng).
   3. Hệ thống hydrate POI với localization theo ngôn ngữ hiện tại.
   4. Map vẽ pin + vòng bán kính.
@@ -27,6 +29,8 @@
 - **Main Flow**:
   1. Scanner nhận raw input.
   2. `PoiEntryCoordinator` parse input (code hoặc secure token).
+
+> *Vị trí: `PoiEntryCoordinator` nằm ở file `Services/PoiEntryCoordinator.cs`, dòng `39`*
   3. Nếu token: gọi backend `/pois/scan`, merge kết quả vào local.
   4. Xây route map/detail và điều hướng.
 - **Alternative Flows**:
@@ -90,6 +94,8 @@
   - User authenticated trên mobile (theo logic hiện tại sync).
 - **Main Flow**:
   1. Mobile gọi `GET /api/v1/pois/nearby`.
+
+> *Vị trí: `GET /api/v1/pois/nearby` nằm ở file `backend/src/routes/admin-user.routes.js`, dòng `11`*
   2. Backend trả list POI đã public.
   3. Mobile upsert geo core vào SQLite.
   4. Mobile inject nội dung vi vào localization in-memory.

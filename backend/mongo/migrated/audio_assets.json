@@ -1,0 +1,1142 @@
+[
+  {
+    "_id": {
+      "$oid": "ce289b16a9c254db85ea0009"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132994"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.428Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "4d30c9e225f10e4baca91b1e"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132994"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.428Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68c94b1d87074cf0ccd3e9a8"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132995"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "b8b39247ef541adcdd3eaf42"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132995"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "b1a3ecd9b6f658c1bd422da9"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132996"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "f15b67adc84efa96a653e418"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132996"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "494361530a3042910e258d0a"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132997"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "16fbe4bbd26af5e35b761b19"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132997"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "eb8d7046d6a63242069f64f5"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132998"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "9401174e4eca1bd76a8865f4"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132998"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "fe288a004dc5f74c1a41f7a6"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132999"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "3901ce10ed221b39d1fdf592"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f132999"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "87b72fdc265af67d1f89c6a0"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299a"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "d349b46687f5eabe44649a40"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299a"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "03572a7d60e6430fd456e9a7"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299b"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "aabb06eeef6ff8f04e736c44"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299b"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "d4d200c56de4d983e0f02ead"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299c"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "c16be990e2933f831fb523c0"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299c"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "1937772644789435481a7455"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299d"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "8fa86024fe09841c2271a63a"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299d"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "950b4f33186325363a9c5122"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299e"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "0ac1c73e32be4e0a07ffe50b"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299e"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "486d7fa8113d50cd7b5701fc"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299f"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "4bd107f5ef962875e75d6f9a"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f13299f"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "12cc72cd8f153cce915320ab"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a0"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "89888fba54cecc155445e235"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a0"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "f1d94d0d05692615b19bf7a3"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a1"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "fe5221775e8ae834dc322fa4"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a1"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "a0420a4ffcf88e31e4a61587"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a2"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "9e84fe366ebcdad368578952"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a2"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "c2bb3b1ad818cbccb4d4c2c7"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a3"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "98a321f9bf62f20db6dd480c"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a3"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "a928ff12f9acae3c9d73609d"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a4"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "89f8608121377566d4280b10"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a4"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "c26d7d66a03d0bc52d9f123d"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a5"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "ed1bb1ad16f5e3f94f1efc67"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a5"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "9b5bd3d468780f4281d1aabe"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a6"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "ac45a59e89e43e689e2f2ac8"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a6"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "b8b2365af0e5d38772b1aecf"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a7"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "e4decf2421cb301b00180044"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a7"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "d8904df7f026b1c3782edee5"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a8"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "f47606b487a129be8bb974b6"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a8"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "ca89b293dfe47835a7c0b26d"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a9"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "5ea9cfe5ad61d4c00964237d"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329a9"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "e4ce20a650e508d019dedb8d"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329aa"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "5fbd593ede811ee3885db15e"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329aa"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "4bd8e8c4bc099c63112dc4da"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329ab"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "eef1f2aa39f6c0efbcd74833"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329ab"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "0709db009863f038abac0a92"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329ac"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "ef60aa3683d8a5f690ea76b3"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329ac"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "3a170e051e2dedc1b7705bf3"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329ad"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "c88122834a9b83744b2a1a0d"
+    },
+    "poiId": {
+      "$oid": "69dfca38087c183f8f1329ad"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "b74df605083f4ef5ba3740f4"
+    },
+    "poiId": {
+      "$oid": "69e5be8e59c3cf3141c27bc6"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-20T05:50:06.269Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "f993dc779e91e7cce8a7701c"
+    },
+    "poiId": {
+      "$oid": "69e5be8e59c3cf3141c27bc6"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-20T05:50:06.269Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "4e9ccc457c9136009a4cb8cc"
+    },
+    "poiId": {
+      "$oid": "69e8c1bf8e85d733b5b1e75d"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T12:40:31.734Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "873664f88f84f6d097a4587c"
+    },
+    "poiId": {
+      "$oid": "69e8c1bf8e85d733b5b1e75d"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T12:40:31.734Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "cf890cac47c6463eda3f280d"
+    },
+    "poiId": {
+      "$oid": "69e8d7d1ec224191923829de"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T14:14:41.761Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "3888a7b6864acb7c14c6bb2f"
+    },
+    "poiId": {
+      "$oid": "69e8d7d1ec224191923829de"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T14:14:41.761Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "d958e7debe3721c3e3666448"
+    },
+    "poiId": {
+      "$oid": "69e90008215ab8be745f7e95"
+    },
+    "languageCode": "vi",
+    "type": "short",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T17:06:16.939Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "d0015f2620f74d31fbbf5aee"
+    },
+    "poiId": {
+      "$oid": "69e90008215ab8be745f7e95"
+    },
+    "languageCode": "vi",
+    "type": "long",
+    "voice": "default",
+    "fileUrl": null,
+    "duration": 0,
+    "fileSize": 0,
+    "checksum": null,
+    "version": 1,
+    "createdAt": {
+      "$date": "2026-04-22T17:06:16.939Z"
+    }
+  }
+]

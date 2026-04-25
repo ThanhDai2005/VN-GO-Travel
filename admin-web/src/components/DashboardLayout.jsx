@@ -16,8 +16,9 @@ export default function DashboardLayout() {
   const adminLinks = [
     { to: "/", label: "Bảng điều khiển" },
     { to: "/pois", label: "Quản lý POI" },
+    { to: "/zones", label: "Quản lý Zone" },
     { to: "/pending", label: "Địa Điểm Chờ Duyệt" },
-    { to: "/users", label: "Quản lý Người Dùng" },
+    { to: "/users", label: "Quản lý Premium" },
     { to: "/devices", label: "Quản lý Thiết bị" },
     { to: "/audits", label: "Nhật ký duyệt" },
     { to: "/intelligence/dashboard", label: "Intelligence Dashboard" },

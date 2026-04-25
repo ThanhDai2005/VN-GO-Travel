@@ -1,0 +1,662 @@
+[
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f132994"
+    },
+    "code": "HO_GUOM",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.8542,
+        21.0285
+      ]
+    },
+    "radius": 120,
+    "priority": 3,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.428Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.428Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f132995"
+    },
+    "code": "LANG_BAC",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.8342,
+        21.0369
+      ]
+    },
+    "radius": 120,
+    "priority": 3,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f132996"
+    },
+    "code": "VAN_MIEU",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.8356,
+        21.028
+      ]
+    },
+    "radius": 100,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f132997"
+    },
+    "code": "CHUA_MOT_COT",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.8338,
+        21.0358
+      ]
+    },
+    "radius": 80,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f132998"
+    },
+    "code": "HO_TAY",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.8188,
+        21.0478
+      ]
+    },
+    "radius": 150,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f132999"
+    },
+    "code": "CHUA_TRAN_QUOC",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.8366,
+        21.0453
+      ]
+    },
+    "radius": 100,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f13299a"
+    },
+    "code": "PHO_CO_HN",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.85,
+        21.033
+      ]
+    },
+    "radius": 150,
+    "priority": 3,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f13299b"
+    },
+    "code": "NHA_THO_LON_HN",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.8485,
+        21.0289
+      ]
+    },
+    "radius": 80,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f13299c"
+    },
+    "code": "HOANG_THANH_TL",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.8372,
+        21.0358
+      ]
+    },
+    "radius": 100,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f13299d"
+    },
+    "code": "BAO_TANG_HCM",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        105.8348,
+        21.037
+      ]
+    },
+    "radius": 100,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f13299e"
+    },
+    "code": "SAPA",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        103.8438,
+        22.3364
+      ]
+    },
+    "radius": 150,
+    "priority": 3,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f13299f"
+    },
+    "code": "FANSIPAN",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        103.7745,
+        22.3033
+      ]
+    },
+    "radius": 200,
+    "priority": 3,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a0"
+    },
+    "code": "CAT_CAT",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        103.838,
+        22.335
+      ]
+    },
+    "radius": 120,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a1"
+    },
+    "code": "THAC_BAC",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        103.794,
+        22.3535
+      ]
+    },
+    "radius": 120,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a2"
+    },
+    "code": "DINH_DOC_LAP",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.6951,
+        10.7769
+      ]
+    },
+    "radius": 100,
+    "priority": 1,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a3"
+    },
+    "code": "NHA_THO_DUC_BA",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.699,
+        10.7798
+      ]
+    },
+    "radius": 80,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a4"
+    },
+    "code": "BUU_DIEN_TRUNG_TAM",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.6992,
+        10.7801
+      ]
+    },
+    "radius": 70,
+    "priority": 3,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a5"
+    },
+    "code": "CHO_BEN_THANH",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.698,
+        10.7725
+      ]
+    },
+    "radius": 90,
+    "priority": 4,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a6"
+    },
+    "code": "NHA_HAT_THANH_PHO",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.7031,
+        10.7766
+      ]
+    },
+    "radius": 70,
+    "priority": 5,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a7"
+    },
+    "code": "UBND_THANH_PHO",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.7014,
+        10.7769
+      ]
+    },
+    "radius": 70,
+    "priority": 6,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a8"
+    },
+    "code": "PHO_DI_BO_NGUYEN_HUE",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.7042,
+        10.7737
+      ]
+    },
+    "radius": 100,
+    "priority": 7,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329a9"
+    },
+    "code": "BEN_BACH_DANG",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.7066,
+        10.7722
+      ]
+    },
+    "radius": 90,
+    "priority": 8,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329aa"
+    },
+    "code": "BAO_TANG_CHUNG_TICH_CHIEN_TRANH",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.692,
+        10.7795
+      ]
+    },
+    "radius": 90,
+    "priority": 9,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329ab"
+    },
+    "code": "THAO_CAM_VIEN",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.7054,
+        10.787
+      ]
+    },
+    "radius": 100,
+    "priority": 10,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329ac"
+    },
+    "code": "LANDMARK_81",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.7218,
+        10.7942
+      ]
+    },
+    "radius": 120,
+    "priority": 11,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dfca38087c183f8f1329ad"
+    },
+    "code": "CHUA_NGOC_HOANG",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.6989,
+        10.7905
+      ]
+    },
+    "radius": 70,
+    "priority": 12,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T10:45:19.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69e5be8e59c3cf3141c27bc6"
+    },
+    "code": "ha-long",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.1234,
+        10.2345
+      ]
+    },
+    "radius": 300,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-20T05:50:06.269Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T12:41:05.538Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69e8c1bf8e85d733b5b1e75d"
+    },
+    "code": "NNNN",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106,
+        10
+      ]
+    },
+    "radius": 50,
+    "priority": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T12:40:31.734Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T12:41:02.370Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69e8d7d1ec224191923829de"
+    },
+    "code": "hhh",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        106.6666,
+        10.444
+      ]
+    },
+    "radius": 56,
+    "priority": 1,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-04-22T14:14:41.761Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T15:11:42.235Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69e90008215ab8be745f7e95"
+    },
+    "code": "CHUA-BAI-DINH",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        110.8542,
+        24.0285
+      ]
+    },
+    "radius": 200,
+    "priority": 2,
+    "isActive": false,
+    "createdAt": {
+      "$date": "2026-04-22T17:06:16.939Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-22T17:06:16.939Z"
+    }
+  }
+]

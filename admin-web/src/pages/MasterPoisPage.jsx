@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import {
   createPoi,
   deletePoiByCode,
   fetchMasterPois,
-  fetchPoiQrToken,
   updatePoiByCode,
 } from "../apiClient.js";
 
@@ -61,11 +59,6 @@ export default function MasterPoisPage() {
   const [editRow, setEditRow] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
   const [form, setForm] = useState(emptyForm);
-
-  const [qrModalRow, setQrModalRow] = useState(null);
-  const [qrModalUrl, setQrModalUrl] = useState("");
-  const [qrModalLoading, setQrModalLoading] = useState(false);
-  const [qrModalErr, setQrModalErr] = useState("");
 
   const load = useCallback(async (page = 1) => {
     setErr("");
@@ -210,29 +203,6 @@ export default function MasterPoisPage() {
     }
   }
 
-  async function openQrModal(row) {
-    if (!row?.id) {
-      setErr("Thiếu id POI — không thể tạo QR token.");
-      return;
-    }
-    setQrModalRow(row);
-    setQrModalUrl("");
-    setQrModalErr("");
-    setQrModalLoading(true);
-    try {
-      const res = await fetchPoiQrToken(row.id);
-      const url = res?.data?.scanUrl;
-      if (!url || typeof url !== "string") {
-        throw new Error("Phản hồi từ endpoint qr-token không hợp lệ");
-      }
-      setQrModalUrl(url);
-    } catch (e) {
-      setQrModalErr(e.message || "Không thể tải QR token");
-    } finally {
-      setQrModalLoading(false);
-    }
-  }
-
   async function confirmDelete() {
     if (!deleteRow?.code) return;
     setBusyCode(deleteRow.code);
@@ -327,7 +297,6 @@ export default function MasterPoisPage() {
                 <th className="bg-gray-800 px-4 py-3 text-left font-bold text-white">Tóm tắt</th>
                 <th className="bg-gray-800 px-4 py-3 text-left font-bold text-white">R / P</th>
                 <th className="bg-gray-800 px-4 py-3 text-left font-bold text-white">Tọa độ</th>
-                <th className="bg-gray-800 px-4 py-3 text-left font-bold text-white">QR</th>
                 <th className="bg-gray-800 px-4 py-3 text-right font-bold text-white">Hành động</th>
               </tr>
             </thead>
@@ -357,16 +326,6 @@ export default function MasterPoisPage() {
                       {`${row.radius ?? "—"} / ${row.priority ?? "—"}`}
                     </td>
                     <td className="border-b border-gray-200 px-4 py-3 text-gray-900">{locStr}</td>
-                    <td className="border-b border-gray-200 px-4 py-3">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => openQrModal(row)}
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-900 hover:bg-gray-100 disabled:opacity-50"
-                      >
-                        Xem QR
-                      </button>
-                    </td>
                     <td className="border-b border-gray-200 px-4 py-3 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
                         <button
@@ -510,46 +469,6 @@ export default function MasterPoisPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Secure QR (JWT) — large scannable */}
-      {qrModalRow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-white">QR quét (bảo mật)</h2>
-            <p className="mt-1 font-mono text-sm text-emerald-300">{qrModalRow.code}</p>
-            <p className="mt-2 text-xs text-slate-400">
-              Mã QR là token ký số vĩnh viễn (không hết hạn). Ứng dụng quét sẽ gửi token lên server để xác thực chữ ký.
-            </p>
-            {qrModalErr && (
-              <p className="mt-3 text-sm text-red-300">{qrModalErr}</p>
-            )}
-            {qrModalLoading && (
-              <p className="mt-6 text-center text-slate-400">Đang tạo mã…</p>
-            )}
-            {!qrModalLoading && qrModalUrl && (
-              <div className="mt-6 flex flex-col items-center gap-3">
-                <div className="rounded-lg bg-white p-4">
-                  <QRCodeSVG value={qrModalUrl} size={240} level="M" includeMargin />
-                </div>
-                <p className="break-all text-center text-[10px] text-slate-500">{qrModalUrl}</p>
-              </div>
-            )}
-            <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setQrModalRow(null);
-                  setQrModalUrl("");
-                  setQrModalErr("");
-                }}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
-              >
-                Đóng
-              </button>
-            </div>
           </div>
         </div>
       )}

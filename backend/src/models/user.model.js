@@ -11,7 +11,8 @@ const userSchema = new mongoose.Schema({
     isPremium: { type: Boolean, default: false },
     premiumActivatedAt: { type: Date, default: null },
     isActive: { type: Boolean, default: true },
-    qrScanCount: { type: Number, default: 0, min: 0 }
+    qrScanCount: { type: Number, default: 0, min: 0 },
+    qrScanLastResetDate: { type: String, default: null } // Format: YYYY-MM-DD UTC
 }, {
     timestamps: true
 });

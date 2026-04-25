@@ -55,7 +55,7 @@ export default function AdminHomePage() {
           className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition hover:border-emerald-300 hover:shadow"
         >
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Tài khoản</p>
-          <p className="mt-2 text-sm font-medium text-slate-900">Quản lý người dùng</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">Quản lý premium</p>
           <p className="mt-2 text-sm text-slate-600">Phân vai trò và khóa/mở khóa tài khoản</p>
         </Link>
       </div>

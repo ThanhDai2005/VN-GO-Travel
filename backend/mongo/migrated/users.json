@@ -1,0 +1,40 @@
+[
+  {
+    "_id": {
+      "$oid": "69dff87ca42440b189d726de"
+    },
+    "email": "user@vngo.com",
+    "role": "USER",
+    "isPremium": false,
+    "createdAt": {
+      "$date": "2026-04-16T03:02:01.672Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69dff87ca42440b189d726df"
+    },
+    "email": "admin@vngo.com",
+    "role": "ADMIN",
+    "isPremium": false
+  },
+  {
+    "_id": {
+      "$oid": "69dff87ca42440b189d726e0"
+    },
+    "email": "owner@vngo.com",
+    "role": "OWNER",
+    "isPremium": false
+  },
+  {
+    "_id": {
+      "$oid": "69dff8f5b218e160d35e562e"
+    },
+    "email": "levan@vngo.com",
+    "role": "USER",
+    "isPremium": false,
+    "createdAt": {
+      "$date": "2026-04-15T20:45:41.818Z"
+    }
+  }
+]

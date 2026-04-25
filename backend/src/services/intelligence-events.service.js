@@ -1,9 +1,11 @@
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const { AppError } = require('../middlewares/error.middleware');
 const IntelligenceEventRaw = require('../models/intelligence-event-raw.model');
 const IntelligenceUserSession = require('../models/intelligence-user-session.model');
 const IntelligenceUserProfile = require('../models/intelligence-user-profile.model');
 const IntelligenceDeviceProfile = require('../models/intelligence-device-profile.model');
+const IntelligenceIdentityEdge = require('../models/intelligence-identity-edge.model');
 const PoiHourlyStats = require('../models/poi-hourly-stats.model');
 
 const MAX_BATCH = 100;
@@ -236,6 +238,44 @@ async function applyIdentityFromEvent(ev, doc) {
 }
 
 /**
+ * Create identity edge per v7.3.2 §6
+ * Links device to user when JWT authenticated
+ */
+async function createIdentityEdge(deviceId, userId, ingestionRequestId, reqUser) {
+    if (!deviceId || !userId) return;
+
+    try {
+        // Only create edge if JWT authenticated (reqUser present)
+        if (!reqUser) return;
+
+        // Confidence is "high" when userId matches authenticated user
+        const confidence = String(userId) === String(reqUser._id) ? 'high' : 'medium';
+
+        await IntelligenceIdentityEdge.findOneAndUpdate(
+            {
+                edge_type: 'device_linked_user',
+                from_id: deviceId,
+                to_id: userId
+            },
+            {
+                $setOnInsert: {
+                    edge_type: 'device_linked_user',
+                    from_id: deviceId,
+                    to_id: userId,
+                    established_at: new Date(),
+                    source: 'ingest_jwt',
+                    confidence,
+                    ingestion_request_id: ingestionRequestId
+                }
+            },
+            { upsert: true }
+        );
+    } catch (error) {
+        console.error('[IDENTITY-EDGE] Failed to create edge:', error);
+    }
+}
+
+/**
  * Ingest RBEL EventContractV2 batch. Does not call runtime (GAK/MSAL/ROEL).
  */
 async function ingestBatch(body, reqUser, options = {}) {
@@ -330,6 +370,11 @@ async function ingestBatch(body, reqUser, options = {}) {
         }
 
         await applyIdentityFromEvent(validEvents[i], doc).catch(() => {});
+
+        // Create identity edge when user_id present and JWT authenticated
+        if (doc.user_id && reqUser) {
+            await createIdentityEdge(doc.device_id, doc.user_id, ingestionRequestId, reqUser).catch(() => {});
+        }
 
         if (doc.payload && doc.payload.poi_id) {
             try {

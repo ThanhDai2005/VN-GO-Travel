@@ -12,7 +12,9 @@
       "Bash(./ngrok.exe config *)",
       "Bash(./ngrok.exe http *)",
       "Bash(curl -s http://localhost:4040/api/tunnels)",
-      "Bash(node scripts/clean-pois.js)"
+      "Bash(node scripts/clean-pois.js)",
+      "Bash(xargs grep *)",
+      "Bash(curl -X POST http://localhost:3000/api/v1/auth/login -H \"Content-Type: application/json\" -d \"{\\\\\"email\\\\\": \\\\\"owner@vngo.com\\\\\", \\\\\"password\\\\\": \\\\\"owner123\\\\\"}\")"
     ]
   }
 }

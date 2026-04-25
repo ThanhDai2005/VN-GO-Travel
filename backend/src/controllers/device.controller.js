@@ -1,19 +1,10 @@
 const { AppError } = require('../middlewares/error.middleware');
 const deviceSessionRepository = require('../repositories/device-session.repository');
+const { getClientIP } = require('../utils/ip-helper');
 
 // Must exceed heartbeat interval + network jitter, or admin UI flickers offline between beats.
 // Giảm từ 25s xuống 8s để phản ánh trạng thái offline nhanh hơn (heartbeat interval = 3s)
 const ONLINE_GRACE_MS = 8 * 1000;
-
-function getClientIp(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (typeof forwarded === 'string' && forwarded.trim()) {
-        return forwarded.split(',')[0].trim();
-    }
-    const realIp = req.headers['x-real-ip'];
-    if (typeof realIp === 'string' && realIp.trim()) return realIp.trim();
-    return req.ip || req.socket?.remoteAddress || '';
-}
 
 function toDeviceResponse(row) {
     const now = Date.now();
@@ -61,7 +52,7 @@ exports.heartbeat = async (req, res, next) => {
             deviceId: deviceId.trim(),
             userId: req.user?._id || null,
             email: req.user?.email || '',
-            ipAddress: getClientIp(req),
+            ipAddress: getClientIP(req),
             deviceName,
             manufacturer,
             model,

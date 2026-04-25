@@ -12,6 +12,7 @@ import SubmitPoiPage from './pages/SubmitPoiPage.jsx';
 import IntelligenceDashboard from './pages/intelligence/Dashboard.jsx';
 import DashboardLayout from './components/DashboardLayout.jsx';
 import AdminChangeRequestsPage from './pages/AdminChangeRequestsPage.jsx';
+import ZonesManagementPage from './pages/ZonesManagementPage.jsx';
 
 function Protected({ children }) {
   const { isAuthenticated } = useAuth();
@@ -121,6 +122,14 @@ export default function App() {
           element={
             <RequireRole allowedRoles={['ADMIN']}>
               <AdminChangeRequestsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="zones"
+          element={
+            <RequireRole allowedRoles={['ADMIN']}>
+              <ZonesManagementPage />
             </RequireRole>
           }
         />
