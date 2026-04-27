@@ -303,6 +303,10 @@ export async function updateZonePois(zoneId, poiIds) {
   });
 }
 
+export async function fetchZoneQrToken(zoneId) {
+  return apiRequest(`/api/v1/admin/zones/${encodeURIComponent(zoneId)}/qr-token`);
+}
+
 export async function reviewPoiChangeRequest(requestId, status, reason) {
   return apiRequest(`/api/v1/admin/pois/change-requests/${encodeURIComponent(requestId)}/review`, {
     method: "POST",

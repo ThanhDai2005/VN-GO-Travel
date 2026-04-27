@@ -239,13 +239,33 @@ class ZoneService {
             const endIdx = startIdx + limitNum;
             const paginatedPois = filteredPois.slice(startIdx, endIdx);
 
-            // 7. Generate next cursor (last POI's _id in current page)
+            // 7. Populate audio URLs from PoiContent and AudioAsset
+            const PoiContent = require('../models/poi-content.model');
+            const AudioAsset = require('../models/audio-asset.model');
+
+            const poisWithAudio = await Promise.all(paginatedPois.map(async (poi) => {
+                const poiObj = poi.toObject();
+
+                // Get POI content for default language (vi)
+                const content = await PoiContent.findOne({ poiCode: poi.code, language: 'vi' })
+                    .populate('audioLongId');
+
+                if (content && content.audioLongId) {
+                    poiObj.narrationAudioUrl = content.audioLongId.url;
+                    poiObj.audioSizeKB = Math.round(content.audioLongId.fileSize / 1024);
+                    poiObj.audioDuration = content.audioLongId.duration;
+                }
+
+                return poiObj;
+            }));
+
+            // 8. Generate next cursor (last POI's _id in current page)
             const nextCursor = paginatedPois.length > 0
                 ? paginatedPois[paginatedPois.length - 1]._id.toString()
                 : null;
 
             return {
-                pois: paginatedPois.map(poi => poi.toObject()),
+                pois: poisWithAudio,
                 pagination: {
                     page: pageNum,
                     limit: limitNum,
@@ -270,6 +290,7 @@ class ZoneService {
     /**
      * Check sync status for zone (offline-first support)
      * Returns only POIs that changed since lastSync timestamp OR version
+     * FIX: Now returns current POI codes for client-side sync
      */
     async checkZoneSync(zoneCode, userId, lastSyncTimestamp, lastSyncVersion) {
         try {
@@ -296,6 +317,9 @@ class ZoneService {
             // 4. Get all APPROVED POIs
             const allPois = await poiRepository.findByCodes(zone.poiCodes);
             const approvedPois = allPois.filter(poi => poi.status === POI_STATUS.APPROVED);
+
+            // FIX: Extract current POI codes for sync
+            const currentPoiCodes = approvedPois.map(poi => poi.code);
 
             // 5. Filter updated POIs (version > lastVersion OR updatedAt > lastSync)
             const updatedPois = approvedPois.filter(poi => {
@@ -325,6 +349,7 @@ class ZoneService {
                 lastVersion: lastVersion,
                 currentTime: new Date().toISOString(),
                 currentVersion: maxVersion,
+                currentPoiCodes, // FIX: Added for client-side sync
                 updatedPois: updatedPois.map(poi => poi.toObject()),
                 deletedPois,
                 hasChanges: updatedPois.length > 0 || deletedPois.length > 0

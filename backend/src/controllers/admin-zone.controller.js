@@ -132,6 +132,9 @@ class AdminZoneController {
             const { id } = req.params;
             const { poiIds } = req.body;
 
+            console.log('UPDATE ZONE POIS:', poiIds);
+            console.log('Received POIs:', poiIds);
+
             if (!Array.isArray(poiIds)) {
                 throw new AppError('poiIds must be an array', 400);
             }
@@ -142,9 +145,17 @@ class AdminZoneController {
                 throw new AppError('Zone not found', 404);
             }
 
+            const reloadedZone = await zoneRepository.findById(id);
+            if (reloadedZone) {
+                reloadedZone.pois = reloadedZone.pois || reloadedZone.poiCodes || [];
+            }
+
+            console.log('Zone updated successfully:', zone.code, 'POI count:', zone.pois?.length || 0);
+            console.log('DB RESULT:', reloadedZone ? reloadedZone.pois : zone.pois);
+
             res.json({
                 success: true,
-                data: zone
+                data: reloadedZone || zone
             });
         } catch (error) {
             console.error('[ADMIN-ZONE-CONTROLLER] Update zone POIs error:', error);
