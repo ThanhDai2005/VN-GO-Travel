@@ -6,6 +6,7 @@ import {
   deleteZone,
   updateZonePois,
   fetchMasterPois,
+  fetchZoneQrToken,
 } from '../apiClient.js';
 
 function statusBadge(status) {
@@ -36,6 +37,9 @@ export default function ZonesManagementPage() {
   const [selectedPoiIds, setSelectedPoiIds] = useState([]);
   const [savingPois, setSavingPois] = useState(false);
   const [poiSearchTerm, setPoiSearchTerm] = useState('');
+  const [qrZone, setQrZone] = useState(null);
+  const [qrData, setQrData] = useState(null);
+  const [loadingQr, setLoadingQr] = useState(false);
 
   const [form, setForm] = useState({ name: '', description: '', price: '' });
 
@@ -44,10 +48,13 @@ export default function ZonesManagementPage() {
     setLoading(true);
     try {
       const res = await fetchZones(1, 100);
-      setZones(Array.isArray(res?.data) ? res.data : []);
+      const nextZones = Array.isArray(res?.data) ? res.data : [];
+      setZones(nextZones);
+      return nextZones;
     } catch (e) {
       setErr(e.message || 'Không thể tải danh sách Zone');
       setZones([]);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -161,34 +168,50 @@ export default function ZonesManagementPage() {
 
   function openManagePois(zone) {
     setManagePoiZone(zone);
-    setSelectedPoiIds(zone.pois || []);
+    // FIX: Use poiCodes instead of pois
+    const reopenedSelectedPoiIds = zone.pois || zone.poiCodes || [];
+    setSelectedPoiIds(reopenedSelectedPoiIds);
+    console.log('AFTER REOPEN: selectedPoiIds =', reopenedSelectedPoiIds);
     setPoiSearchTerm('');
   }
 
   function handlePoiToggle(poiId) {
     setSelectedPoiIds((prev) => {
-      if (prev.includes(poiId)) {
-        return prev.filter((id) => id !== poiId);
+      // FIX: Work with POI codes, not IDs
+      const poi = allPois.find(p => p.id === poiId);
+      const poiCode = poi ? poi.code : poiId;
+
+      if (prev.includes(poiCode)) {
+        return prev.filter((code) => code !== poiCode);
       } else {
-        return [...prev, poiId];
+        return [...prev, poiCode];
       }
     });
   }
 
   async function savePoiChanges() {
     if (!managePoiZone?.id) return;
+    console.log('CLICK SAVE BUTTON', selectedPoiIds);
+    console.log('API PAYLOAD', selectedPoiIds);
     setSavingPois(true);
     setErr('');
     try {
-      await updateZonePois(managePoiZone.id, selectedPoiIds);
-      await loadZones();
-      const updatedZone = zones.find((z) => z.id === managePoiZone.id);
+      // FIX: Send POI codes, not IDs
+      const poiCodesToSend = selectedPoiIds.map(id => {
+        const poi = allPois.find(p => p.id === id);
+        return poi ? poi.code : id;
+      });
+      console.log('Sending POI codes:', poiCodesToSend);
+      await updateZonePois(managePoiZone.id, poiCodesToSend);
+      const refreshedZones = await loadZones();
+      const updatedZone = refreshedZones.find((z) => z.id === managePoiZone.id);
       if (updatedZone) {
         setManagePoiZone(updatedZone);
-        setSelectedPoiIds(updatedZone.pois || []);
+        setSelectedPoiIds(updatedZone.pois || updatedZone.poiCodes || []);
       }
       setErr('');
     } catch (e) {
+      console.error('Save POI error:', e);
       setErr(e.message || 'Cập nhật POI thất bại');
     } finally {
       setSavingPois(false);
@@ -196,9 +219,34 @@ export default function ZonesManagementPage() {
   }
 
   function cancelPoiChanges() {
-    setSelectedPoiIds(managePoiZone?.pois || []);
+    setSelectedPoiIds(managePoiZone?.poiCodes || managePoiZone?.pois || []);
     setManagePoiZone(null);
     setPoiSearchTerm('');
+  }
+
+  async function openQrModal(zone) {
+    setQrZone(zone);
+    setQrData(null);
+    setLoadingQr(true);
+    setErr('');
+    try {
+      const json = await fetchZoneQrToken(zone.id);
+      if (json?.success && json?.data) {
+        setQrData(json.data);
+      } else {
+        setErr('Không thể tạo QR token');
+      }
+    } catch (e) {
+      console.error('QR generation error:', e);
+      setErr(e.message || 'Không thể tạo QR token');
+    } finally {
+      setLoadingQr(false);
+    }
+  }
+
+  function closeQrModal() {
+    setQrZone(null);
+    setQrData(null);
   }
 
   return (
@@ -255,7 +303,8 @@ export default function ZonesManagementPage() {
             <tbody>
               {zones.map((zone) => {
                 const busy = busyZoneId === zone.id;
-                const poiCount = Array.isArray(zone.pois) ? zone.pois.length : 0;
+                // FIX: Use poiCodes instead of pois
+                const poiCount = Array.isArray(zone.poiCodes) ? zone.poiCodes.length : (Array.isArray(zone.pois) ? zone.pois.length : 0);
                 return (
                   <tr key={String(zone.id)} className="odd:bg-gray-50 even:bg-white">
                     <td className="border-b border-gray-200 px-4 py-3 font-medium text-gray-900">
@@ -270,6 +319,14 @@ export default function ZonesManagementPage() {
                     <td className="border-b border-gray-200 px-4 py-3 text-gray-900">{poiCount}</td>
                     <td className="border-b border-gray-200 px-4 py-3 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => openQrModal(zone)}
+                          className="rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-xs text-green-700 hover:bg-green-100 disabled:opacity-50"
+                        >
+                          Generate QR
+                        </button>
                         <button
                           type="button"
                           disabled={busy}
@@ -449,7 +506,7 @@ export default function ZonesManagementPage() {
             {/* POI count indicator */}
             <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
               <span>Đã chọn: {selectedPoiIds.length} POI</span>
-              {selectedPoiIds.length !== (managePoiZone.pois || []).length && (
+              {selectedPoiIds.length !== (managePoiZone.poiCodes || managePoiZone.pois || []).length && (
                 <span className="text-amber-400">Có thay đổi chưa lưu</span>
               )}
             </div>
@@ -470,7 +527,8 @@ export default function ZonesManagementPage() {
                     return code.includes(term) || name.includes(term);
                   })
                   .map((poi) => {
-                    const isSelected = selectedPoiIds.includes(poi.id);
+                    // FIX: Check if POI code is selected
+                    const isSelected = selectedPoiIds.includes(poi.code);
                     return (
                       <label
                         key={String(poi.id)}
@@ -512,6 +570,47 @@ export default function ZonesManagementPage() {
                 className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
               >
                 {savingPois ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Modal */}
+      {qrZone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold text-white">QR Code cho Zone</h2>
+            <p className="mt-1 text-sm text-emerald-300">{qrZone.name}</p>
+
+            {loadingQr ? (
+              <p className="mt-4 text-sm text-slate-400">Đang tạo QR token...</p>
+            ) : qrData ? (
+              <div className="mt-4 space-y-3">
+                <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
+                  <p className="text-xs text-slate-400">Scan URL:</p>
+                  <p className="mt-1 break-all font-mono text-xs text-white">{qrData.scanUrl}</p>
+                </div>
+                <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
+                  <p className="text-xs text-slate-400">Hết hạn:</p>
+                  <p className="mt-1 text-sm text-white">{new Date(qrData.expiresAt).toLocaleString('vi-VN')}</p>
+                </div>
+                <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
+                  <p className="text-xs text-slate-400">Token ID (JTI):</p>
+                  <p className="mt-1 break-all font-mono text-xs text-white">{qrData.jti}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-red-400">Không thể tạo QR token</p>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={closeQrModal}
+                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+              >
+                Đóng
               </button>
             </div>
           </div>

@@ -280,7 +280,16 @@ class DemoSeeder {
             }
         ]);
 
-        console.log('[DEMO SEEDER] ✅ Created 5 POIs');
+        // Link POIs to zones (first 3 POIs = Hanoi, last 2 = HCMC)
+        await Zone.findByIdAndUpdate(zones[0]._id, {
+            poiCodes: ['DEMO_HOAN_KIEM_LAKE', 'DEMO_NGOC_SON_TEMPLE', 'DEMO_DONG_XUAN_MARKET']
+        });
+
+        await Zone.findByIdAndUpdate(zones[1]._id, {
+            poiCodes: ['DEMO_BEN_THANH_MARKET', 'DEMO_NOTRE_DAME_CATHEDRAL']
+        });
+
+        console.log('[DEMO SEEDER] ✅ Created 5 POIs and linked to zones');
         return pois;
     }
 
