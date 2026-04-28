@@ -11,6 +11,7 @@ const connectDB = require('./config/db');
 const pois = [
     {
         code: 'VNM-SGN-001',
+        name: 'Ben Thanh Market',
         location: {
             type: 'Point',
             coordinates: [106.7019, 10.7769] // Ben Thanh Market, HCM
@@ -25,6 +26,7 @@ const pois = [
     },
     {
         code: 'VNM-SGN-002',
+        name: 'Independence Palace',
         location: {
             type: 'Point',
             coordinates: [106.6991, 10.7772] // Independence Palace, HCM
@@ -39,6 +41,7 @@ const pois = [
     },
     {
         code: 'VNM-HAN-001',
+        name: 'Hoan Kiem Lake',
         location: {
             type: 'Point',
             coordinates: [105.8522, 21.0285] // Hoan Kiem Lake, Hanoi
@@ -53,6 +56,7 @@ const pois = [
     },
     {
         code: 'VNM-DNG-001',
+        name: 'Dragon Bridge',
         location: {
             type: 'Point',
             coordinates: [108.2022, 16.0544] // Dragon Bridge, Da Nang
@@ -67,6 +71,7 @@ const pois = [
     },
     {
         code: 'VNM-HUI-001',
+        name: 'Hue Imperial City',
         location: {
             type: 'Point',
             coordinates: [107.5791, 16.4637] // Hue Imperial City
@@ -89,6 +94,8 @@ const seedData = async () => {
         await User.deleteMany();
         await Poi.deleteMany();
         await PoiRequest.deleteMany();
+        const Zone = require('./models/zone.model');
+        await Zone.deleteMany();
         // Dev-only reset. Production must not wipe audit history.
         await AdminPoiAudit.deleteMany();
 

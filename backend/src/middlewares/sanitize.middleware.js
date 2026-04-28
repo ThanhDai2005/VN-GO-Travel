@@ -24,7 +24,7 @@ function sanitizeObject(obj, path = '') {
     let hasSanitized = false;
 
     for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
             const fullPath = path ? `${path}.${key}` : key;
 
             // Check for prohibited characters
@@ -65,13 +65,13 @@ const sanitizeInput = (req, res, next) => {
 
             // For Express 5.x compatibility: delete original keys and add sanitized ones
             for (const key in req.query) {
-                if (req.query.hasOwnProperty(key)) {
+                if (Object.prototype.hasOwnProperty.call(req.query, key)) {
                     delete req.query[key];
                 }
             }
 
             for (const key in sanitizedQuery) {
-                if (sanitizedQuery.hasOwnProperty(key)) {
+                if (Object.prototype.hasOwnProperty.call(sanitizedQuery, key)) {
                     req.query[key] = sanitizedQuery[key];
                 }
             }

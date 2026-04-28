@@ -146,6 +146,32 @@ class ZoneRepository {
     }
 
     /**
+     * Update zone by ID
+     */
+    async updateById(id, data) {
+        const zone = await this.findById(id);
+
+        if (!zone) {
+            throw new AppError('Zone not found', 404);
+        }
+
+        if (data.name) zone.name = data.name;
+        if (data.description !== undefined) zone.description = data.description;
+        if (data.price !== undefined) zone.price = data.price;
+        if (data.isActive !== undefined) zone.isActive = data.isActive;
+        if (data.poiCodes) zone.poiCodes = data.poiCodes;
+        if (data.imageUrl !== undefined) zone.imageUrl = data.imageUrl;
+        if (data.displayOrder !== undefined) zone.displayOrder = data.displayOrder;
+        if (data.tags) zone.tags = data.tags;
+
+        await zone.save();
+
+        console.log(`[ZONE] Updated zone by ID: ${id}`);
+
+        return zone;
+    }
+
+    /**
      * Add POI to zone
      */
     async addPoiToZone(zoneCode, poiCode) {
@@ -192,6 +218,23 @@ class ZoneRepository {
         await Zone.deleteOne({ code: code.toUpperCase() });
 
         console.log(`[ZONE] Deleted zone: ${code}`);
+
+        return { success: true };
+    }
+
+    /**
+     * Delete zone by ID
+     */
+    async deleteById(id) {
+        const zone = await this.findById(id);
+
+        if (!zone) {
+            throw new AppError('Zone not found', 404);
+        }
+
+        await Zone.deleteOne({ _id: id });
+
+        console.log(`[ZONE] Deleted zone by ID: ${id}`);
 
         return { success: true };
     }

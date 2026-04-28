@@ -47,13 +47,17 @@ class AdminZoneController {
      */
     async createZone(req, res, next) {
         try {
-            const { name, description, price } = req.body;
+            const { name, description, price, code } = req.body;
 
             if (!name || !price) {
                 throw new AppError('name and price are required', 400);
             }
 
+            // Generate code if missing
+            const zoneCode = code || name.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+
             const zone = await zoneRepository.create({
+                code: zoneCode,
                 name,
                 description: description || '',
                 price: Number(price)
@@ -83,7 +87,7 @@ class AdminZoneController {
             if (description !== undefined) updates.description = description;
             if (price !== undefined) updates.price = Number(price);
 
-            const zone = await zoneRepository.update(id, updates);
+            const zone = await zoneRepository.updateById(id, updates);
 
             if (!zone) {
                 throw new AppError('Zone not found', 404);
@@ -107,7 +111,7 @@ class AdminZoneController {
         try {
             const { id } = req.params;
 
-            const deleted = await zoneRepository.delete(id);
+            const deleted = await zoneRepository.deleteById(id);
 
             if (!deleted) {
                 throw new AppError('Zone not found', 404);
@@ -133,25 +137,32 @@ class AdminZoneController {
             const { poiIds } = req.body;
 
             console.log('UPDATE ZONE POIS:', poiIds);
-            console.log('Received POIs:', poiIds);
 
             if (!Array.isArray(poiIds)) {
                 throw new AppError('poiIds must be an array', 400);
             }
 
-            const zone = await zoneRepository.updatePois(id, poiIds);
+            // Convert POI IDs/Codes to POI codes
+            const Poi = require('../models/poi.model');
+            // Try finding by _id first, then fallback to code
+            const pois = await Poi.find({ 
+                $or: [
+                    { _id: { $in: poiIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/)) } },
+                    { code: { $in: poiIds } }
+                ]
+            }).select('code');
+            
+            const poiCodes = pois.map(p => p.code);
+
+            console.log('Final POI codes to save:', poiCodes);
+
+            const zone = await zoneRepository.updatePois(id, poiCodes);
 
             if (!zone) {
                 throw new AppError('Zone not found', 404);
             }
 
             const reloadedZone = await zoneRepository.findById(id);
-            if (reloadedZone) {
-                reloadedZone.pois = reloadedZone.pois || reloadedZone.poiCodes || [];
-            }
-
-            console.log('Zone updated successfully:', zone.code, 'POI count:', zone.pois?.length || 0);
-            console.log('DB RESULT:', reloadedZone ? reloadedZone.pois : zone.pois);
 
             res.json({
                 success: true,

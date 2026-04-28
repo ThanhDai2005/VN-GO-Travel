@@ -34,7 +34,7 @@ export default function ZonesManagementPage() {
   const [editZone, setEditZone] = useState(null);
   const [deleteZone, setDeleteZone] = useState(null);
   const [managePoiZone, setManagePoiZone] = useState(null);
-  const [selectedPoiIds, setSelectedPoiIds] = useState([]);
+  const [selectedPoiIds, setSelectedPoiIds] = useState([]); // Will store POI codes
   const [savingPois, setSavingPois] = useState(false);
   const [poiSearchTerm, setPoiSearchTerm] = useState('');
   const [qrZone, setQrZone] = useState(null);
@@ -123,7 +123,8 @@ export default function ZonesManagementPage() {
 
   async function submitEdit(e) {
     e.preventDefault();
-    if (!editZone?.id) return;
+    const zId = editZone?._id || editZone?.id;
+    if (!zId) return;
     const name = form.name.trim();
     const price = Number(form.price);
     if (!name) {
@@ -135,9 +136,9 @@ export default function ZonesManagementPage() {
       return;
     }
     setErr('');
-    setBusyZoneId(editZone.id);
+    setBusyZoneId(zId);
     try {
-      await updateZone(editZone.id, {
+      await updateZone(zId, {
         name,
         description: form.description.trim(),
         price,
@@ -152,11 +153,12 @@ export default function ZonesManagementPage() {
   }
 
   async function confirmDelete() {
-    if (!deleteZone?.id) return;
-    setBusyZoneId(deleteZone.id);
+    const zId = deleteZone?._id || deleteZone?.id;
+    if (!zId) return;
+    setBusyZoneId(zId);
     setErr('');
     try {
-      await deleteZone(deleteZone.id);
+      await deleteZone(zId);
       setDeleteZone(null);
       await loadZones();
     } catch (e) {
@@ -168,19 +170,15 @@ export default function ZonesManagementPage() {
 
   function openManagePois(zone) {
     setManagePoiZone(zone);
-    // FIX: Use poiCodes instead of pois
-    const reopenedSelectedPoiIds = zone.pois || zone.poiCodes || [];
-    setSelectedPoiIds(reopenedSelectedPoiIds);
-    console.log('AFTER REOPEN: selectedPoiIds =', reopenedSelectedPoiIds);
+    // Use poiCodes consistently
+    const codes = zone.poiCodes || zone.pois || [];
+    setSelectedPoiIds(codes);
+    console.log('AFTER REOPEN: selectedPoiIds =', codes);
     setPoiSearchTerm('');
   }
 
-  function handlePoiToggle(poiId) {
+  function handlePoiToggle(poiCode) {
     setSelectedPoiIds((prev) => {
-      // FIX: Work with POI codes, not IDs
-      const poi = allPois.find(p => p.id === poiId);
-      const poiCode = poi ? poi.code : poiId;
-
       if (prev.includes(poiCode)) {
         return prev.filter((code) => code !== poiCode);
       } else {
@@ -190,24 +188,18 @@ export default function ZonesManagementPage() {
   }
 
   async function savePoiChanges() {
-    if (!managePoiZone?.id) return;
+    const zId = managePoiZone?._id || managePoiZone?.id;
+    if (!zId) return;
     console.log('CLICK SAVE BUTTON', selectedPoiIds);
-    console.log('API PAYLOAD', selectedPoiIds);
     setSavingPois(true);
     setErr('');
     try {
-      // FIX: Send POI codes, not IDs
-      const poiCodesToSend = selectedPoiIds.map(id => {
-        const poi = allPois.find(p => p.id === id);
-        return poi ? poi.code : id;
-      });
-      console.log('Sending POI codes:', poiCodesToSend);
-      await updateZonePois(managePoiZone.id, poiCodesToSend);
+      await updateZonePois(zId, selectedPoiIds);
       const refreshedZones = await loadZones();
-      const updatedZone = refreshedZones.find((z) => z.id === managePoiZone.id);
+      const updatedZone = refreshedZones.find((z) => (z._id || z.id) === zId);
       if (updatedZone) {
         setManagePoiZone(updatedZone);
-        setSelectedPoiIds(updatedZone.pois || updatedZone.poiCodes || []);
+        setSelectedPoiIds(updatedZone.poiCodes || updatedZone.pois || []);
       }
       setErr('');
     } catch (e) {
@@ -225,12 +217,14 @@ export default function ZonesManagementPage() {
   }
 
   async function openQrModal(zone) {
+    const zId = zone?._id || zone?.id;
     setQrZone(zone);
     setQrData(null);
     setLoadingQr(true);
     setErr('');
     try {
-      const json = await fetchZoneQrToken(zone.id);
+      if (!zId) throw new Error('Zone ID is missing');
+      const json = await fetchZoneQrToken(zId);
       if (json?.success && json?.data) {
         setQrData(json.data);
       } else {
@@ -302,11 +296,11 @@ export default function ZonesManagementPage() {
             </thead>
             <tbody>
               {zones.map((zone) => {
-                const busy = busyZoneId === zone.id;
-                // FIX: Use poiCodes instead of pois
+                const zId = zone._id || zone.id;
+                const busy = busyZoneId === zId;
                 const poiCount = Array.isArray(zone.poiCodes) ? zone.poiCodes.length : (Array.isArray(zone.pois) ? zone.pois.length : 0);
                 return (
-                  <tr key={String(zone.id)} className="odd:bg-gray-50 even:bg-white">
+                  <tr key={String(zId)} className="odd:bg-gray-50 even:bg-white">
                     <td className="border-b border-gray-200 px-4 py-3 font-medium text-gray-900">
                       {zone.name}
                     </td>
@@ -441,10 +435,10 @@ export default function ZonesManagementPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={busyZoneId === editZone.id}
+                  disabled={busyZoneId === (editZone._id || editZone.id)}
                   className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500 disabled:opacity-50"
                 >
-                  {busyZoneId === editZone.id ? '...' : 'Lưu'}
+                  {busyZoneId === (editZone._id || editZone.id) ? '...' : 'Lưu'}
                 </button>
               </div>
             </form>
@@ -472,10 +466,10 @@ export default function ZonesManagementPage() {
               <button
                 type="button"
                 onClick={confirmDelete}
-                disabled={busyZoneId === deleteZone.id}
+                disabled={busyZoneId === (deleteZone._id || deleteZone.id)}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-500 disabled:opacity-50"
               >
-                {busyZoneId === deleteZone.id ? '...' : 'Xóa'}
+                {busyZoneId === (deleteZone._id || deleteZone.id) ? '...' : 'Xóa'}
               </button>
             </div>
           </div>
@@ -527,17 +521,16 @@ export default function ZonesManagementPage() {
                     return code.includes(term) || name.includes(term);
                   })
                   .map((poi) => {
-                    // FIX: Check if POI code is selected
                     const isSelected = selectedPoiIds.includes(poi.code);
                     return (
                       <label
-                        key={String(poi.id)}
+                        key={String(poi._id || poi.id)}
                         className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 hover:bg-slate-750"
                       >
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={() => handlePoiToggle(poi.id)}
+                          onChange={() => handlePoiToggle(poi.code)}
                           disabled={savingPois}
                           className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-emerald-600 focus:ring-2 focus:ring-emerald-500"
                         />
@@ -580,35 +573,47 @@ export default function ZonesManagementPage() {
       {qrZone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-white">QR Code cho Zone</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">QR Code cho Zone</h2>
+              <button onClick={closeQrModal} className="text-slate-400 hover:text-white">
+                ✕
+              </button>
+            </div>
             <p className="mt-1 text-sm text-emerald-300">{qrZone.name}</p>
 
             {loadingQr ? (
-              <p className="mt-4 text-sm text-slate-400">Đang tạo QR token...</p>
+              <div className="mt-8 flex flex-col items-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></div>
+                <p className="mt-4 text-sm text-slate-400">Đang tạo QR token...</p>
+              </div>
             ) : qrData ? (
               <div className="mt-4 space-y-3">
                 <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
                   <p className="text-xs text-slate-400">Scan URL:</p>
-                  <p className="mt-1 break-all font-mono text-xs text-white">{qrData.scanUrl}</p>
+                  <p className="mt-1 break-all font-mono text-[10px] text-white">{qrData.scanUrl}</p>
                 </div>
-                <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
-                  <p className="text-xs text-slate-400">Hết hạn:</p>
-                  <p className="mt-1 text-sm text-white">{new Date(qrData.expiresAt).toLocaleString('vi-VN')}</p>
-                </div>
-                <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
-                  <p className="text-xs text-slate-400">Token ID (JTI):</p>
-                  <p className="mt-1 break-all font-mono text-xs text-white">{qrData.jti}</p>
+                <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-slate-400">Hết hạn:</p>
+                    <p className="mt-1 text-sm text-white">{new Date(qrData.expiresAt).toLocaleString('vi-VN')}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Mã:</p>
+                    <p className="mt-1 font-mono text-sm text-emerald-400">{qrData.jti?.slice(-8).toUpperCase()}</p>
+                  </div>
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-red-400">Không thể tạo QR token</p>
+              <div className="mt-6 rounded-lg bg-red-900/20 border border-red-900/50 p-4">
+                <p className="text-sm text-red-400">Không thể tạo QR token. Vui lòng thử lại sau.</p>
+              </div>
             )}
 
             <div className="mt-6 flex justify-end">
               <button
                 type="button"
                 onClick={closeQrModal}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+                className="rounded-lg bg-slate-800 px-6 py-2 text-sm font-medium text-white hover:bg-slate-700"
               >
                 Đóng
               </button>
