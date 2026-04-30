@@ -24,6 +24,7 @@ const purchaseRoutes = require('./routes/purchase.routes');
 const zoneRoutes = require('./routes/zone.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const monitoringRoutes = require('./routes/monitoring.routes');
+const publicZoneRoutes = require('./routes/public.zone.routes');
 
 const app = express();
 
@@ -35,9 +36,14 @@ app.set('trust proxy', true);
 const { securityHeaders } = require('./middlewares/security-headers.middleware');
 app.use(securityHeaders);
 
-// Request Timeout Protection
+// Request Timeout Protection (Bypass for long audio generation)
 const { requestTimeout } = require('./middlewares/timeout.middleware');
-app.use(requestTimeout);
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/v1/audio/generate')) {
+        return next();
+    }
+    requestTimeout(req, res, next);
+});
 
 // Performance monitoring headers
 app.use(demoPerformanceOptimizer.performanceHeaders);
@@ -88,9 +94,15 @@ app.use((req, res, next) => {
 // Demo health check endpoint
 app.get('/api/v1/demo/health', DemoFailSafe.demoHealthCheck);
 
+const path = require('path');
+// Serve static audio files
+app.use('/storage/audio', express.static(path.join(process.cwd(), 'storage', 'audio')));
+
 // Main routes
+app.use('/api/v1/public/zones', publicZoneRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/pois', poiRoutes);
+app.use('/api/v1/audio', require('./routes/audio.routes'));
 app.use('/api/v1/poi-requests', poiRequestRoutes);
 app.use('/api/v1/users/me/subscription', subscriptionRoutes);
 app.use('/api/v1/owner', ownerRoutes);

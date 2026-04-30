@@ -30,6 +30,10 @@ const startServer = async () => {
     // Start daily QR scan quota reset job
     dailyQrResetJob.start();
 
+    // Start background workers
+    const audioRetryWorker = require('./workers/audio-retry.worker');
+    audioRetryWorker.start();
+
     // Initialize metrics service (auto-starts in constructor)
     console.log('[METRICS] Metrics service initialized');
 

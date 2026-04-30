@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
   fetchZones,
   createZone,
@@ -587,7 +588,16 @@ export default function ZonesManagementPage() {
                 <p className="mt-4 text-sm text-slate-400">Đang tạo QR token...</p>
               </div>
             ) : qrData ? (
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-4">
+                <div className="flex justify-center bg-white p-4 rounded-xl shadow-inner mx-auto w-fit">
+                  <QRCodeCanvas
+                    value={qrData.scanUrl}
+                    size={200}
+                    level="H"
+                    includeMargin={false}
+                  />
+                </div>
+
                 <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
                   <p className="text-xs text-slate-400">Scan URL:</p>
                   <p className="mt-1 break-all font-mono text-[10px] text-white">{qrData.scanUrl}</p>

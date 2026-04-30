@@ -10,6 +10,7 @@ const { POI_STATUS } = require('../constants/poi-status');
 const userRepository = require('../repositories/user.repository');
 const PoiChangeRequest = require('../models/poi-change-request.model');
 const Poi = require('../models/poi.model');
+const Zone = require('../models/zone.model');
 const poiContentService = require('./poi-content.service');
 const { getClientIP } = require('../utils/ip-helper');
 
@@ -671,10 +672,27 @@ class PoiService {
             poiRepository.countBySubmitter(user._id)
         ]);
 
+        // Fetch all active zones to map POI -> Zone
+        const zones = await Zone.find({ isActive: true }).select('code name poiCodes');
+        
+        // Map: poiCode -> { code, name }
+        const poiToZoneMap = {};
+        zones.forEach(z => {
+            if (z.poiCodes && Array.isArray(z.poiCodes)) {
+                z.poiCodes.forEach(pc => {
+                    poiToZoneMap[pc] = { code: z.code, name: z.name };
+                });
+            }
+        });
+
         const totalPages = Math.ceil(total / limit) || 0;
 
         return {
-            items: pois.map((p) => this._mapModerationDto(p)),
+            items: pois.map((p) => {
+                const dto = this._mapModerationDto(p);
+                dto.zone = poiToZoneMap[p.code] || null;
+                return dto;
+            }),
             pagination: { page, limit, total, totalPages }
         };
     }
