@@ -265,6 +265,7 @@ export default function OwnerSubmissionsPage() {
                 <th className="px-4 py-3 font-medium">Mã</th>
                 <th className="px-4 py-3 font-medium">Trạng thái</th>
                 <th className="px-4 py-3 font-medium">Nội dung</th>
+                <th className="px-4 py-3 font-medium">Zone</th>
                 <th className="px-4 py-3 font-medium">Tọa độ</th>
                 <th className="px-4 py-3 font-medium">Hành động</th>
                 <th className="px-4 py-3 font-medium">Cập nhật</th>
@@ -285,6 +286,13 @@ export default function OwnerSubmissionsPage() {
                     <td className="px-4 py-3 font-mono text-emerald-700">{row.code}</td>
                     <td className="px-4 py-3">{statusBadge(row.status)}</td>
                     <td className="max-w-xs truncate px-4 py-3 text-slate-800">{contentPreview(row.content)}</td>
+                    <td className="px-4 py-3">
+                      {row.zone ? (
+                        <span className="font-medium text-slate-900">{row.zone.name}</span>
+                      ) : (
+                        <span className="text-slate-400 italic text-xs">Chưa thuộc zone</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-600">{locStr}</td>
                     <td className="px-4 py-3">
                       {row.status === 'APPROVED' && (
@@ -333,6 +341,17 @@ export default function OwnerSubmissionsPage() {
                   className="mt-1 block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500 cursor-not-allowed"
                   value={editFormData.code}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Zone hiện tại</label>
+                <div className="mt-1 block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-600">
+                  {editModalRow.zone ? (
+                    <span className="font-medium text-slate-900">{editModalRow.zone.name}</span>
+                  ) : (
+                    <span className="text-slate-400 italic">Chưa thuộc zone</span>
+                  )}
+                </div>
               </div>
 
               <div>

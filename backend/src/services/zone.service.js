@@ -143,9 +143,34 @@ class ZoneService {
                 }
             }
 
-            // 7. Filter POI content based on access
-            const filteredPois = approvedPois.map(poi => {
+            const audioService = require('./audio.service');
+
+            // 7. Filter POI content based on access (Distributed + Versioned Audio)
+            const filteredPois = await Promise.all(approvedPois.map(async (poi) => {
                 const poiObj = poi.toObject();
+                const text = poi.narrationLong || poi.narrationShort || poi.name;
+                const lang = poi.languageCode || 'vi';
+                const version = poi.version || 1;
+
+                // Check audio readiness (Version-aware)
+                const audioStatus = await audioService.getAudioStatus(text, lang, 'female', version, poi.code);
+                
+                poiObj.audio = {
+                    url: audioStatus.url,
+                    ready: audioStatus.ready
+                };
+                poiObj.audioUrl = audioStatus.url; // Legacy support
+
+                // Trigger background generation if not ready
+                if (!audioStatus.ready) {
+                    audioService.generateAudioAsync({ 
+                        text, 
+                        language: lang, 
+                        version, 
+                        poiCode: poi.code,
+                        zoneCode: zone.code
+                    });
+                }
 
                 // If no access, remove narrationLong
                 if (!accessStatus.hasAccess) {
@@ -162,7 +187,7 @@ class ZoneService {
                 }
 
                 return poiObj;
-            });
+            }));
 
             // 8. Return zone + POIs + access status
             return {
@@ -239,21 +264,33 @@ class ZoneService {
             const endIdx = startIdx + limitNum;
             const paginatedPois = filteredPois.slice(startIdx, endIdx);
 
-            // 7. Populate audio URLs from PoiContent and AudioAsset
-            const PoiContent = require('../models/poi-content.model');
-            const AudioAsset = require('../models/audio-asset.model');
+            const audioService = require('./audio.service');
 
             const poisWithAudio = await Promise.all(paginatedPois.map(async (poi) => {
                 const poiObj = poi.toObject();
+                const text = poi.narrationLong || poi.narrationShort || poi.name;
+                const lang = poi.languageCode || 'vi';
+                const version = poi.version || 1;
 
-                // Get POI content for default language (vi)
-                const content = await PoiContent.findOne({ poiCode: poi.code, language: 'vi' })
-                    .populate('audioLongId');
+                // Check audio readiness (Version-aware)
+                const audioStatus = await audioService.getAudioStatus(text, lang, 'female', version, poi.code);
+                
+                poiObj.audio = {
+                    url: audioStatus.url,
+                    ready: audioStatus.ready
+                };
+                poiObj.audioUrl = audioStatus.url; // Legacy support
+                poiObj.narrationAudioUrl = audioStatus.url;
 
-                if (content && content.audioLongId) {
-                    poiObj.narrationAudioUrl = content.audioLongId.url;
-                    poiObj.audioSizeKB = Math.round(content.audioLongId.fileSize / 1024);
-                    poiObj.audioDuration = content.audioLongId.duration;
+                // Trigger background generation if not ready
+                if (!audioStatus.ready) {
+                    audioService.generateAudioAsync({ 
+                        text, 
+                        language: lang, 
+                        version, 
+                        poiCode: poi.code,
+                        zoneCode: zone.code
+                    });
                 }
 
                 return poiObj;
