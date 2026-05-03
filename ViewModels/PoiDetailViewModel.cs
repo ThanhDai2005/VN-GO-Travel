@@ -123,7 +123,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         }
     }
 
-    public bool IsPremium => _auth.IsPremium;
+    public bool IsPremium => _auth.IsPremium || (Poi?.HasAccess ?? false);
 
     public bool IsNotPremium => !IsPremium;
 
@@ -308,9 +308,9 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 }
 
                 return await page.DisplayAlertAsync(
-                    "✨ Trải nghiệm Đặc quyền Premium",
-                    "Khám phá những câu chuyện chuyên sâu và bí mật ẩn sau địa điểm này với bản thuyết minh chi tiết dành riêng cho thành viên Premium.",
-                    "Mở khóa ngay",
+                    "✨ Khám phá câu chuyện chi tiết",
+                    $"Bạn cần sở hữu khu vực '{Poi.ZoneName}' để có thể nghe bản thuyết minh chuyên sâu và những bí mật ẩn sau địa điểm này.",
+                    "Mua ngay",
                     "Để sau");
             }).ConfigureAwait(false);
 
@@ -333,55 +333,28 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
 
     public async Task UpgradeAsync()
     {
-        try
+        if (Poi == null || string.IsNullOrEmpty(Poi.ZoneCode))
         {
-            System.Diagnostics.Debug.WriteLine("[POI_DETAIL] UpgradeAsync: calling premium service...");
-            var success = await _premiumService.ActivatePremiumAsync().ConfigureAwait(false);
-
-            if (!success)
-            {
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    var page = ResolveAlertPage();
-                    if (page != null)
-                    {
-                        await page.DisplayAlertAsync(
-                            "Lỗi",
-                            "Không thể nâng cấp Premium. Vui lòng thử lại.",
-                            "OK");
-                    }
-                });
-                return;
-            }
-
-            Debug.WriteLine("[POI_DETAIL] User upgraded to premium via API.");
-
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 var page = ResolveAlertPage();
                 if (page != null)
                 {
-                    await page.DisplayAlertAsync(
-                        "🎉 Chào mừng Thành viên mới!",
-                        "Bạn đã kích hoạt thành công Đặc quyền Premium. Giờ đây, mọi câu chuyện chuyên sâu đã sẵn sàng chờ bạn khám phá. Thưởng thức ngay nhé!",
-                        "Bắt đầu trải nghiệm");
+                    await page.DisplayAlertAsync("Thông báo", "Địa danh này hiện chưa thuộc khu vực thanh toán nào.", "OK");
                 }
             });
+            return;
+        }
+
+        try
+        {
+            Debug.WriteLine($"[POI_DETAIL] Navigating to zone purchase for: {Poi.ZoneCode}");
+            // Navigate to Zone Purchase page
+            await Shell.Current.GoToAsync($"/zonepois?zoneCode={Uri.EscapeDataString(Poi.ZoneCode)}");
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[POI_DETAIL] UpgradeAsync error: {ex}");
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                var page = ResolveAlertPage();
-                if (page != null)
-                {
-                    await page.DisplayAlertAsync(
-                        "🔔 Thông báo",
-                        "Dịch vụ đang bận xử lý, vui lòng thử lại sau giây lát.",
-                        "OK");
-                }
-            });
+            Debug.WriteLine($"[POI_DETAIL] Navigation error: {ex}");
         }
     }
 

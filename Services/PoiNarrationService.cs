@@ -198,13 +198,14 @@ public class PoiNarrationService
     /// </summary>
     public void Stop()
     {
+        var activeCode = _appState.ActiveNarrationCode;
         _appState.ActiveNarrationCode = null;
         _audioService.StopAsync().GetAwaiter().GetResult();
 
         // Cancel queue if in queue mode
-        if (_isQueueMode && _audioQueue.IsConnected && !string.IsNullOrEmpty(_appState.ActiveNarrationCode))
+        if (_isQueueMode && _audioQueue.IsConnected && !string.IsNullOrEmpty(activeCode))
         {
-            _audioQueue.CancelAudioAsync(_appState.ActiveNarrationCode).GetAwaiter().GetResult();
+            _audioQueue.CancelAudioAsync(activeCode).GetAwaiter().GetResult();
         }
 
         Debug.WriteLine("[AUDIO] PoiNarrationService.Stop called — active narration tracking cleared");

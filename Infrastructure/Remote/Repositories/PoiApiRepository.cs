@@ -69,7 +69,10 @@ public class PoiApiRepository : IPoiQueryRepository
             Latitude = dto.Lat,
             Longitude = dto.Lng,
             Priority = dto.Priority,
-            Radius = dto.Radius
+            Radius = dto.Radius,
+            ZoneCode = dto.ZoneCode,
+            ZoneName = dto.ZoneName,
+            HasAccess = dto.AccessStatus?.Allowed ?? false
         };
 
         if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Summary))

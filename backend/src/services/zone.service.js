@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const config = require('../config');
 const zoneRepository = require('../repositories/zone.repository');
 const poiRepository = require('../repositories/poi.repository');
+const poiService = require('./poi.service');
 const accessControlService = require('./access-control.service');
 const RevokedToken = require('../models/revoked-token.model');
 const { AppError } = require('../middlewares/error.middleware');
@@ -147,7 +148,7 @@ class ZoneService {
 
             // 7. Filter POI content based on access (Distributed + Versioned Audio)
             const filteredPois = await Promise.all(approvedPois.map(async (poi) => {
-                const poiObj = poi.toObject();
+                const poiObj = poiService.mapPoiDto(poi);
                 const text = poi.narrationLong || poi.narrationShort || poi.name;
                 const lang = poi.languageCode || 'vi';
                 const version = poi.version || 1;
@@ -267,7 +268,7 @@ class ZoneService {
             const audioService = require('./audio.service');
 
             const poisWithAudio = await Promise.all(paginatedPois.map(async (poi) => {
-                const poiObj = poi.toObject();
+                const poiObj = poiService.mapPoiDto(poi);
                 const text = poi.narrationLong || poi.narrationShort || poi.name;
                 const lang = poi.languageCode || 'vi';
                 const version = poi.version || 1;
@@ -387,7 +388,7 @@ class ZoneService {
                 currentTime: new Date().toISOString(),
                 currentVersion: maxVersion,
                 currentPoiCodes, // FIX: Added for client-side sync
-                updatedPois: updatedPois.map(poi => poi.toObject()),
+                updatedPois: updatedPois.map(poi => poiService.mapPoiDto(poi)),
                 deletedPois,
                 hasChanges: updatedPois.length > 0 || deletedPois.length > 0
             };

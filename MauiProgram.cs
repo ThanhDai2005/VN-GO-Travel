@@ -246,6 +246,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<PoiNarrationService>();
         builder.Services.AddSingleton<PoiFocusService>();
         builder.Services.AddSingleton<LanguageSwitchService>();
+        builder.Services.AddSingleton<AudioPrefetchService>();
 
         builder.Services.AddTransient<ViewModels.ExploreViewModel>();
         builder.Services.AddTransient<ExplorePage>();

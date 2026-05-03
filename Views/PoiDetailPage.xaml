@@ -86,11 +86,11 @@
                             <HorizontalStackLayout Spacing="12">
                                 <Label Text="💎" FontSize="20" VerticalOptions="Center" />
                                 <VerticalStackLayout VerticalOptions="Center">
-                                    <Label Text="Mở khóa Premium" 
+                                    <Label Text="Mua khu vực để mở khóa" 
                                            TextColor="{StaticResource BrandPrimary}" 
                                            FontAttributes="Bold" 
                                            FontSize="14"/>
-                                    <Label Text="Nghe thuyết minh chi tiết và hấp dẫn hơn." 
+                                    <Label Text="Sở hữu khu vực này để nghe thuyết minh chi tiết." 
                                            TextColor="{StaticResource TextSecondary}" 
                                            FontSize="12"/>
                                 </VerticalStackLayout>
@@ -125,7 +125,7 @@
                                     Grid.ColumnSpan="2">
                                 <Button.Triggers>
                                     <DataTrigger TargetType="Button" Binding="{Binding IsPremium}" Value="False">
-                                        <Setter Property="Text" Value="🔒 Nghe chi tiết (Premium)" />
+                                        <Setter Property="Text" Value="🔒 Mua khu vực để nghe chi tiết" />
                                         <Setter Property="BackgroundColor" Value="{StaticResource BrandAccent}" />
                                     </DataTrigger>
                                 </Button.Triggers>

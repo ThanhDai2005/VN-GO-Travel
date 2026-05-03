@@ -91,7 +91,8 @@ exports.getByCode = async (req, res, next) => {
         const { code } = req.params;
         const { lang } = req.query;
 
-        const poi = await poiService.getPoiByCode(code, lang);
+        const userId = req.user ? req.user._id : null;
+        const poi = await poiService.getPoiByCode(code, lang, userId);
 
         res.status(200).json({
             success: true,

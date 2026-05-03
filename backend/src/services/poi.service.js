@@ -12,6 +12,8 @@ const PoiChangeRequest = require('../models/poi-change-request.model');
 const Poi = require('../models/poi.model');
 const Zone = require('../models/zone.model');
 const poiContentService = require('./poi-content.service');
+const zoneRepository = require('../repositories/zone.repository');
+const accessControlService = require('./access-control.service');
 const { getClientIP } = require('../utils/ip-helper');
 
 const poiCache = new Cache(config.cache.ttl);
@@ -111,7 +113,10 @@ class PoiService {
             content: this._pickDisplayText(viContent),
             contentByLang: legacyByLang,
             localizedContent: normalizedContent,
-            isPremiumOnly: poi.isPremiumOnly
+            isPremiumOnly: poi.isPremiumOnly,
+            zoneCode: poi.zoneCode || null,
+            zoneName: poi.zoneName || null,
+            accessStatus: poi.accessStatus || null
         };
     }
 
@@ -157,12 +162,15 @@ class PoiService {
         return mappedPois;
     }
 
-    async getPoiByCode(code, lang = 'en') {
+    async getPoiByCode(code, lang = 'en', userId = null) {
+        // Don't cache if personalized (userId provided)
         const cacheKey = `poi:${code}:${lang}`;
-        const cachedPoi = poiCache.get(cacheKey);
-        if (cachedPoi) {
-            console.log(`[CACHE] Hit: ${cacheKey}`);
-            return cachedPoi;
+        if (!userId) {
+            const cachedPoi = poiCache.get(cacheKey);
+            if (cachedPoi) {
+                console.log(`[CACHE] Hit: ${cacheKey}`);
+                return cachedPoi;
+            }
         }
 
         const poi = await poiRepository.findByCode(code, { publicOnly: true });
@@ -171,10 +179,24 @@ class PoiService {
             throw new AppError('POI not found', 404);
         }
 
+        // Find zone containing this POI
+        const zones = await zoneRepository.findZonesContainingPoi(code);
+        if (zones && zones.length > 0) {
+            poi.zoneCode = zones[0].code;
+            poi.zoneName = zones[0].name;
+        }
+
+        // Check access status if userId is provided
+        if (userId) {
+            poi.accessStatus = await accessControlService.canAccessPoi(userId, code);
+        }
+
         const result = this.mapPoiDto(poi, lang);
         
-        // Store in cache
-        poiCache.set(cacheKey, result);
+        // Store in cache only if not personalized
+        if (!userId) {
+            poiCache.set(cacheKey, result);
+        }
 
         return result;
     }
