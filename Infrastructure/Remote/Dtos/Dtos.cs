@@ -17,6 +17,17 @@ public class PoiDto
     public string Summary { get; set; } = "";
     public string NarrationShort { get; set; } = "";
     public string NarrationLong { get; set; } = "";
+    public string? ZoneCode { get; set; }
+    public string? ZoneName { get; set; }
+    public AccessStatusDto? AccessStatus { get; set; }
+}
+
+public class AccessStatusDto
+{
+    public bool Allowed { get; set; }
+    public string? Reason { get; set; }
+    public string? Message { get; set; }
+    public double Price { get; set; }
 }
 
 public class AuthDto

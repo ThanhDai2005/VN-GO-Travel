@@ -16,119 +16,10 @@ class PurchaseService {
      * Purchase POI with credits (atomic transaction)
      */
     async purchasePoi(userId, poiCode) {
-        const startTime = Date.now();
-        const EventLogger = require('./event-logger.service');
-        const session = await mongoose.startSession();
-
-        try {
-            let result;
-
-            await session.withTransaction(async () => {
-                // 1. Check if already unlocked
-                const alreadyUnlocked = await unlockRepository.isPoiUnlocked(userId, poiCode);
-                if (alreadyUnlocked) {
-                    throw new AppError('POI already unlocked', 400);
-                }
-
-                // 2. Get POI and validate
-                const poi = await poiRepository.findByCode(poiCode);
-                if (!poi) {
-                    throw new AppError('POI not found', 404);
-                }
-
-                if (!poi.isPremiumOnly) {
-                    throw new AppError('This POI is free and does not require purchase', 400);
-                }
-
-                const price = poi.unlockPrice || 1;
-
-                // 3. Get wallet with current version
-                const wallet = await walletRepository.getOrCreate(userId);
-
-                if (wallet.balance < price) {
-                    throw new AppError(
-                        `Insufficient credits. Required: ${price}, Available: ${wallet.balance}`,
-                        402
-                    );
-                }
-
-                // 4. Deduct credits atomically (with optimistic locking)
-                const updatedWallet = await walletRepository.deductCreditsAtomic(
-                    userId,
-                    price,
-                    wallet.version,
-                    { session }
-                );
-
-                if (!updatedWallet) {
-                    throw new AppError(
-                        'Concurrent transaction detected. Please try again.',
-                        409
-                    );
-                }
-
-                // 5. Unlock POI
-                await unlockRepository.unlockPoi(userId, poiCode, price, { session });
-
-                // 6. Record transaction
-                await CreditTransaction.record({
-                    userId,
-                    type: 'purchase_poi',
-                    amount: -price,
-                    balanceBefore: wallet.balance,
-                    balanceAfter: updatedWallet.balance,
-                    relatedEntity: poiCode,
-                    metadata: {
-                        poiName: poi.name,
-                        poiCode: poi.code
-                    }
-                }, { session });
-
-                result = {
-                    success: true,
-                    message: 'POI unlocked successfully',
-                    poiCode,
-                    price,
-                    newBalance: updatedWallet.balance
-                };
-
-                console.log(`[PURCHASE] User ${userId} purchased POI ${poiCode} for ${price} credits`);
-            });
-
-            // Log successful unlock
-            await EventLogger.logPoiUnlock(
-                userId,
-                result.poi?._id,
-                'SUCCESS',
-                {
-                    poiCode,
-                    creditAmount: result.price,
-                    responseTime: Date.now() - startTime
-                }
-            );
-
-            return result;
-        } catch (error) {
-            // Log failed unlock
-            await EventLogger.logPoiUnlock(
-                userId,
-                null,
-                'FAILED',
-                {
-                    poiCode,
-                    responseTime: Date.now() - startTime,
-                    errorMessage: error.message
-                }
-            );
-
-            if (error instanceof AppError) {
-                throw error;
-            }
-            console.error('[PURCHASE] POI purchase failed:', error);
-            throw new AppError('Failed to purchase POI', 500);
-        } finally {
-            session.endSession();
-        }
+        throw new AppError(
+            'Individual POI purchase is no longer supported. Please purchase the entire zone to unlock this location.',
+            400
+        );
     }
 
     /**
@@ -172,6 +63,8 @@ class PurchaseService {
                     );
                 }
 
+                console.log(`[PURCHASE] Starting zone purchase: user=${userId}, zone=${zoneCode}, price=${price}`);
+
                 // 4. Deduct credits atomically (with optimistic locking)
                 const updatedWallet = await walletRepository.deductCreditsAtomic(
                     userId,
@@ -181,17 +74,21 @@ class PurchaseService {
                 );
 
                 if (!updatedWallet) {
+                    console.error(`[PURCHASE] Atomic deduction failed for user ${userId}. Wallet version might have changed.`);
                     throw new AppError(
                         'Concurrent transaction detected. Please try again.',
                         409
                     );
                 }
 
+                console.log(`[PURCHASE] Credits deducted. Old balance: ${wallet.balance}, New balance: ${updatedWallet.balance}`);
+
                 // 5. Unlock zone
                 await unlockRepository.unlockZone(userId, zoneCode, price, { session });
 
                 // 6. Unlock all POIs in the zone (idempotent)
                 const poiCodes = zone.poiCodes || [];
+                console.log(`[PURCHASE] Unlocking ${poiCodes.length} POIs for zone ${zoneCode}`);
                 for (const poiCode of poiCodes) {
                     try {
                         await unlockRepository.unlockPoi(userId, poiCode, 0, { session });
@@ -229,7 +126,7 @@ class PurchaseService {
                     zoneId: zone._id
                 };
 
-                console.log(`[PURCHASE] User ${userId} purchased zone ${zoneCode} for ${price} credits (${poiCodes.length} POIs unlocked)`);
+                console.log(`[PURCHASE] SUCCESS: User ${userId} purchased zone ${zoneCode}`);
             });
 
             // Log successful unlock

@@ -7,7 +7,7 @@ using Microsoft.Maui.Controls;
 
 namespace MauiApp1.Views;
 
-public partial class ZonePoisPage : ContentPage
+public partial class ZonePoisPage : ContentPage, IQueryAttributable
 {
     private readonly IPoiQueryRepository _poiQuery;
     private readonly ApiService _apiService;
@@ -17,7 +17,7 @@ public partial class ZonePoisPage : ContentPage
     private string? _zoneCode;
     private string? _zoneName;
     private string? _language;
-    private ObservableCollection<PoiListItem> _pois = new();
+    private readonly ObservableCollection<PoiListItem> _pois = new();
 
     public ZonePoisPage(
         IPoiQueryRepository poiQuery,
@@ -34,19 +34,29 @@ public partial class ZonePoisPage : ContentPage
         PoisCollectionView.ItemsSource = _pois;
     }
 
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        string? Decode(string key)
+        {
+            if (query.TryGetValue(key, out var value) && value != null)
+            {
+                var raw = value.ToString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(raw))
+                    return Uri.UnescapeDataString(raw);
+            }
+            return null;
+        }
+
+        _zoneCode = Decode("zoneCode");
+        _zoneName = Decode("zoneName");
+        _language = Decode("lang") ?? "vi";
+
+        Debug.WriteLine($"[ZONE-POIS] ApplyQuery zoneCode='{_zoneCode}' zoneName='{_zoneName}' lang='{_language}'");
+    }
+
     protected override async void OnNavigatedTo(NavigatedToEventArgs args)
     {
         base.OnNavigatedTo(args);
-
-        // Parse query parameters
-        if (Uri.TryCreate(Navigation.NavigationStack.LastOrDefault()?.GetType().Name ?? "", UriKind.Relative, out var uri))
-        {
-            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-            _zoneCode = query["zoneCode"];
-            _zoneName = query["zoneName"];
-            _language = query["lang"] ?? "vi";
-        }
-
         await LoadZonePoisAsync();
     }
 
@@ -56,91 +66,139 @@ public partial class ZonePoisPage : ContentPage
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                ErrorLabel.IsVisible = false;
+                EmptyStateLabel.IsVisible = false;
+                PoisCollectionView.IsVisible = true;
                 LoadingIndicator.IsRunning = true;
                 LoadingIndicator.IsVisible = true;
-                if (!string.IsNullOrEmpty(_zoneName))
-                {
-                    ZoneNameLabel.Text = _zoneName;
-                }
+                ZoneDescriptionLabel.Text = string.Empty;
+                PoiCountLabel.Text = "Loading...";
+                ZoneNameLabel.Text = !string.IsNullOrWhiteSpace(_zoneName) ? _zoneName : "Zone POIs";
             });
 
-            if (string.IsNullOrEmpty(_zoneCode))
+            var zoneCode = _zoneCode?.Trim().ToUpperInvariant();
+            if (string.IsNullOrEmpty(zoneCode))
             {
+                Debug.WriteLine("[ZONE-POIS] Missing zoneCode from navigation query");
                 MainThread.BeginInvokeOnMainThread(async () => await DisplayAlert("Error", "Zone code is missing", "OK"));
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    _pois.Clear();
+                    PoisCollectionView.IsVisible = false;
+                    EmptyStateLabel.IsVisible = false;
+                    ErrorLabel.Text = "Zone code is missing";
+                    ErrorLabel.IsVisible = true;
+                    PoiCountLabel.Text = "0 locations";
+                });
                 return;
             }
 
-            // Gọi trực tiếp API get zone info + pois (rất nhanh vì có backend)
-            // Lấy POIs của zone thay vì query toàn bộ local DB
-            using var response = await _apiService.GetAsync($"zones/{_zoneCode}");
-            if (response.IsSuccessStatusCode)
+            Debug.WriteLine($"[ZONE-POIS] Loading zoneCode='{zoneCode}' lang='{_language ?? "vi"}'");
+
+            using var response = await _apiService.GetAsync($"zones/{zoneCode}");
+            var json = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
             {
-                var json = await response.Content.ReadAsStringAsync();
-                var zoneData = System.Text.Json.JsonSerializer.Deserialize<ZoneAccessResponse>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                // Lấy chi tiết các POIs của Zone nếu user đã có quyền (từ backend hoặc từ QR scan token)
-                // Tuy nhiên do chưa gọi API lấy danh sách POIs chuẩn, ta gọi API để query các POI của Zone đó
-                // Vì endpoint zones/:code trên BE có trả về poiCodes
-
-                // Mở local DB để lấy data hiển thị thay vì bắt user download full
-                await _poiQuery.InitAsync();
-                var allPois = await _poiQuery.GetAllAsync();
-
+                Debug.WriteLine($"[ZONE-POIS] zones/{{code}} failed status={(int)response.StatusCode} body={json}");
+                MainThread.BeginInvokeOnMainThread(async () => await DisplayAlert("Error", "Unable to load zone data", "OK"));
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    if (zoneData?.Data?.AccessStatus != null)
+                    _pois.Clear();
+                    PoisCollectionView.IsVisible = false;
+                    EmptyStateLabel.IsVisible = false;
+                    ErrorLabel.Text = "Unable to load zone data";
+                    ErrorLabel.IsVisible = true;
+                    PoiCountLabel.Text = "0 locations";
+                });
+                return;
+            }
+
+            var zoneData = System.Text.Json.JsonSerializer.Deserialize<ZoneAccessResponse>(
+                json,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            var zonePoiCodes = zoneData?.Data?.PoiCodes?
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c.Trim().ToUpperInvariant())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<string>();
+
+            Debug.WriteLine($"[ZONE-POIS] API zonePoiCodes count={zonePoiCodes.Count}");
+
+            await _poiQuery.InitAsync();
+            var allPois = await _poiQuery.GetAllAsync();
+            Debug.WriteLine($"[ZONE-POIS] Local POIs available count={allPois.Count}");
+
+            var poisToShow = zonePoiCodes.Count > 0
+                ? allPois.Where(p => zonePoiCodes.Contains(p.Code, StringComparer.OrdinalIgnoreCase)).ToList()
+                : new List<Poi>();
+            
+            if (zonePoiCodes.Count > 0 && poisToShow.Count < zonePoiCodes.Count)
+            {
+                var missing = zonePoiCodes.Where(c => !allPois.Any(p => string.Equals(p.Code, c, StringComparison.OrdinalIgnoreCase))).ToList();
+                Debug.WriteLine($"[ZONE-POIS] Warning: {missing.Count} POIs missing from local database: {string.Join(", ", missing)}");
+            }
+
+            Debug.WriteLine($"[ZONE-POIS] Filtered POIs count={poisToShow.Count} for zoneCode='{zoneCode}'");
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (zoneData?.Data?.AccessStatus != null)
+                {
+                    if (zoneData.Data.AccessStatus.HasAccess)
                     {
-                        if (zoneData.Data.AccessStatus.HasAccess)
-                        {
-                            AccessFrame.IsVisible = false;
-                        }
-                        else
-                        {
-                            AccessFrame.IsVisible = true;
-                            var price = zoneData.Data.AccessStatus.Price;
-                            AccessMessageLabel.Text = $"Purchase this zone for {price} credits to unlock all locations";
-                            PurchaseButton.Text = $"Purchase for {price} credits";
-                        }
+                        AccessFrame.IsVisible = false;
                     }
                     else
                     {
-                        // Chưa đăng nhập
                         AccessFrame.IsVisible = true;
-                        AccessMessageLabel.Text = "Login and purchase this zone to unlock all locations";
-                        PurchaseButton.Text = "Login to Purchase";
+                        var price = zoneData.Data.AccessStatus.Price;
+                        AccessMessageLabel.Text = $"Purchase this zone for {price} credits to unlock all locations";
+                        PurchaseButton.Text = $"Purchase for {price} credits";
                     }
+                }
+                else
+                {
+                    AccessFrame.IsVisible = true;
+                    AccessMessageLabel.Text = "Login and purchase this zone to unlock all locations";
+                    PurchaseButton.Text = "Login to Purchase";
+                }
 
-                    _pois.Clear();
-
-                    // Lọc những POIs thuộc Zone này dựa trên list poiCodes trả về từ BE
-                    var zonePoiCodes = zoneData?.Data?.PoiCodes ?? new List<string>();
-
-                    // Nếu BE chưa trả về PoiCodes ở endpoint getZone thì hiển thị tạm tất cả để tránh màn hình trống
-                    var poisToShow = zonePoiCodes.Count > 0
-                        ? allPois.Where(p => zonePoiCodes.Contains(p.Code, StringComparer.OrdinalIgnoreCase)).ToList()
-                        : allPois;
-
-                    foreach (var poi in poisToShow)
+                _pois.Clear();
+                foreach (var poi in poisToShow)
+                {
+                    var localization = _localization.GetLocalization(poi.Code, _language ?? "vi");
+                    _pois.Add(new PoiListItem
                     {
-                        var localization = _localization.GetLocalization(poi.Code, _language ?? "vi");
+                        Code = poi.Code,
+                        Name = localization?.Name ?? poi.Code,
+                        Summary = localization?.Summary ?? "A beautiful location",
+                        Latitude = poi.Latitude,
+                        Longitude = poi.Longitude
+                    });
+                }
 
-                        _pois.Add(new PoiListItem
-                        {
-                            Code = poi.Code,
-                            Name = localization?.Name ?? poi.Code,
-                            Summary = localization?.Summary ?? "A beautiful location",
-                            Latitude = poi.Latitude,
-                            Longitude = poi.Longitude
-                        });
-                    }
-                    PoiCountLabel.Text = $"{_pois.Count} locations";
-                    ZoneNameLabel.Text = _zoneName ?? _zoneCode;
-                });
-            }
+                PoiCountLabel.Text = $"{_pois.Count} locations";
+                ZoneNameLabel.Text = _zoneName ?? zoneCode;
+                ZoneDescriptionLabel.Text = zoneData?.Data?.Description ?? string.Empty;
+                ErrorLabel.IsVisible = false;
+                EmptyStateLabel.IsVisible = _pois.Count == 0;
+                PoisCollectionView.IsVisible = _pois.Count > 0;
+            });
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[ZONE-POIS] Load error: {ex.Message}");
+            Debug.WriteLine($"[ZONE-POIS] Load error: {ex}");
+            MainThread.BeginInvokeOnMainThread(async () => await DisplayAlert("Error", "Failed to load zone POIs", "OK"));
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _pois.Clear();
+                PoisCollectionView.IsVisible = false;
+                EmptyStateLabel.IsVisible = false;
+                ErrorLabel.Text = "Failed to load zone POIs";
+                ErrorLabel.IsVisible = true;
+                PoiCountLabel.Text = "0 locations";
+            });
         }
         finally
         {
@@ -150,11 +208,6 @@ public partial class ZonePoisPage : ContentPage
                 LoadingIndicator.IsVisible = false;
             });
         }
-    }
-
-    private async Task CheckAccessStatusAsync()
-    {
-        // Hàm này đã gộp vào LoadZonePoisAsync để tránh gọi 2 lần
     }
 
     private async void OnPoiSelected(object sender, SelectionChangedEventArgs e)
@@ -202,8 +255,24 @@ public partial class ZonePoisPage : ContentPage
             }
             else
             {
-                var error = await response.Content.ReadAsStringAsync();
-                await DisplayAlert("Error", $"Purchase failed: {error}", "OK");
+                string errorContent = await response.Content.ReadAsStringAsync();
+                string message = "Unknown error occurred";
+                try
+                {
+                    // Try to parse friendly message from JSON
+                    var errorObj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(errorContent);
+                    if (errorObj.TryGetProperty("error", out var errorProp) && errorProp.TryGetProperty("message", out var msgProp))
+                    {
+                        message = msgProp.GetString();
+                    }
+                    else if (errorObj.TryGetProperty("message", out var directMsgProp))
+                    {
+                        message = directMsgProp.GetString();
+                    }
+                }
+                catch { message = errorContent; }
+
+                await DisplayAlert("Purchase Failed", message, "OK");
             }
         }
         catch (Exception ex)
@@ -236,6 +305,9 @@ public class ZoneAccessResponse
 
 public class ZoneAccessData
 {
+    public string? Code { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
     public ZoneAccessStatus? AccessStatus { get; set; }
     public List<string>? PoiCodes { get; set; }
 }

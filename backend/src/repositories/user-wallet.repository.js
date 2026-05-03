@@ -19,7 +19,7 @@ class UserWalletRepository {
     /**
      * Get or create wallet for user
      */
-    async getOrCreate(userId, initialBalance = 5) {
+    async getOrCreate(userId, initialBalance = 100) {
         let wallet = await this.findByUserId(userId);
 
         if (!wallet) {

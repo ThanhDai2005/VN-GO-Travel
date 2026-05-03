@@ -28,6 +28,7 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
     private readonly IRuntimeTelemetry _telemetry;
     private readonly IUserContextSnapshotProvider _userContext;
     private readonly TranslationTrackingSession _trackingSession;
+    private readonly AudioPrefetchService _audioPrefetch;
     /// <summary>Serializes all POI entry work across await points (7.2 — replaces non-async-safe bool gate).</summary>
     private readonly SemaphoreSlim _handleMutex = new(1, 1);
     private string? _lastHandledCode;
@@ -49,7 +50,8 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
         IEventTracker eventTracker,
         IRuntimeTelemetry telemetry,
         IUserContextSnapshotProvider userContext,
-        TranslationTrackingSession trackingSession)
+        TranslationTrackingSession trackingSession,
+        AudioPrefetchService audioPrefetch)
     {
         _poiQuery = poiQuery;
         _poiCommand = poiCommand;
@@ -64,6 +66,7 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
         _telemetry = telemetry;
         _userContext = userContext;
         _trackingSession = trackingSession;
+        _audioPrefetch = audioPrefetch;
     }
 
     public async Task<PoiEntryResult> HandleEntryAsync(PoiEntryRequest request, CancellationToken cancellationToken = default)
@@ -138,13 +141,9 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
 
         var zoneCode = data.Zone.Code.Trim().ToUpperInvariant();
 
-        if (ShouldSuppressDuplicateNavigation(zoneCode))
-        {
-            Debug.WriteLine($"[QR-NAV] Duplicate zone scan suppressed code='{zoneCode}' (pre-mutation)");
-            return new PoiEntryResult { Success = true, Navigated = false };
-        }
-
+        Debug.WriteLine($"[QR-NAV] Zone scan successful: code='{zoneCode}' pois={data.Pois?.Count ?? 0}");
         await MergeZoneScanResultIntoLocalAsync(data, cancellationToken).ConfigureAwait(false);
+        _ = Task.Run(() => _audioPrefetch.PrefetchZoneAudioAsync(data.Pois ?? Array.Empty<ZonePoiData>()));
 
         await _poiQuery.InitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -227,9 +226,14 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
 
         foreach (var poiData in data.Pois)
         {
-            if (poiData.Location == null || string.IsNullOrWhiteSpace(poiData.Code)) continue;
+            if (poiData.Location == null || string.IsNullOrWhiteSpace(poiData.Code))
+            {
+                Debug.WriteLine($"[QR-NAV] Skipping POI ingestion: code='{poiData.Code ?? "NULL"}' locationIsNull={poiData.Location == null}");
+                continue;
+            }
 
             var code = poiData.Code.Trim().ToUpperInvariant();
+            Debug.WriteLine($"[QR-NAV] Ingesting POI: {code} (lat={poiData.Location.Lat}, lng={poiData.Location.Lng})");
 
             var poi = new Poi
             {
