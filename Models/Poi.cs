@@ -90,16 +90,17 @@ public class Poi
     public string? ZoneCode { get; set; }
 
     /// <summary>
+    /// Normalized density intensity (0.0 to 1.0).
+    /// Used for map visualization colors.
+    /// </summary>
+    [Ignore]
+    public double DensityIntensity { get; set; }
+
+    /// <summary>
     /// The name of the primary zone this POI belongs to.
     /// </summary>
     [Ignore]
     public string? ZoneName { get; set; }
-
-    /// <summary>
-    /// Indicates if the user has access to the premium content of this POI.
-    /// </summary>
-    [Ignore]
-    public bool HasAccess { get; set; }
 
     // ── Navigation property ──────────────────────────────────────────────────
 

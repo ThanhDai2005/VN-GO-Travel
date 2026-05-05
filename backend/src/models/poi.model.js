@@ -16,6 +16,8 @@ const poiSchema = new mongoose.Schema({
     narrationLong: { type: String, default: '' },
     // Legacy fallback (old schema). Kept for backward compatibility while migrating data.
     content: { type: mongoose.Schema.Types.Mixed, default: null },
+    // FIX: Add imageUrl field for POI thumbnails
+    imageUrl: { type: String, default: null },
     isPremiumOnly: { type: Boolean, default: false },
     unlockPrice: { type: Number, default: 1, min: 0 }, // Credit cost to unlock (0 = free)
     status: {

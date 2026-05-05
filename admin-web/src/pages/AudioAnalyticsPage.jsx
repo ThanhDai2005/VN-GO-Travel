@@ -38,7 +38,7 @@ export default function AudioAnalyticsPage() {
   };
 
   if (loading) return <div className="p-8 text-center text-slate-500">Đang tải Audio Stats...</div>;
-  if (!data) return <div className="p-8 text-center text-red-500">Lỗi tải dữ liệu.</div>;
+  if (!data) return <div className="p-8 text-center text-slate-500">Lỗi tải dữ liệu.</div>;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">

@@ -143,7 +143,7 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
 
         Debug.WriteLine($"[QR-NAV] Zone scan successful: code='{zoneCode}' pois={data.Pois?.Count ?? 0}");
         await MergeZoneScanResultIntoLocalAsync(data, cancellationToken).ConfigureAwait(false);
-        _ = Task.Run(() => _audioPrefetch.PrefetchZoneAudioAsync(data.Pois ?? Array.Empty<ZonePoiData>()));
+        _ = Task.Run(() => _audioPrefetch.PrefetchZoneAudioAsync(zoneCode, data.Pois ?? new List<ZonePoiData>()));
 
         await _poiQuery.InitAsync(cancellationToken).ConfigureAwait(false);
 

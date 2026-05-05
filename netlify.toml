@@ -1,0 +1,9 @@
+[[redirects]]
+  from = "/scan"
+  to = "/scan.html"
+  status = 200
+
+[[redirects]]
+  from = "/app/scan"
+  to = "/scan.html"
+  status = 301

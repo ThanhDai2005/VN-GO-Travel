@@ -3,7 +3,7 @@ import { HEATMAP_THRESHOLDS, HEATMAP_COLORS } from '../../heatmapConfig.js';
 
 /**
  * 7×24 activity heatmap (UTC): rows = calendar days, columns = hours 0–23.
- * Intensity: green (low) → yellow → red (high).
+ * Intensity: White (low) → Light Green → Dark Green (high).
  */
 
 function defaultUtcRange7d() {
@@ -35,13 +35,10 @@ function buildGrid(dayKeys, cells) {
   return matrix;
 }
 
-function cellColor(count) {
-  if (!count || count <= 0) return HEATMAP_COLORS.EMPTY;
-  if (count < HEATMAP_THRESHOLDS.LEVEL_1) return HEATMAP_COLORS.EMPTY;
-  if (count < HEATMAP_THRESHOLDS.LEVEL_2) return HEATMAP_COLORS.LEVEL_1;
-  if (count < HEATMAP_THRESHOLDS.LEVEL_3) return HEATMAP_COLORS.LEVEL_2;
-  if (count < HEATMAP_THRESHOLDS.LEVEL_4) return HEATMAP_COLORS.LEVEL_3;
-  return HEATMAP_COLORS.LEVEL_4;
+import { getDensityColor, getDensityLabel } from '../../utils/densityColorMapper';
+
+function cellColor(intensity) {
+  return getDensityColor(intensity);
 }
 
 function formatDayLabel(isoDate) {
@@ -94,7 +91,7 @@ export default function Heatmap({
           {subtitle && <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500">
-          <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           LIVE DATA
         </div>
       </div>
@@ -113,32 +110,35 @@ export default function Heatmap({
                 <div className="flex items-center pr-4 text-[10px] font-black uppercase tracking-tight text-slate-400">
                   {formatDayLabel(day)}
                 </div>
-                {matrix[row].map((count, col) => (
-                  <div
-                    key={`${day}-${col}`}
-                    className="m-[1.5px] aspect-square min-h-[22px] rounded-[4px] shadow-sm transition-all hover:scale-125 hover:z-10 cursor-pointer"
-                    style={{ 
-                      backgroundColor: cellColor(count),
-                      outline: count > 0 ? '1px solid rgba(255,255,255,0.2)' : 'none'
-                    }}
-                    title={`${day} ${col}:00 UTC — ${count} events`}
-                  />
-                ))}
+                {matrix[row].map((count, col) => {
+                  const intensity = flatMax > 0 ? count / flatMax : 0;
+                  return (
+                    <div
+                      key={`${day}-${col}`}
+                      className="m-[1.5px] aspect-square min-h-[22px] rounded-[4px] shadow-sm transition-all hover:scale-125 hover:z-10 cursor-pointer"
+                      style={{ 
+                        backgroundColor: cellColor(intensity),
+                        outline: count > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none'
+                      }}
+                      title={`${day} ${col}:00 UTC — ${count} events (${(intensity * 100).toFixed(0)}%)`}
+                    />
+                  );
+                })}
               </Fragment>
             ))}
           </div>
         </div>
         <div className="mt-8 flex items-center justify-between">
           <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400">
-            <span>QUIET</span>
+            <span>Quiet</span>
             <div className="flex gap-1">
-              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: HEATMAP_COLORS.EMPTY }} title="0" />
-              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: HEATMAP_COLORS.LEVEL_1 }} title={`>= ${HEATMAP_THRESHOLDS.LEVEL_1}`} />
-              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: HEATMAP_COLORS.LEVEL_2 }} title={`>= ${HEATMAP_THRESHOLDS.LEVEL_2}`} />
-              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: HEATMAP_COLORS.LEVEL_3 }} title={`>= ${HEATMAP_THRESHOLDS.LEVEL_3}`} />
-              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: HEATMAP_COLORS.LEVEL_4 }} title={`>= ${HEATMAP_THRESHOLDS.LEVEL_4}`} />
+              <div className="h-3 w-3 rounded-sm border border-slate-200" style={{ backgroundColor: getDensityColor(0.0) }} />
+              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: getDensityColor(0.25) }} />
+              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: getDensityColor(0.5) }} />
+              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: getDensityColor(0.75) }} />
+              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: getDensityColor(1.0) }} />
             </div>
-            <span>INTENSE</span>
+            <span>Busy</span>
           </div>
           <div className="text-[10px] font-bold text-slate-300">
             MAX BANDWIDTH: <span className="text-slate-800">{flatMax} EVENTS/HR</span>

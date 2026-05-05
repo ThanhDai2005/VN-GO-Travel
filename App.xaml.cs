@@ -10,6 +10,11 @@ public partial class App : Microsoft.Maui.Controls.Application
 {
     private readonly IServiceProvider _services;
 
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        return new Window(_services.GetRequiredService<AuthStartupPage>());
+    }
+
     public App(IServiceProvider services)
     {
         InitializeComponent();
@@ -39,7 +44,6 @@ public partial class App : Microsoft.Maui.Controls.Application
 #endif
 
         _services = services;
-        MainPage = services.GetRequiredService<AuthStartupPage>();
 
         // RDGL (7.2.5): eager attach DEBUG thread-affinity checks for GAK/MSAL surface properties.
         _ = services.GetRequiredService<RuntimeDeterminismGuard>();

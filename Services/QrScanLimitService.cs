@@ -4,10 +4,9 @@ using Microsoft.Maui.Storage;
 namespace MauiApp1.Services;
 
 /// <summary>
-/// Quản lý giới hạn số lần quét QR dựa trên trạng thái đăng nhập và premium.
+/// Quản lý giới hạn số lần quét QR dựa trên trạng thái đăng nhập.
 /// - Chưa đăng nhập: 10 lần
 /// - Đã đăng nhập: 20 lần
-/// - Premium: không giới hạn
 /// </summary>
 public class QrScanLimitService
 {
@@ -27,10 +26,6 @@ public class QrScanLimitService
     /// <summary>Kiểm tra xem có thể quét QR không.</summary>
     public bool CanScan()
     {
-        // Premium không giới hạn
-        if (_auth.IsPremium)
-            return true;
-
         ResetIfNewDay();
 
         var count = GetCurrentCount();
@@ -42,9 +37,6 @@ public class QrScanLimitService
     /// <summary>Tăng số lần quét sau khi quét thành công.</summary>
     public void IncrementScanCount()
     {
-        if (_auth.IsPremium)
-            return; // Premium không cần đếm
-
         ResetIfNewDay();
 
         var count = GetCurrentCount();
@@ -54,9 +46,6 @@ public class QrScanLimitService
     /// <summary>Lấy số lần quét còn lại.</summary>
     public int GetRemainingScans()
     {
-        if (_auth.IsPremium)
-            return int.MaxValue;
-
         ResetIfNewDay();
 
         var count = GetCurrentCount();
@@ -68,18 +57,15 @@ public class QrScanLimitService
     /// <summary>Lấy thông báo giới hạn.</summary>
     public string GetLimitMessage()
     {
-        if (_auth.IsPremium)
-            return "Premium: Không giới hạn";
-
         var remaining = GetRemainingScans();
         var limit = _auth.IsAuthenticated ? LimitAuthenticated : LimitGuest;
 
         if (remaining <= 0)
         {
             if (_auth.IsAuthenticated)
-                return "Bạn đã dùng hết 20 lượt quét QR miễn phí. Vui lòng nâng cấp Premium để quét không giới hạn.";
+                return "Bạn đã dùng hết 20 lượt quét QR miễn phí cho hôm nay.";
             else
-                return "Bạn đã dùng hết 10 lượt quét QR miễn phí. Vui lòng nâng cấp Premium để quét không giới hạn.";
+                return "Bạn đã dùng hết 10 lượt quét QR miễn phí. Đăng nhập để nhận thêm 10 lượt.";
         }
 
         if (_auth.IsAuthenticated)

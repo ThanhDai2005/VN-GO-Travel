@@ -116,7 +116,10 @@ public sealed class LoginViewModel : INotifyPropertyChanged
                     if (global::Microsoft.Maui.Controls.Application.Current?.MainPage is Shell)
                         _ = _nav.PopModalAsync();
                     else if (global::Microsoft.Maui.Controls.Application.Current?.MainPage is NavigationPage)
-                        global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<MauiApp1.AppShell>();
+                        if (global::Microsoft.Maui.Controls.Application.Current?.Windows.Count > 0)
+                            global::Microsoft.Maui.Controls.Application.Current.Windows[0].Page = _services.GetRequiredService<MauiApp1.AppShell>();
+                        else
+                            global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<MauiApp1.AppShell>();
                 }).ConfigureAwait(false);
             }
         }

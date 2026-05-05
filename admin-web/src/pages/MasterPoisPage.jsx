@@ -18,7 +18,7 @@ function statusBadge(status) {
       : s === "PENDING"
         ? "bg-amber-100 text-amber-800"
         : s === "REJECTED"
-          ? "bg-red-100 text-red-800"
+          ? "bg-slate-100 text-slate-800"
           : "bg-slate-100 text-slate-700";
   return (
     <span
@@ -340,7 +340,7 @@ export default function MasterPoisPage() {
                           type="button"
                           disabled={busy}
                           onClick={() => setDeleteRow(row)}
-                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-50"
+                          className="rounded-lg bg-slate-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-500 disabled:opacity-50"
                         >
                           Xóa
                         </button>
@@ -497,7 +497,7 @@ export default function MasterPoisPage() {
                 type="button"
                 onClick={confirmDelete}
                 disabled={busyCode === deleteRow.code}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-500 disabled:opacity-50"
+                className="rounded-lg bg-slate-600 px-4 py-2 text-sm text-white hover:bg-slate-500 disabled:opacity-50"
               >
                 {busyCode === deleteRow.code ? "..." : "Xóa"}
               </button>

@@ -10,7 +10,6 @@ public sealed class AuthService : INotifyPropertyChanged
     public const string StorageKeyToken = "vngo_auth_jwt";
     public const string StorageKeyEmail = "vngo_auth_email";
     public const string StorageKeyRole = "vngo_auth_role";
-    public const string StorageKeyPremium = "vngo_auth_premium";
     public const string StorageKeyUserId = "vngo_auth_userid";
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -21,7 +20,6 @@ public sealed class AuthService : INotifyPropertyChanged
 
     private string? _email;
     private string _role = "USER";
-    private bool _isPremium;
     private string? _userId;
     private bool _isAuthenticated;
 
@@ -74,16 +72,6 @@ public sealed class AuthService : INotifyPropertyChanged
         }
     }
 
-    public bool IsPremium
-    {
-        get => _isPremium;
-        private set
-        {
-            if (_isPremium == value) return;
-            _isPremium = value;
-            OnPropertyChanged(nameof(IsPremium));
-        }
-    }
 
     public string? UserId
     {
@@ -114,10 +102,7 @@ public sealed class AuthService : INotifyPropertyChanged
             var email = await SecureStorage.Default.GetAsync(StorageKeyEmail).ConfigureAwait(false);
             var role = await SecureStorage.Default.GetAsync(StorageKeyRole).ConfigureAwait(false) ?? "USER";
             var userId = await SecureStorage.Default.GetAsync(StorageKeyUserId).ConfigureAwait(false);
-            var premiumStr = await SecureStorage.Default.GetAsync(StorageKeyPremium).ConfigureAwait(false);
-            var isPremium = string.Equals(premiumStr, "true", StringComparison.OrdinalIgnoreCase);
-
-            ApplySession(token, email, role, isPremium, userId, raiseSessionChanged: true);
+            ApplySession(token, email, role, userId, raiseSessionChanged: true);
         }
         catch (Exception ex)
         {
@@ -151,7 +136,7 @@ public sealed class AuthService : INotifyPropertyChanged
                 return (false, "Phan hoi may chu khong hop le.");
 
             await PersistSessionAsync(dto.Token, dto.User, cancellationToken).ConfigureAwait(false);
-            ApplySession(dto.Token, dto.User.Email, dto.User.Role ?? "USER", dto.User.IsPremium, dto.User.Id, raiseSessionChanged: true);
+            ApplySession(dto.Token, dto.User.Email, dto.User.Role ?? "USER", dto.User.Id, raiseSessionChanged: true);
             return (true, null);
         }
         catch (HttpRequestException ex)
@@ -197,7 +182,7 @@ public sealed class AuthService : INotifyPropertyChanged
                 return (false, "Phan hoi may chu khong hop le.");
 
             await PersistSessionAsync(dto.Token, dto.User, cancellationToken).ConfigureAwait(false);
-            ApplySession(dto.Token, dto.User.Email, dto.User.Role ?? "USER", dto.User.IsPremium, dto.User.Id, raiseSessionChanged: true);
+            ApplySession(dto.Token, dto.User.Email, dto.User.Role ?? "USER", dto.User.Id, raiseSessionChanged: true);
             return (true, null);
         }
         catch (HttpRequestException ex)
@@ -219,71 +204,6 @@ public sealed class AuthService : INotifyPropertyChanged
     public Task LogoutAsync(CancellationToken cancellationToken = default)
         => ClearSessionAsync(notify: true);
 
-    /// <summary>Updates premium flag from local upgrade flow (demo) and persists to secure storage.</summary>
-    public async Task UpdateStoredPremiumAsync(bool isPremium, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await SecureStorage.Default.SetAsync(StorageKeyPremium, isPremium ? "true" : "false").ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[AUTH] UpdateStoredPremiumAsync storage: {ex}");
-        }
-
-        if (_isPremium == isPremium)
-            return;
-
-        _isPremium = isPremium;
-        OnPropertyChanged(nameof(IsPremium));
-    }
-
-    /// <summary>Refresh premium status from backend after purchase.</summary>
-    public async Task RefreshPremiumStatusAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            if (_protectedHttpClient == null)
-            {
-                System.Diagnostics.Debug.WriteLine("[AUTH] RefreshPremiumStatusAsync: no protected client");
-                return;
-            }
-
-            var response = await _protectedHttpClient.GetAsync("auth/me", cancellationToken).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                System.Diagnostics.Debug.WriteLine($"[AUTH] RefreshPremiumStatusAsync failed: {response.StatusCode}");
-                return;
-            }
-
-            var envelope = await response.Content.ReadFromJsonAsync<MeApiEnvelope>(JsonOptions, cancellationToken).ConfigureAwait(false);
-            var userData = envelope?.Data;
-
-            if (userData == null)
-            {
-                System.Diagnostics.Debug.WriteLine("[AUTH] RefreshPremiumStatusAsync: no user data");
-                return;
-            }
-
-            // Cập nhật isPremium từ backend
-            await UpdateStoredPremiumAsync(userData.IsPremium, cancellationToken).ConfigureAwait(false);
-
-            // Cập nhật role nếu có thay đổi
-            if (!string.IsNullOrEmpty(userData.Role) && userData.Role != _role)
-            {
-                await SecureStorage.Default.SetAsync(StorageKeyRole, userData.Role).ConfigureAwait(false);
-                Role = userData.Role;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"[AUTH] RefreshPremiumStatusAsync: isPremium={userData.IsPremium}");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[AUTH] RefreshPremiumStatusAsync error: {ex}");
-        }
-    }
-
     /// <summary>Called by <see cref="AuthDelegatingHandler"/> when a protected call returns 401.</summary>
     public Task ForceLogoutFromUnauthorizedAsync()
         => ClearSessionAsync(notify: true);
@@ -297,7 +217,6 @@ public sealed class AuthService : INotifyPropertyChanged
             SecureStorage.Default.Remove(StorageKeyToken);
             SecureStorage.Default.Remove(StorageKeyEmail);
             SecureStorage.Default.Remove(StorageKeyRole);
-            SecureStorage.Default.Remove(StorageKeyPremium);
             SecureStorage.Default.Remove(StorageKeyUserId);
         }
         catch (Exception ex)
@@ -307,7 +226,6 @@ public sealed class AuthService : INotifyPropertyChanged
 
         Email = null;
         Role = "USER";
-        IsPremium = false;
         UserId = null;
         IsAuthenticated = false;
 
@@ -323,17 +241,15 @@ public sealed class AuthService : INotifyPropertyChanged
         if (!string.IsNullOrEmpty(user.Email))
             await SecureStorage.Default.SetAsync(StorageKeyEmail, user.Email).ConfigureAwait(false);
         await SecureStorage.Default.SetAsync(StorageKeyRole, user.Role ?? "USER").ConfigureAwait(false);
-        await SecureStorage.Default.SetAsync(StorageKeyPremium, user.IsPremium ? "true" : "false").ConfigureAwait(false);
         if (!string.IsNullOrEmpty(user.Id))
             await SecureStorage.Default.SetAsync(StorageKeyUserId, user.Id).ConfigureAwait(false);
     }
 
-    private void ApplySession(string token, string? email, string role, bool isPremium, string? userId, bool raiseSessionChanged)
+    private void ApplySession(string token, string? email, string role, string? userId, bool raiseSessionChanged)
     {
         _tokenStore.SetToken(token);
         Email = email;
         Role = role;
-        IsPremium = isPremium;
         UserId = userId;
         IsAuthenticated = true;
 

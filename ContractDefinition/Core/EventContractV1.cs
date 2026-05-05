@@ -96,7 +96,6 @@ public static class EventContractV1
             [
                 new WireEnumMember("Guest", "guest"),
                 new WireEnumMember("User", "user"),
-                new WireEnumMember("Premium", "premium"),
             ]),
     ];
 }

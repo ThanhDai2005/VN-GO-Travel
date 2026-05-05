@@ -217,37 +217,17 @@ export default function IntelligenceDashboard() {
         <p className="relative mt-4 text-[10px] font-medium text-emerald-600/60 uppercase tracking-tighter italic">Lifetime users</p>
       </div>
 
+      {/* Temporarily hidden per domain shift
       <div className="group relative overflow-hidden rounded-2xl border border-white/20 bg-indigo-50/50 p-6 shadow-xl shadow-indigo-900/5 transition-all hover:-translate-y-1 hover:shadow-indigo-900/10 dark:bg-indigo-900/10">
-        <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-indigo-500/10 transition-all group-hover:scale-150" />
-        <div className="relative flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-indigo-600/80">Premium Mới</p>
-            <p className="mt-2 text-4xl font-black text-slate-900">{overviewData.newPremiumUsers.toLocaleString()}</p>
-          </div>
-          <div className="rounded-xl bg-indigo-500 p-3 text-white shadow-lg shadow-indigo-500/40">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-6 w-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
-            </svg>
-          </div>
-        </div>
-        <p className="relative mt-4 text-[10px] font-medium text-indigo-600/60 uppercase tracking-tighter italic">Trong kỳ báo cáo</p>
+        ...
       </div>
+      */}
 
+      {/* Temporarily hidden per domain shift
       <div className="group relative overflow-hidden rounded-2xl border border-white/20 bg-amber-50/50 p-6 shadow-xl shadow-amber-900/5 transition-all hover:-translate-y-1 hover:shadow-amber-900/10 dark:bg-amber-900/10">
-        <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-500/10 transition-all group-hover:scale-150" />
-        <div className="relative flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-amber-600/80">Doanh thu ước tính</p>
-            <p className="mt-2 text-4xl font-black text-slate-900">${overviewData.estimatedRevenue.toLocaleString()}</p>
-          </div>
-          <div className="rounded-xl bg-amber-500 p-3 text-white shadow-lg shadow-amber-500/40">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-6 w-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-          </div>
-        </div>
-        <p className="relative mt-4 text-[10px] font-medium text-amber-600/60 uppercase tracking-tighter italic">Premium × $20 USD</p>
+        ...
       </div>
+      */}
     </div>
   );
 
@@ -330,7 +310,7 @@ export default function IntelligenceDashboard() {
       </div>
 
       {err && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{err}</div>
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{err}</div>
       )}
 
       {loading ? (
@@ -355,66 +335,11 @@ export default function IntelligenceDashboard() {
                         <span className="text-sm text-slate-600">Tổng người dùng</span>
                         <span className="text-2xl font-black text-slate-900">{systemOverview.totalUsers.toLocaleString()}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600">Người dùng Premium</span>
-                        <span className="text-2xl font-black text-indigo-600">{systemOverview.totalPremiumUsers.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between border-t border-slate-200 pt-4">
-                        <span className="text-sm font-bold text-slate-700">Tỷ lệ Premium</span>
-                        <span className="text-xl font-black text-emerald-600">
-                          {systemOverview.totalUsers > 0
-                            ? ((systemOverview.totalPremiumUsers / systemOverview.totalUsers) * 100).toFixed(1)
-                            : 0}%
-                        </span>
-                      </div>
+                      {/* Premium fields hidden per domain shift */}
                     </div>
                   </div>
 
-                  {/* Pie Chart */}
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-600">Phân bổ người dùng</h3>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Premium', value: systemOverview.totalPremiumUsers },
-                            { name: 'Free', value: systemOverview.totalUsers - systemOverview.totalPremiumUsers }
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          <Cell fill="#6366f1" />
-                          <Cell fill="#e2e8f0" />
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Bar Chart */}
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-                    <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-600">So sánh người dùng</h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart
-                        data={[
-                          { category: 'Tổng người dùng', count: systemOverview.totalUsers },
-                          { category: 'Premium', count: systemOverview.totalPremiumUsers },
-                          { category: 'Free', count: systemOverview.totalUsers - systemOverview.totalPremiumUsers }
-                        ]}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="category" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#6366f1" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {/* Pie Chart & Bar Chart hidden per domain shift */}
                 </div>
               </section>
 

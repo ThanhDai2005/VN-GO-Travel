@@ -24,9 +24,15 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
     private readonly AppState                _appState;
     private readonly AuthService             _auth;
     private readonly IMapUiStateArbitrator    _mapUi;
-    private readonly IPremiumService          _premiumService;
+    private readonly IZoneAccessService       _zoneAccessService;
+    private readonly IAudioPlayerService     _audioPlayer;
+    private readonly IZoneDownloadService    _downloadService;
+    private readonly ILoggerService          _logger;
 
-    public System.Windows.Input.ICommand UpgradeCommand { get; }
+    public System.Windows.Input.ICommand PurchaseZoneCommand { get; }
+    public System.Windows.Input.ICommand PlayCommand { get; }
+    public System.Windows.Input.ICommand StopCommand { get; }
+    public System.Windows.Input.ICommand DownloadCommand { get; }
 
     private string? _lastLoadedCode;
     private bool    _languageListenerAttached;
@@ -43,7 +49,10 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         AppState appState,
         AuthService auth,
         IMapUiStateArbitrator mapUi,
-        IPremiumService premiumService)
+        IZoneAccessService zoneAccessService,
+        IAudioPlayerService audioPlayer,
+        IZoneDownloadService downloadService,
+        ILoggerService logger)
     {
         _getPoiDetailUseCase = getPoiDetailUseCase;
         _playPoiAudioUseCase = playPoiAudioUseCase;
@@ -55,17 +64,15 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         _appState         = appState;
         _auth             = auth;
         _mapUi            = mapUi;
-        _premiumService   = premiumService;
+        _zoneAccessService = zoneAccessService;
+        _audioPlayer       = audioPlayer;
+        _downloadService   = downloadService;
+        _logger            = logger;
 
-        UpgradeCommand = new Command(async () => await UpgradeAsync());
-        _auth.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName is nameof(AuthService.IsPremium))
-            {
-                OnPropertyChanged(nameof(IsPremium));
-                OnPropertyChanged(nameof(IsNotPremium));
-            }
-        };
+        PurchaseZoneCommand = new Command(async () => await PurchaseZoneAsync());
+        PlayCommand         = new Command(async () => await PlayDetailedAsync());
+        StopCommand         = new Command(async () => await StopAsync());
+        DownloadCommand     = new Command(async () => await DownloadAsync());
     }
 
     // ── Language change listener ──────────────────────────────────────────────
@@ -118,14 +125,31 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
             OnPropertyChanged(nameof(OpenOnMapButtonText));
             OnPropertyChanged(nameof(PlayButtonText));
             OnPropertyChanged(nameof(StopButtonText));
-            OnPropertyChanged(nameof(IsPremium));
-            OnPropertyChanged(nameof(IsNotPremium));
+            OnPropertyChanged(nameof(HasZoneAccess));
+            OnPropertyChanged(nameof(DoesNotHaveZoneAccess));
+            CheckDownloadStatus();
         }
     }
 
-    public bool IsPremium => _auth.IsPremium || (Poi?.HasAccess ?? false);
+    public bool IsPlaying => _audioPlayer.IsPlaying;
+    public bool IsBuffering => _audioPlayer.IsBuffering;
+    
+    private bool _isDownloaded;
+    public bool IsDownloaded
+    {
+        get => _isDownloaded;
+        private set { _isDownloaded = value; OnPropertyChanged(); }
+    }
 
-    public bool IsNotPremium => !IsPremium;
+    private async void CheckDownloadStatus()
+    {
+        if (_poi == null || string.IsNullOrEmpty(_poi.ZoneCode)) return;
+        IsDownloaded = await _downloadService.IsZoneDownloadedAsync(_poi.ZoneCode).ConfigureAwait(false);
+    }
+
+    public bool HasZoneAccess => _poi != null && _zoneAccessService.HasAccess(_poi.ZoneCode ?? string.Empty);
+
+    public bool DoesNotHaveZoneAccess => !HasZoneAccess;
 
     // ── Shell query attributes ────────────────────────────────────────────────
 
@@ -163,20 +187,20 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
     {
         try
         {
-            if (query.TryGetValue("code", out var cobj) && cobj is string code)
+            if (query.TryGetValue("code", out var l_cobj) && l_cobj is string l_code)
             {
                 string? lang = null;
-                if (query.TryGetValue("lang", out var lobj) && lobj is string lstr)
-                    lang = lstr;
+                if (query.TryGetValue("lang", out var l_lobj) && l_lobj is string l_lstr)
+                    lang = l_lstr;
 
-                Debug.WriteLine($"[QR-NAV] PoiDetail ApplyQueryAttributes code='{code}' lang='{lang}'");
+                Debug.WriteLine($"[QR-NAV] PoiDetail ApplyQueryAttributes code='{l_code}' lang='{lang}'");
 
                 // Cancel any existing loading task
                 _loadingCts?.Cancel();
                 _loadingCts?.Dispose();
                 _loadingCts = new CancellationTokenSource();
 
-                await LoadPoiAsync(code, lang, _loadingCts.Token);
+                await LoadPoiAsync(l_code, lang, _loadingCts.Token);
                 Debug.WriteLine($"[QR-NAV] PoiDetail ApplyQueryAttributes done Poi null?={Poi == null}");
             }
         }
@@ -199,6 +223,9 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         IsBusy = true;
         try
         {
+            // Ensure zone access service is initialized from DB
+            await _zoneAccessService.InitializeAsync(ct).ConfigureAwait(false);
+            
             // Initialize the localization lookup if it hasn't been loaded yet.
             await _locService.InitializeAsync().ConfigureAwait(false);
             ct.ThrowIfCancellationRequested();
@@ -235,7 +262,9 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 Priority  = core.Priority,
                 IsFallback = locResult.IsFallback,
                 UsedLanguage = locResult.UsedLang,
-                RequestedLanguage = locResult.RequestedLang
+                RequestedLanguage = locResult.RequestedLang,
+                ZoneCode = core.ZoneCode,
+                ZoneName = core.ZoneName
             };
             poi.Localization = locResult.Localization;
 
@@ -265,47 +294,17 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
 
     // ── Audio ─────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Plays the standard SHORT narration (FREE).
-    /// </summary>
-    public async Task PlayAsync()
-    {
-        if (Poi == null || IsBusy) return;
-        IsBusy = true;
-        try
-        {
-            // Stop any existing playback first for audio safety
-            _narrationService.Stop();
-            
-            // Call narration service directly for the short (free) path
-            await _narrationService.PlayPoiAsync(Poi);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    /// <summary>
-    /// Plays the LONG detailed narration.
-    /// Premium users: full NarrationLong TTS.
-    /// Free users: dialog explaining Premium + optional local upgrade (demo).
-    /// </summary>
     public async Task PlayDetailedAsync()
     {
         if (Poi == null) return;
         if (IsBusy) return;
 
-        if (!_auth.IsPremium)
+        if (!HasZoneAccess)
         {
-            var wantUpgrade = await MainThread.InvokeOnMainThreadAsync(async () =>
+            var wantPurchase = await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 var page = ResolveAlertPage();
-                if (page == null)
-                {
-                    Debug.WriteLine("[PREMIUM] PlayDetailedAsync: no page for DisplayAlert");
-                    return false;
-                }
+                if (page == null) return false;
 
                 return await page.DisplayAlertAsync(
                     "✨ Khám phá câu chuyện chi tiết",
@@ -314,8 +313,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                     "Để sau");
             }).ConfigureAwait(false);
 
-            if (wantUpgrade)
-                await UpgradeAsync().ConfigureAwait(false);
+            if (wantPurchase) await PurchaseZoneAsync().ConfigureAwait(false);
             return;
         }
 
@@ -323,7 +321,17 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         try
         {
             _narrationService.Stop();
-            await _narrationService.PlayPoiDetailedAsync(Poi);
+            await _audioPlayer.StopAsync().ConfigureAwait(false);
+
+            var audioUrl = $"https://api.vngo.travel/audio/{Poi.Code}.mp3"; 
+            await _audioPlayer.PlayAsync(audioUrl, Poi.ZoneCode ?? "").ConfigureAwait(false);
+            
+            OnPropertyChanged(nameof(IsPlaying));
+            OnPropertyChanged(nameof(IsBuffering));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("VM_PLAY_FAILED", ex);
         }
         finally
         {
@@ -331,7 +339,33 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         }
     }
 
-    public async Task UpgradeAsync()
+    public async Task DownloadAsync()
+    {
+        if (Poi == null || string.IsNullOrEmpty(Poi.ZoneCode)) return;
+        if (IsBusy) return;
+
+        IsBusy = true;
+        try
+        {
+            var poiCodes = new[] { Poi.Code };
+            var audioUrls = new[] { $"https://api.vngo.travel/audio/{Poi.Code}.mp3" };
+
+            await _downloadService.DownloadZoneAsync(Poi.ZoneCode, poiCodes, audioUrls).ConfigureAwait(false);
+            CheckDownloadStatus();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("VM_DOWNLOAD_FAILED", ex);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public void Stop() => _narrationService.Stop();
+
+    public async Task PurchaseZoneAsync()
     {
         if (Poi == null || string.IsNullOrEmpty(Poi.ZoneCode))
         {
@@ -373,8 +407,6 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
 
         return null;
     }
-
-    public void Stop() => _narrationService.Stop();
 
     // ── Navigation: open on map ───────────────────────────────────────────────
 

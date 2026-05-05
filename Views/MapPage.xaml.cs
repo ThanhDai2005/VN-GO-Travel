@@ -5,6 +5,7 @@ using MauiApp1.Services.MapUi;
 using MauiApp1.ViewModels;
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Maps;
+using MauiApp1.Services.Visuals;
 using System.Diagnostics;
 
 namespace MauiApp1.Views;
@@ -20,6 +21,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
     private readonly INavigationService _navService;
     private readonly AuthService _auth;
     private readonly IMapUiStateArbitrator _mapUi;
+    private readonly IZoneAccessService _zoneAccess;
 
     private bool _pendingNarrateAfterFocus;
     private PeriodicTimer? _timer;
@@ -44,6 +46,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
         _navService = navService;
         _auth = auth;
         _mapUi = mapUi;
+        _zoneAccess = zoneAccess;
 
         InitBottomPanel();
 
@@ -131,11 +134,6 @@ public partial class MapPage : ContentPage, IQueryAttributable
             UpdatePlayAudioButtonText();
     }
 
-    private void UpdatePlayAudioButtonText()
-    {
-        if (PlayAudioButton == null) return;
-        PlayAudioButton.Text = _auth.IsAuthenticated ? "🔊 Nghe chi tiết" : "🔊 Nghe tóm tắt";
-    }
 
     private async Task OnAppearingAsync()
     {
@@ -181,6 +179,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
                     try
                     {
                         await _vm.SyncPoisFromServerAsync().ConfigureAwait(false);
+                        await _zoneAccess.SyncWithServerAsync().ConfigureAwait(false);
                         await MainThread.InvokeOnMainThreadAsync(() =>
                         {
                             try
@@ -436,6 +435,12 @@ public partial class MapPage : ContentPage, IQueryAttributable
         {
             var location = new Location(poi.Latitude, poi.Longitude);
 
+            // Simulation: Assign random density if 0 for demo purposes (optional but helps validation)
+            if (poi.DensityIntensity <= 0)
+                poi.DensityIntensity = new Random().NextDouble();
+
+            var color = DensityColorMapper.GetColor(poi.DensityIntensity);
+
             var pin = new Pin
             {
                 Label = poi.Localization?.Name ?? "",
@@ -451,9 +456,9 @@ public partial class MapPage : ContentPage, IQueryAttributable
             {
                 Center = location,
                 Radius = Distance.FromMeters(poi.Radius),
-                StrokeColor = Colors.Red,
-                FillColor = Colors.Red.WithAlpha(0.2f),
-                StrokeWidth = 3
+                StrokeColor = color,
+                FillColor = color.WithAlpha(0.3f),
+                StrokeWidth = 4
             });
         }
     }
@@ -527,27 +532,20 @@ public partial class MapPage : ContentPage, IQueryAttributable
         BottomPanel.IsVisible = false;
     }
 
+    private void UpdatePlayAudioButtonText()
+    {
+        if (PlayAudioButton == null) return;
+        PlayAudioButton.Text = "🔊 Thuyết minh";
+    }
+
     private async void OnListenDetailedClicked(object sender, EventArgs e)
     {
         var poi = _vm.SelectedPoi;
         if (poi == null) return;
 
-        // Chưa đăng nhập: nút hiển thị "Nghe tóm tắt" — chỉ phát NarrationShort (không mở đăng nhập).
-        if (!_auth.IsAuthenticated)
-        {
-            await _vm.PlayPoiAsync(poi, _vm.CurrentLanguage);
-            return;
-        }
-
-        // Thuyết minh chi tiết (NarrationLong) chỉ trên map khi Premium — tránh lỗ hổng "Mở trên bản đồ" rồi nghe full chi tiết khi vẫn là user thường.
-        if (!_auth.IsPremium)
-        {
-            var route = $"/poidetail?code={Uri.EscapeDataString(poi.Code)}&lang={Uri.EscapeDataString(_vm.CurrentLanguage)}";
-            await _navService.NavigateToAsync(route);
-            return;
-        }
-
-        await _vm.PlayPoiDetailedAsync(poi, _vm.CurrentLanguage);
+        // Navigate to PoiDetailPage to handle access control and play detailed narration
+        var route = $"/poidetail?code={Uri.EscapeDataString(poi.Code)}&lang={Uri.EscapeDataString(_vm.CurrentLanguage)}";
+        await _navService.NavigateToAsync(route);
     }
 
     private void OnStopAudioClicked(object sender, EventArgs e)

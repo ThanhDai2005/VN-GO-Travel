@@ -29,7 +29,7 @@ public partial class LoginPage : ContentPage
             content.TranslationY = 30;
             
             await Task.WhenAll(
-                content.FadeTo(1, 400, Easing.CubicOut),
+                content.FadeToAsync(1, 400, Easing.CubicOut),
                 content.TranslateToAsync(0, 0, 400, Easing.CubicOut)
             );
         }

@@ -31,7 +31,10 @@ public partial class AuthStartupPage : ContentPage
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 // New flow: always enter app shell first (guest mode allowed).
-                global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<AppShell>();
+                if (global::Microsoft.Maui.Controls.Application.Current?.Windows.Count > 0)
+                    global::Microsoft.Maui.Controls.Application.Current.Windows[0].Page = _services.GetRequiredService<AppShell>();
+                else
+                    global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<AppShell>();
             });
         }
         catch (Exception ex)
@@ -39,7 +42,10 @@ public partial class AuthStartupPage : ContentPage
             Debug.WriteLine($"[AUTH-START] {ex}");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<AppShell>();
+                if (global::Microsoft.Maui.Controls.Application.Current?.Windows.Count > 0)
+                    global::Microsoft.Maui.Controls.Application.Current.Windows[0].Page = _services.GetRequiredService<AppShell>();
+                else
+                    global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<AppShell>();
             });
         }
     }

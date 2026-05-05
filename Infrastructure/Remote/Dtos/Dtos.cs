@@ -35,10 +35,3 @@ public class AuthDto
     public string Token { get; set; } = "";
     public string UserId { get; set; } = "";
 }
-
-public class SubscriptionDto
-{
-    public string UserId { get; set; } = "";
-    public bool IsPremium { get; set; }
-    public DateTime ExpiryDate { get; set; }
-}

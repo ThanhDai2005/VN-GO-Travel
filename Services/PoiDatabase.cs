@@ -6,7 +6,7 @@ using SQLite;
 
 namespace MauiApp1.Services;
 
-public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslationRepository
+public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslationRepository, IZoneAccessRepository
 {
     private readonly SQLiteAsyncConnection _db;
     private readonly ILogger<PoiDatabase> _logger;
@@ -24,25 +24,178 @@ public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslat
         cancellationToken.ThrowIfCancellationRequested();
         if (_inited) return;
 
-        await _db.CreateTableAsync<Poi>();
-        await _db.CreateTableAsync<PoiTranslationCacheEntry>();
+        await _db.CreateTableAsync<Poi>().ConfigureAwait(false);
+        await _db.CreateTableAsync<PoiTranslationCacheEntry>().ConfigureAwait(false);
+        await _db.CreateTableAsync<ZonePurchase>().ConfigureAwait(false);
+        await _db.CreateTableAsync<ZoneDownload>().ConfigureAwait(false);
+        await _db.CreateTableAsync<SyncQueueEntry>().ConfigureAwait(false);
 
-        // Ensure new columns exist for flattened model. ALTER TABLE is no-op if column exists.
-        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN Code TEXT"); } catch { }
-        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN LanguageCode TEXT"); } catch { }
-        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN Name TEXT"); } catch { }
-        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN Summary TEXT"); } catch { }
-        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN NarrationShort TEXT"); } catch { }
-        try { await _db.ExecuteAsync("ALTER TABLE pois ADD COLUMN NarrationLong TEXT"); } catch { }
-
-        await _db.ExecuteAsync("CREATE INDEX IF NOT EXISTS IX_pois_Code ON pois(Code)");
-        await _db.ExecuteAsync("CREATE INDEX IF NOT EXISTS IX_pois_LanguageCode ON pois(LanguageCode)");
-
-        // Drop unlocked_pois table if it exists (rollback cleanup)
-        try { await _db.ExecuteAsync("DROP TABLE IF EXISTS unlocked_pois"); } catch { }
+        // Ensure indices
+        await _db.ExecuteAsync("CREATE INDEX IF NOT EXISTS IX_pois_Code ON pois(Code)").ConfigureAwait(false);
+        await _db.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_zone_purchases_user_zone ON zone_purchases(UserId, ZoneId)").ConfigureAwait(false);
+        await _db.ExecuteAsync("CREATE INDEX IF NOT EXISTS IX_sync_queue_entity ON sync_queue(EntityType)").ConfigureAwait(false);
 
         _inited = true;
     }
+
+    Task IZoneAccessRepository.InitializeAsync(CancellationToken ct) => InitAsync(ct);
+
+    // ── IZoneAccessRepository Implementation ───────────────────────────────
+
+    public async Task SavePurchaseAtomicAsync(ZonePurchase purchase, SyncQueueEntry syncEntry, CancellationToken ct = default)
+    {
+        await _db.RunInTransactionAsync(tran =>
+        {
+            // 1. Manual Conflict Handling instead of InsertOrReplace
+            var existing = tran.Table<ZonePurchase>()
+                .Where(p => p.UserId == purchase.UserId && p.ZoneId == purchase.ZoneId)
+                .FirstOrDefault();
+
+            if (existing == null)
+            {
+                tran.Insert(purchase);
+            }
+            else
+            {
+                // Preserve ServerVerified and original PurchasedAt if already set
+                if (existing.ServerVerified == 0)
+                {
+                    existing.Source = purchase.Source;
+                    existing.IsSynced = 0;
+                    tran.Update(existing);
+                }
+            }
+
+            // 2. Add to Sync Queue
+            tran.Insert(syncEntry);
+        }).ConfigureAwait(false);
+    }
+
+    public Task<ZonePurchase?> GetPurchaseRecordAsync(string userId, string zoneId, CancellationToken ct = default)
+    {
+        return _db.Table<ZonePurchase>()
+            .Where(p => p.UserId == userId && p.ZoneId == zoneId)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<List<string>> GetPurchasedZonesAsync(string userId, CancellationToken ct = default)
+    {
+        var list = await _db.Table<ZonePurchase>()
+            .Where(zp => zp.UserId == userId)
+            .ToListAsync().ConfigureAwait(false);
+        return list.Select(l => l.ZoneId).ToList();
+    }
+
+    public async Task MarkAsSyncedAsync(string purchaseId, CancellationToken ct = default)
+    {
+        var purchase = await _db.Table<ZonePurchase>().Where(p => p.Id == purchaseId).FirstOrDefaultAsync().ConfigureAwait(false);
+        if (purchase != null)
+        {
+            purchase.IsSynced = 1;
+            purchase.ServerVerified = 1;
+            await _db.UpdateAsync(purchase).ConfigureAwait(false);
+        }
+    }
+
+    public async Task MarkAsUnsyncedAsync(string purchaseId, CancellationToken ct = default)
+    {
+        var p = await _db.Table<ZonePurchase>().Where(x => x.Id == purchaseId).FirstOrDefaultAsync().ConfigureAwait(false);
+        if (p != null)
+        {
+            p.IsSynced = 0;
+            p.ServerVerified = 0;
+            await _db.UpdateAsync(p).ConfigureAwait(false);
+        }
+    }
+
+    public async Task UpsertServerPurchaseAsync(string userId, string zoneId, CancellationToken ct = default)
+    {
+        var existing = await _db.Table<ZonePurchase>()
+            .Where(p => p.UserId == userId && p.ZoneId == zoneId)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+
+        if (existing == null)
+        {
+            await _db.InsertAsync(new ZonePurchase
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserId = userId,
+                ZoneId = zoneId,
+                PurchasedAt = DateTime.UtcNow.ToString("O"),
+                Source = "ServerSync",
+                IsSynced = 1,
+                ServerVerified = 1
+            }).ConfigureAwait(false);
+        }
+        else
+        {
+            // Server ALWAYS wins
+            existing.IsSynced = 1;
+            existing.ServerVerified = 1;
+            await _db.UpdateAsync(existing).ConfigureAwait(false);
+        }
+    }
+
+    public async Task RemovePurchaseAsync(string userId, string zoneId, CancellationToken ct = default)
+    {
+        var existing = await _db.Table<ZonePurchase>()
+            .Where(p => p.UserId == userId && p.ZoneId == zoneId)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (existing != null)
+        {
+            await _db.DeleteAsync(existing).ConfigureAwait(false);
+        }
+    }
+
+    public Task SaveDownloadAsync(string zoneId, bool isComplete, CancellationToken ct = default)
+    {
+        var dl = new ZoneDownload
+        {
+            Id = zoneId,
+            ZoneId = zoneId,
+            DownloadedAt = DateTime.UtcNow.ToString("O"),
+            IsComplete = isComplete ? 1 : 0
+        };
+        return _db.InsertOrReplaceAsync(dl);
+    }
+
+    public async Task<bool> IsZoneDownloadedAsync(string zoneId, CancellationToken ct = default)
+    {
+        var dl = await _db.Table<ZoneDownload>().Where(d => d.ZoneId == zoneId).FirstOrDefaultAsync().ConfigureAwait(false);
+        return dl?.IsComplete == 1;
+    }
+
+    public Task<List<ZonePurchase>> GetUnsyncedPurchasesAsync(string userId, CancellationToken ct = default)
+    {
+        return _db.Table<ZonePurchase>()
+            .Where(p => p.UserId == userId && p.IsSynced == 0)
+            .ToListAsync();
+    }
+
+    public Task<List<SyncQueueEntry>> GetSyncQueueEntriesAsync(int maxItems, CancellationToken ct = default)
+    {
+        return _db.Table<SyncQueueEntry>()
+            .OrderBy(e => e.CreatedAt)
+            .Take(maxItems)
+            .ToListAsync();
+    }
+
+    public async Task IncrementRetryAsync(string entryId, CancellationToken ct = default)
+    {
+        var entry = await _db.Table<SyncQueueEntry>().Where(e => e.Id == entryId).FirstOrDefaultAsync().ConfigureAwait(false);
+        if (entry != null)
+        {
+            entry.RetryCount++;
+            await _db.UpdateAsync(entry).ConfigureAwait(false);
+        }
+    }
+
+    public Task RemoveSyncQueueEntryAsync(string entryId, CancellationToken ct = default)
+    {
+        return _db.DeleteAsync<SyncQueueEntry>(entryId);
+    }
+
+    // ── Rest of PoiDatabase ──────────────────────────────────────────────────
 
     public Task<int> GetCountAsync(CancellationToken cancellationToken = default)
     {

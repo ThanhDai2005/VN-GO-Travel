@@ -110,7 +110,7 @@ class PoiService {
             summary: viContent.summary,
             narrationShort: viContent.narrationShort,
             narrationLong: viContent.narrationLong,
-            content: this._pickDisplayText(viContent),
+            content: legacyByLang,
             contentByLang: legacyByLang,
             localizedContent: normalizedContent,
             isPremiumOnly: poi.isPremiumOnly,

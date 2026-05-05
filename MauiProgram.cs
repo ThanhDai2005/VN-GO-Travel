@@ -88,8 +88,10 @@ public static class MauiProgram
         builder.Services.AddSingleton<LocationService>();
         builder.Services.AddSingleton<ILocationProvider>(sp => sp.GetRequiredService<LocationService>());
 
-        builder.Services.AddSingleton<AudioService>();
-        builder.Services.AddSingleton<IAudioPlayerService>(sp => sp.GetRequiredService<AudioService>());
+        builder.Services.AddSingleton<ILoggerService, LoggerService>();
+        builder.Services.AddSingleton<IZoneDownloadService, ZoneDownloadService>();
+
+        builder.Services.AddSingleton<IAudioPlayerService, AudioPlayerService>();
         builder.Services.AddSingleton<AudioQueueService>();
         builder.Services.AddSingleton<IAudioQueueService>(sp => sp.GetRequiredService<AudioQueueService>());
         builder.Services.AddSingleton<MauiApp1.Infrastructure.AudioQueueConnectionManager>();
@@ -171,6 +173,8 @@ public static class MauiProgram
             };
             return new AuthService(loginClient, sp.GetRequiredService<AuthTokenStore>());
         });
+        builder.Services.AddSingleton<IZoneAccessService, ZoneAccessService>();
+        builder.Services.AddSingleton<IZoneAccessRepository>(sp => sp.GetRequiredService<PoiDatabase>());
         builder.Services.AddSingleton<IDeviceIdProvider, DeviceIdProvider>();
         builder.Services.AddSingleton<IUserContextSnapshotProvider, UserContextSnapshotProvider>();
         builder.Services.AddSingleton<IEventBatchSink, LoggingTranslationEventBatchSink>();
@@ -232,9 +236,6 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<SessionAuthRepository>();
         builder.Services.AddSingleton<IAuthRepository>(sp => sp.GetRequiredService<SessionAuthRepository>());
-        builder.Services.AddSingleton<IPremiumService, PremiumService>();
-        builder.Services.AddSingleton<NoOpSubscriptionRepository>();
-        builder.Services.AddSingleton<ISubscriptionRepository>(sp => sp.GetRequiredService<NoOpSubscriptionRepository>());
 
         builder.Services.AddSingleton<LanguagePackService>();
         builder.Services.AddSingleton<ILanguagePackService>(sp => sp.GetRequiredService<LanguagePackService>());
@@ -275,7 +276,6 @@ public static class MauiProgram
 
         builder.Services.AddTransient<MauiApp1.Application.UseCases.GetNearbyPoisUseCase>();
         builder.Services.AddTransient<MauiApp1.Application.UseCases.GetPoiDetailUseCase>();
-        builder.Services.AddTransient<MauiApp1.Application.UseCases.PlayPoiAudioUseCase>();
         builder.Services.AddTransient<MauiApp1.Application.UseCases.GetAvailableLanguagesUseCase>();
 
         return builder.Build();

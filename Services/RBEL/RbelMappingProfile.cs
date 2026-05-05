@@ -91,14 +91,12 @@ public static class RbelMappingProfile
 
     private static string AuthStateFromUser(UserContext ctx) => ctx.UserType switch
     {
-        EventUserTier.Premium => "premium",
         EventUserTier.User => "logged_in",
         _ => "guest"
     };
 
     private static string UserTypeWire(EventUserTier t) => t switch
     {
-        EventUserTier.Premium => "premium",
         EventUserTier.User => "user",
         _ => "guest"
     };

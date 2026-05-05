@@ -18,7 +18,7 @@ function statusBadge(status) {
       : s === 'PENDING'
         ? 'bg-amber-100 text-amber-800'
         : s === 'REJECTED'
-          ? 'bg-red-100 text-red-800'
+          ? 'bg-slate-100 text-slate-800'
           : 'bg-slate-100 text-slate-700';
   return <span className={`rounded px-2 py-0.5 text-xs font-medium ${cls}`}>{s}</span>;
 }
@@ -342,7 +342,7 @@ export default function ZonesManagementPage() {
                           type="button"
                           disabled={busy}
                           onClick={() => setDeleteZone(zone)}
-                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-50"
+                          className="rounded-lg bg-slate-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-500 disabled:opacity-50"
                         >
                           Xóa
                         </button>
@@ -468,7 +468,7 @@ export default function ZonesManagementPage() {
                 type="button"
                 onClick={confirmDelete}
                 disabled={busyZoneId === (deleteZone._id || deleteZone.id)}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-500 disabled:opacity-50"
+                className="rounded-lg bg-slate-600 px-4 py-2 text-sm text-white hover:bg-slate-500 disabled:opacity-50"
               >
                 {busyZoneId === (deleteZone._id || deleteZone.id) ? '...' : 'Xóa'}
               </button>
@@ -614,8 +614,8 @@ export default function ZonesManagementPage() {
                 </div>
               </div>
             ) : (
-              <div className="mt-6 rounded-lg bg-red-900/20 border border-red-900/50 p-4">
-                <p className="text-sm text-red-400">Không thể tạo QR token. Vui lòng thử lại sau.</p>
+              <div className="mt-6 rounded-lg bg-slate-900/20 border border-slate-900/50 p-4">
+                <p className="text-sm text-slate-400">Không thể tạo QR token. Vui lòng thử lại sau.</p>
               </div>
             )}
 

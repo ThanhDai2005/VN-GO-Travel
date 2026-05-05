@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { MapContainer, TileLayer, useMap, CircleMarker, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Marker, CircleMarker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 
-// ⚙️ IMPLEMENTATION PART 2 — COLOR FUNCTION
-export function getColor(value) {
-  const r = Math.floor(255 * value);
-  const g = Math.floor(255 * (1 - value));
-  return `rgb(${r},${g},0)`;
-}
+import { getDensityColor, getDensityLabel } from '../../utils/densityColorMapper';
 
 // ⚙️ IMPLEMENTATION PART 3 — LEAFLET HEATMAP LAYER
 function HeatmapLayer({ points, longitudeExtractor, latitudeExtractor, intensityExtractor }) {
@@ -17,139 +12,117 @@ function HeatmapLayer({ points, longitudeExtractor, latitudeExtractor, intensity
   const layerRef = useRef(null);
 
   useEffect(() => {
-    // Initial layer creation
     const layer = L.heatLayer([], {
       radius: 25,
       blur: 15,
       maxZoom: 17,
-      minOpacity: 0.4,
+      minOpacity: 0.2,
       gradient: {
-        0.0: getColor(0),
-        0.5: getColor(0.5),
-        1.0: getColor(1),
+        0.0: '#FFFFFF',
+        0.25: '#C8F7C5',
+        0.5: '#7ED957',
+        0.75: '#2ECC71',
+        1.0: '#006400',
       },
     }).addTo(map);
 
     layerRef.current = layer;
-
-    return () => {
-      map.removeLayer(layer);
-    };
+    return () => map.removeLayer(layer);
   }, [map]);
 
   useEffect(() => {
     if (!layerRef.current || !Array.isArray(points)) return;
-
     const heatData = points.map(p => [
       latitudeExtractor(p),
       longitudeExtractor(p),
       intensityExtractor(p)
     ]);
-
-    // Update existing layer data without re-creating (Zero Flicker)
-    try {
-        layerRef.current.setLatLngs(heatData);
-    } catch (e) {
-        console.error("[Heatmap] Failed to update setLatLngs", e);
-    }
+    layerRef.current.setLatLngs(heatData);
   }, [points, latitudeExtractor, longitudeExtractor, intensityExtractor]);
 
   return null;
 }
 
+// FitBounds implementation
 function FitBounds({ points }) {
   const map = useMap();
-
   useEffect(() => {
-    if (!Array.isArray(points) || points.length === 0) return;
-    const validPoints = points.map(p => [Number(p.lat), Number(p.lng)]).filter(p => !Number.isNaN(p[0]) && !Number.isNaN(p[1]));
-    if (validPoints.length === 0) return;
-
-    const bounds = L.latLngBounds(validPoints);
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
-    }
-  }, [map, points]);
+    if (!points || points.length === 0) return;
+    const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
+    map.fitBounds(bounds, { padding: [50, 50] });
+  }, [points, map]);
 
   return null;
 }
 
-// ⚙️ IMPLEMENTATION PART 5 — UI INTEGRATION (OPTION A — HOVER)
+// ⚙️ IMPLEMENTATION PART 2 — CUSTOM PIN MARKER
+const createPinIcon = (intensity) => {
+  const color = getDensityColor(intensity);
+  return L.divIcon({
+    className: 'custom-pin',
+    html: `
+      <div style="position: relative; width: 30px; height: 30px;">
+        <svg viewBox="0 0 384 512" style="width: 100%; height: 100%; fill: ${color}; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
+          <path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z" fill-rule="evenodd" />
+          <circle cx="192" cy="192" r="60" fill="white" />
+        </svg>
+      </div>
+    `,
+    iconSize: [30, 42],
+    iconAnchor: [15, 42],
+  });
+};
+
 function PredictionMarkers({ points }) {
-  const LEVEL_COLORS = {
-    LOW: '#10b981',   // 🟢
-    MEDIUM: '#f59e0b', // 🟡
-    HIGH: '#ef4444'   // 🔴
-  };
+  const map = useMap();
 
   return (
     <>
       {points.map((p, idx) => (
-        <CircleMarker
+        <Marker
           key={p.poi_id || idx}
-          center={[p.lat, p.lng]}
-          radius={8}
-          pathOptions={{
-            fillColor: LEVEL_COLORS[p.level] || '#64748b',
-            fillOpacity: 0.6,
-            color: LEVEL_COLORS[p.level] || '#64748b',
-            weight: 2,
-            // ⚙️ IMPLEMENTATION PART 6 — VISUAL DIFFERENTIATION
-            dashArray: p.predicted > p.current ? '5, 5' : null 
-          }}
+          position={[p.lat, p.lng]}
+          icon={createPinIcon(p.intensity)}
         >
-          <Tooltip direction="top" offset={[0, -8]} opacity={1}>
-            <div className="p-1 min-w-[120px]">
-              <div className="font-bold text-slate-800 border-b border-slate-100 pb-1 mb-1">
-                {p.name || 'POI'}
-              </div>
+          <Tooltip direction="top" offset={[0, -40]} opacity={1}>
+            <div className="p-2 min-w-[140px]">
+              <div className="font-bold text-slate-800 border-b pb-1 mb-2">{p.name || 'POI'}</div>
               <div className="flex flex-col gap-1 text-xs">
-                <div className="flex justify-between items-center bg-slate-50 px-1.5 py-0.5 rounded">
-                  <span className="text-slate-500">Now:</span>
-                  <span className="font-mono font-bold text-slate-900">{p.current}</span>
+                <div className="flex justify-between bg-slate-50 p-1 rounded">
+                  <span className="text-slate-500">Intensity:</span>
+                  <span className="font-bold">{(p.intensity * 100).toFixed(0)}%</span>
                 </div>
-                <div className="flex justify-between items-center bg-blue-50 px-1.5 py-0.5 rounded">
-                  <span className="text-blue-600 font-medium">Next hour:</span>
-                  <span className="font-mono font-bold text-blue-700">{p.predicted}</span>
-                </div>
-                <div className="mt-1 flex items-center justify-center gap-1.5 py-0.5 rounded-full border border-slate-200 text-[10px] font-bold uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: LEVEL_COLORS[p.level] }} />
-                  <span style={{ color: LEVEL_COLORS[p.level] }}>{p.level} Traffic</span>
+                <div className="mt-2 flex items-center justify-center gap-2 py-1 rounded-full border border-slate-200 text-[10px] font-black uppercase tracking-widest">
+                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getDensityColor(p.intensity) }} />
+                   <span style={{ color: getDensityColor(p.intensity) }}>{getDensityLabel(p.intensity)}</span>
                 </div>
               </div>
             </div>
           </Tooltip>
-        </CircleMarker>
+        </Marker>
       ))}
     </>
   );
 }
 
-// ⚙️ IMPLEMENTATION PART 5 — LEGEND (BẮT BUỘC)
 function HeatmapLegend() {
+  const items = [
+    { label: 'Quiet', intensity: 0.0 },
+    { label: 'Low', intensity: 0.3 },
+    { label: 'Active', intensity: 0.6 },
+    { label: 'Busy', intensity: 1.0 },
+  ];
+
   return (
-    <div className="absolute bottom-6 right-6 z-[1000] bg-white/80 backdrop-blur-xl p-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/50 pointer-events-auto ring-1 ring-black/5 animate-in slide-in-from-right-4 duration-1000">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">Traffic Density Registry</h4>
-      </div>
-      <div className="flex flex-col gap-4">
-        {[
-          { label: 'Low Intensity', color: getColor(0) },
-          { label: 'Moderate Flow', color: getColor(0.5) },
-          { label: 'Peak Capacity', color: getColor(1) },
-        ].map((item, idx) => (
-          <div key={idx} className="flex items-center gap-4 group cursor-help">
-            <div className="relative h-6 w-6">
-              <span className="absolute inset-0 rounded-lg blur-md opacity-40 transition-opacity group-hover:opacity-100" style={{ backgroundColor: item.color }} />
-              <span className="relative block h-full w-full rounded-lg shadow-sm border border-white/20 transition-transform group-hover:scale-110" style={{ backgroundColor: item.color }} />
-            </div>
-            <span className="text-xs font-bold text-slate-600 group-hover:text-slate-900 transition-colors uppercase tracking-tight">{item.label}</span>
+    <div className="absolute bottom-6 right-6 z-[1000] bg-white/90 backdrop-blur-md p-5 rounded-2xl shadow-xl border border-slate-200">
+      <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Density Legend</h4>
+      <div className="flex flex-col gap-3">
+        {items.map((item, idx) => (
+          <div key={idx} className="flex items-center gap-3">
+            <div className="h-4 w-4 rounded shadow-inner" style={{ backgroundColor: getDensityColor(item.intensity), border: '1px solid #eee' }} />
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{item.label}</span>
           </div>
         ))}
-      </div>
-      <div className="mt-6 pt-4 border-t border-slate-200/50">
-        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Normalized sensor data (0.0 - 1.0)</p>
       </div>
     </div>
   );
@@ -216,7 +189,12 @@ export default function GeoHeatmapMap({
         value = Math.min(value, maxThreshold);
 
         // Step 2: Normalize (0 to 1)
-        const normalized = (value - min) / (maxThreshold - min || 1);
+        let normalized = 0;
+        if (maxThreshold > min) {
+          normalized = (value - min) / (maxThreshold - min);
+        } else if (maxThreshold > 0) {
+          normalized = 1.0; // All points are equal and > 0, so all are 'max'
+        }
 
         return {
           ...r,

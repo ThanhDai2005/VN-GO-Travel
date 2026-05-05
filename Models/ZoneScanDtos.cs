@@ -38,7 +38,6 @@ public sealed class ZonePoiData
     public string? NarrationShort { get; set; }
     public string? NarrationLong { get; set; }
     public PoiScanContent? Content { get; set; }
-    public bool IsPremiumOnly { get; set; }
     public string? Status { get; set; }
     public AudioInfo? Audio { get; set; }
     public string? AudioUrl { get; set; }

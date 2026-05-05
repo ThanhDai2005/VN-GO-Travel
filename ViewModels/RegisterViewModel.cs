@@ -158,7 +158,10 @@ public sealed class RegisterViewModel : INotifyPropertyChanged
                     // Sau khi đăng ký thành công, chuyển đến AppShell và mở tab profile
                     if (global::Microsoft.Maui.Controls.Application.Current?.MainPage is NavigationPage)
                     {
-                        global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<MauiApp1.AppShell>();
+                        if (global::Microsoft.Maui.Controls.Application.Current?.Windows.Count > 0)
+                            global::Microsoft.Maui.Controls.Application.Current.Windows[0].Page = _services.GetRequiredService<MauiApp1.AppShell>();
+                        else
+                            global::Microsoft.Maui.Controls.Application.Current!.MainPage = _services.GetRequiredService<MauiApp1.AppShell>();
                         // Đợi một chút để Shell được khởi tạo hoàn toàn
                         await Task.Delay(100);
                         await Shell.Current.GoToAsync("//profile");

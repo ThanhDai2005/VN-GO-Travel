@@ -11,7 +11,6 @@ namespace VNGOTravel.Components
     public partial class SmoothLoadingIndicator : ContentView
     {
         private bool _isVisible;
-        private string _message;
 
         public SmoothLoadingIndicator()
         {
@@ -40,7 +39,7 @@ namespace VNGOTravel.Components
             IsVisible = true;
             Opacity = 0;
 
-            await this.FadeTo(1, 200, Easing.CubicOut);
+            await this.FadeToAsync(1, 200, Easing.CubicOut).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -50,7 +49,7 @@ namespace VNGOTravel.Components
         {
             if (!_isVisible) return;
 
-            await this.FadeTo(0, 200, Easing.CubicIn);
+            await this.FadeToAsync(0, 200, Easing.CubicIn).ConfigureAwait(false);
             IsVisible = false;
             _isVisible = false;
         }

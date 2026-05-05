@@ -27,16 +27,6 @@ public sealed class UserContextSnapshotProvider : IUserContextSnapshotProvider
             };
         }
 
-        if (_auth.IsPremium)
-        {
-            return new UserContext
-            {
-                UserType = EventUserTier.Premium,
-                UserId = _auth.UserId,
-                DeviceId = deviceId
-            };
-        }
-
         return new UserContext
         {
             UserType = EventUserTier.User,
