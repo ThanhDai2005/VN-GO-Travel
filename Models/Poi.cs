@@ -90,7 +90,6 @@ public class Poi
     /// <summary>
     /// The primary zone this POI belongs to.
     /// </summary>
-    [Ignore]
     public string? ZoneCode { get; set; }
 
     /// <summary>
@@ -103,7 +102,6 @@ public class Poi
     /// <summary>
     /// The name of the primary zone this POI belongs to.
     /// </summary>
-    [Ignore]
     public string? ZoneName { get; set; }
 
     /// <summary>

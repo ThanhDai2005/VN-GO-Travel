@@ -16,7 +16,7 @@ const userWalletSchema = new mongoose.Schema({
     balance: {
         type: Number,
         required: true,
-        default: 100, // Initial free credits (enough for at least one zone purchase)
+        default: 1000000, // Temporarily infinite for free testing/purchase
         min: 0
     },
     currency: {
