@@ -34,6 +34,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
     private readonly ITranslationResolverService _translationResolver;
     private readonly IUserEntitlementService _entitlementService;
     private readonly IAudioDownloadService _audioDownloadService;
+    private readonly IAccessStateCoordinator _accessCoordinator;
 
     public System.Windows.Input.ICommand PurchaseZoneCommand { get; }
     public System.Windows.Input.ICommand PlayCommand { get; }
@@ -66,7 +67,8 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         ILoggerService logger,
         ITranslationResolverService translationResolver,
         IUserEntitlementService entitlementService,
-        IAudioDownloadService audioDownloadService)
+        IAudioDownloadService audioDownloadService,
+        IAccessStateCoordinator accessCoordinator)
     {
         _getPoiDetailUseCase = getPoiDetailUseCase;
         _playPoiAudioUseCase = playPoiAudioUseCase;
@@ -85,6 +87,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         _translationResolver = translationResolver;
         _entitlementService = entitlementService;
         _audioDownloadService = audioDownloadService;
+        _accessCoordinator = accessCoordinator;
 
         PurchaseZoneCommand = new Command(async () => await PurchaseZoneAsync());
         PlayCommand         = new Command(async () => await PlayDetailedAsync());
@@ -98,16 +101,18 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
             await PlayPurchasedAudioAsync();
         });
 
-        WeakReferenceMessenger.Default.Register<ZonePurchasedMessage>(this, async (_, m) =>
+        _accessCoordinator.ZoneAccessChanged += OnZoneAccessChanged;
+    }
+
+    private async void OnZoneAccessChanged(string zoneCode, bool hasAccess)
+    {
+        if (Poi == null) return;
+        
+        // If the changed zone matches our POI's zone, refresh!
+        if (string.Equals(Poi.ZoneCode, zoneCode, StringComparison.OrdinalIgnoreCase))
         {
-            if (Poi == null || string.IsNullOrWhiteSpace(Poi.ZoneCode))
-                return;
-
-            if (!string.Equals(Poi.ZoneCode.Trim(), m.ZoneCode.Trim(), StringComparison.OrdinalIgnoreCase))
-                return;
-
-            await ReEvaluateAccessAsync().ConfigureAwait(false);
-        });
+            await ReEvaluateAccessAsync(force: true).ConfigureAwait(false);
+        }
     }
 
     // ── Language change listener ──────────────────────────────────────────────
@@ -124,6 +129,18 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         if (!_languageListenerAttached) return;
         _languagePrefs.PreferredLanguageChanged -= OnPreferredLanguageChanged;
         _languageListenerAttached = false;
+    }
+
+    public void AttachListeners()
+    {
+        AttachPreferredLanguageListener();
+        // ZoneAccessChanged is handled in constructor but we can refresh here
+        _ = ReEvaluateAccessAsync(force: true);
+    }
+
+    public void DetachListeners()
+    {
+        DetachPreferredLanguageListener();
     }
 
     private async void OnPreferredLanguageChanged(object? sender, string lang)
@@ -188,9 +205,9 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                                     !string.IsNullOrWhiteSpace(_downloadedAudio.AudioShortPath));
     public string AudioDurationText => _audioPlayer.Duration == TimeSpan.Zero ? "--:--" : _audioPlayer.Duration.ToString(@"mm\:ss");
     public string AudioPositionText => _audioPlayer.CurrentPosition == TimeSpan.Zero ? "00:00" : _audioPlayer.CurrentPosition.ToString(@"mm\:ss");
-    public bool ShowPurchasedAudioPlayer => AccessState == PoiAccessState.Purchased;
-    public bool ShowSummaryButton => true; // Luôn cho phép nghe tóm tắt
-    public bool ShowDetailedCTA => AccessState != PoiAccessState.Purchased;
+    public bool ShowPurchasedAudioPlayer => AccessState == AccessRenderState.Unlocked;
+    public bool ShowSummaryButton => true;
+    public bool ShowDetailedCTA => AccessState != AccessRenderState.Unlocked && AccessState != AccessRenderState.Resolving;
     public double AudioSeekValue
     {
         get
@@ -208,8 +225,8 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         }
     }
 
-    private PoiAccessState _accessState = PoiAccessState.NotForSale;
-    public PoiAccessState AccessState
+    private AccessRenderState _accessState = AccessRenderState.Unknown;
+    public AccessRenderState AccessState
     {
         get => _accessState;
         private set
@@ -226,32 +243,26 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
             OnPropertyChanged(nameof(ShowPurchasedAudioPlayer));
             OnPropertyChanged(nameof(ShowDetailedCTA));
             OnPropertyChanged(nameof(ShowSummaryButton));
+            OnPropertyChanged(nameof(IsResolvingAccess));
         }
     }
 
-    public bool HasZoneAccess => AccessState == PoiAccessState.Purchased;
-
-    public bool DoesNotHaveZoneAccess => !HasZoneAccess;
-    public bool ShowPurchaseBanner => AccessState == PoiAccessState.NotLoggedIn || AccessState == PoiAccessState.NotPurchased;
-    public string PurchaseBannerTitle => AccessState switch
-    {
-        PoiAccessState.NotLoggedIn => "Đăng nhập để mua",
-        PoiAccessState.NotPurchased => "Mua khu vực để mở khóa",
-        _ => string.Empty
-    };
-    public string PurchaseBannerDescription => AccessState switch
-    {
-        PoiAccessState.NotLoggedIn => "Bạn cần đăng nhập để mua khu vực và mở khóa thuyết minh chi tiết.",
-        PoiAccessState.NotPurchased => "Sở hữu khu vực này để nghe thuyết minh chi tiết.",
-        PoiAccessState.NotForSale => "POI chưa thuộc khu vực nào",
-        _ => string.Empty
-    };
+    public bool IsResolvingAccess => AccessState == AccessRenderState.Resolving || AccessState == AccessRenderState.Unknown;
+    public bool HasZoneAccess => AccessState == AccessRenderState.Unlocked;
+    public bool DoesNotHaveZoneAccess => AccessState != AccessRenderState.Unlocked;
+    public bool ShowPurchaseBanner => AccessState == AccessRenderState.NotPurchased || AccessState == AccessRenderState.NotLoggedIn;
+    public string PurchaseBannerTitle => AccessState == AccessRenderState.NotLoggedIn ? "Đăng nhập để xem" : "Mua khu vực để mở khóa";
+    public string PurchaseBannerDescription => AccessState == AccessRenderState.NotLoggedIn 
+        ? "Vui lòng đăng nhập để kiểm tra quyền truy cập của bạn." 
+        : "Sở hữu khu vực này để nghe thuyết minh chi tiết.";
+        
     public string DetailedActionButtonText => AccessState switch
     {
-        PoiAccessState.Purchased => "🎧 Nghe chi tiết",
-        PoiAccessState.NotLoggedIn => "🔐 Đăng nhập để mua",
-        PoiAccessState.NotPurchased => "🔒 Mua khu vực để nghe chi tiết",
-        PoiAccessState.NotForSale => "ℹ POI chưa thuộc khu vực nào",
+        AccessRenderState.Unlocked => "🎧 Nghe chi tiết",
+        AccessRenderState.NotPurchased => "🔒 Mua khu vực để nghe chi tiết",
+        AccessRenderState.NotLoggedIn => "👤 Đăng nhập để nghe chi tiết",
+        AccessRenderState.Resolving => "⌛ Đang xác định khu vực...",
+        AccessRenderState.NotForSale => "📍 POI chưa thuộc khu vực bán",
         _ => "🎧 Nghe chi tiết"
     };
 
@@ -309,7 +320,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 _loadingCts = new CancellationTokenSource();
 
                 await LoadPoiAsync(l_code, lang, _loadingCts.Token);
-                await ReEvaluateAccessAsync(_loadingCts.Token);
+                await ReEvaluateAccessAsync(ct: _loadingCts.Token);
                 Debug.WriteLine($"[QR-NAV] PoiDetail ApplyQueryAttributes done Poi null?={Poi == null}");
             }
         }
@@ -419,7 +430,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.PoiDetailPageLoad, poi).ConfigureAwait(false);
             });
 
-            await ReEvaluateAccessAsync(ct).ConfigureAwait(false);
+            await ReEvaluateAccessAsync(ct: ct).ConfigureAwait(false);
 
             Debug.WriteLine($"[POI-DETAIL] LoadPoiAsync completed for {_lastLoadedCode}");
         }
@@ -471,7 +482,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
 
         if (!HasZoneAccess)
         {
-            if (AccessState == PoiAccessState.NotForSale)
+            if (string.IsNullOrWhiteSpace(Poi.ZoneCode))
             {
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
@@ -603,26 +614,21 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         }
     }
 
-    public async Task ReEvaluateAccessAsync(CancellationToken ct = default)
+    public async Task ReEvaluateAccessAsync(bool force = false, CancellationToken ct = default)
     {
-        var nextState = PoiAccessState.NotForSale;
-        var zoneCode = Poi?.ZoneCode?.Trim();
+        if (Poi == null) return;
 
-        if (!string.IsNullOrWhiteSpace(zoneCode))
+        // Task 4: UI Gating
+        if (AccessState == AccessRenderState.Unknown || force)
+            AccessState = AccessRenderState.Resolving;
+
+        var result = await _accessCoordinator.EvaluateAccessAsync(Poi.Code, force, ct).ConfigureAwait(false);
+        
+        await MainThread.InvokeOnMainThreadAsync(async () => 
         {
-            if (!_auth.IsAuthenticated)
-            {
-                nextState = PoiAccessState.NotLoggedIn;
-            }
-            else if (Poi != null)
-            {
-                var hasAccess = await _entitlementService.HasAccessToPoiAsync(Poi.Code, ct).ConfigureAwait(false);
-                nextState = hasAccess ? PoiAccessState.Purchased : PoiAccessState.NotPurchased;
-            }
-        }
-
-        await MainThread.InvokeOnMainThreadAsync(() => AccessState = nextState);
-        await ResolveDownloadedAudioAsync(ct).ConfigureAwait(false);
+            AccessState = result.State;
+            await ResolveDownloadedAudioAsync(ct).ConfigureAwait(false);
+        });
     }
 
     private async Task ResolveDownloadedAudioAsync(CancellationToken ct = default)
@@ -649,8 +655,16 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         });
     }
 
-    public async Task PlayPurchasedAudioAsync()
+    private async Task PlayPurchasedAudioAsync()
     {
+        // 🔴 RUNTIME GUARD: HARD ASSERTION
+        if (AccessState != AccessRenderState.Unlocked)
+        {
+            _logger.LogError("CRITICAL_ILLEGAL_AUDIO_ACCESS_ATTEMPT", null, new { poiCode = Poi?.Code, state = AccessState });
+            await ReEvaluateAccessAsync(force: true);
+            if (AccessState != AccessRenderState.Unlocked) return;
+        }
+
         if (Poi == null) return;
         var lang = _languagePrefs.GetStoredOrDefault();
 

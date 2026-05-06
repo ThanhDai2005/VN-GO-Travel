@@ -50,7 +50,7 @@ async function run() {
     await db.collection('zones').createIndex({ code: 1 }, { unique: true });
     await db.collection('zone_pois').createIndex({ zoneId: 1, poiId: 1 }, { unique: true });
     await db.collection('users').createIndex({ email: 1 }, { unique: true, sparse: true });
-    await db.collection('user_wallets').createIndex({ userId: 1 }, { unique: true });
+    await db.collection('userwallets').createIndex({ userId: 1 }, { unique: true });
     await db.collection('transactions').createIndex({ userId: 1, createdAt: -1 });
     await db.collection('user_unlock_pois').createIndex({ userId: 1, poiId: 1 }, { unique: true });
     await db.collection('user_unlock_zones').createIndex({ userId: 1, zoneId: 1 }, { unique: true });

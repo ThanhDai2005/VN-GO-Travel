@@ -10,11 +10,13 @@ public sealed class UserEntitlementService : IUserEntitlementService
 {
     private readonly IPoiQueryRepository _poiQuery;
     private readonly IZoneAccessService _zoneAccess;
+    private readonly IZoneResolverService _zoneResolver;
 
-    public UserEntitlementService(IPoiQueryRepository poiQuery, IZoneAccessService zoneAccess)
+    public UserEntitlementService(IPoiQueryRepository poiQuery, IZoneAccessService zoneAccess, IZoneResolverService zoneResolver)
     {
         _poiQuery = poiQuery;
         _zoneAccess = zoneAccess;
+        _zoneResolver = zoneResolver;
     }
 
     public bool HasAccessToPoi(string poiCode)
@@ -33,8 +35,21 @@ public sealed class UserEntitlementService : IUserEntitlementService
             return false;
 
         await _poiQuery.InitAsync(ct).ConfigureAwait(false);
-        var poi = await _poiQuery.GetAnyLanguageByCodeAsync(poiCode.Trim().ToUpperInvariant(), ct).ConfigureAwait(false);
-        var zoneCode = poi?.ZoneCode?.Trim();
+        var norm = poiCode.Trim().ToUpperInvariant();
+        var poi = await _poiQuery.GetAnyLanguageByCodeAsync(norm, ct).ConfigureAwait(false);
+        
+        // --- STEP 3: SHADOW COMPARISON ---
+        var oldZone = poi?.ZoneCode?.Trim().ToUpperInvariant();
+        var newZone = (await _zoneResolver.ResolveZoneAsync(norm, ct: ct).ConfigureAwait(false))?.Trim().ToUpperInvariant();
+
+        if (oldZone != newZone)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ENTITLEMENT-SHADOW] ZONE_MISMATCH: poi={norm} old={oldZone ?? "NULL"} new={newZone ?? "NULL"}");
+        }
+
+        // --- STEP 4: SWITCH TO NEW LOGIC ---
+        var zoneCode = newZone ?? oldZone;
+        
         if (string.IsNullOrWhiteSpace(zoneCode))
             return false;
 

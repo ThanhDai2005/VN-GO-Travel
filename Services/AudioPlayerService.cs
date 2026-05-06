@@ -10,6 +10,8 @@ public sealed class AudioPlayerService : IAudioPlayerService
     private readonly IZoneAccessService _zoneAccess;
     private readonly ILoggerService _logger;
     private readonly IZoneDownloadService _downloadService;
+    private readonly IZoneAccessRepository _repository;
+    private readonly IZoneResolverService _zoneResolver;
     private CancellationTokenSource? _ttsCts;
 
     public bool IsPlaying { get; private set; }
@@ -26,11 +28,15 @@ public sealed class AudioPlayerService : IAudioPlayerService
     public AudioPlayerService(
         IZoneAccessService zoneAccess, 
         ILoggerService logger,
-        IZoneDownloadService downloadService)
+        IZoneDownloadService downloadService,
+        IZoneAccessRepository repository,
+        IZoneResolverService zoneResolver)
     {
         _zoneAccess = zoneAccess;
         _logger = logger;
         _downloadService = downloadService;
+        _repository = repository;
+        _zoneResolver = zoneResolver;
 
         // STEP 3: ACCESS REVOKED HOOK
         _zoneAccess.AccessRevoked += (s, revokedZoneId) =>
@@ -77,12 +83,24 @@ public sealed class AudioPlayerService : IAudioPlayerService
         _currentAudioUrl = audioUrl;
 
         // 🔴 CORE RULE: NO ACCESS -> NO AUDIO
-        await _zoneAccess.EnsureAccessAsync(zoneId, ct).ConfigureAwait(false);
+        // STEP 1: RESOLVE ZONE (If missing)
+        var resolvedZone = string.IsNullOrWhiteSpace(zoneId) 
+            ? null 
+            : zoneId;
 
-        // STEP 1: FILE INTEGRITY & RESOLUTION
+        // Try to resolve zone from audioUrl if it looks like a POI code
+        if (string.IsNullOrWhiteSpace(resolvedZone))
+        {
+            var fileName = Path.GetFileNameWithoutExtension(audioUrl);
+            resolvedZone = await _zoneResolver.ResolveZoneAsync(fileName, ct: ct).ConfigureAwait(false);
+        }
+
+        await _zoneAccess.EnsureAccessAsync(resolvedZone ?? "", ct).ConfigureAwait(false);
+
+        // STEP 2: FILE INTEGRITY & RESOLUTION (Use Repository)
         var localSource = Path.IsPathRooted(audioUrl)
             ? audioUrl
-            : await GetPlayableLocalSource(zoneId, audioUrl).ConfigureAwait(false);
+            : await GetPlayableLocalSource(resolvedZone ?? "", audioUrl).ConfigureAwait(false);
         var playSource = localSource ?? audioUrl;
         var isLocal = localSource != null;
 
@@ -224,19 +242,34 @@ public sealed class AudioPlayerService : IAudioPlayerService
 
     private async Task<string?> GetPlayableLocalSource(string zoneId, string audioUrl)
     {
-        // STEP 1: FILE INTEGRITY CHECK
-        var fileName = Path.GetFileName(audioUrl);
-        var localPath = Path.Combine(FileSystem.AppDataDirectory, "zones", zoneId, fileName);
+        // Task 6: Use SSoT for local audio (SQLite downloaded_audio table)
+        var poiCode = Path.GetFileNameWithoutExtension(audioUrl).ToUpperInvariant();
+        
+        // Try all languages or specific one if detectable
+        var record = await _repository.GetDownloadedAudioAsync(poiCode, "vi").ConfigureAwait(false)
+            ?? await _repository.GetDownloadedAudioAsync(poiCode, "en").ConfigureAwait(false);
 
-        if (File.Exists(localPath))
+        if (record != null)
         {
-            var info = new FileInfo(localPath);
-            if (info.Length > 0)
+            var path = !string.IsNullOrWhiteSpace(record.AudioLongPath) && File.Exists(record.AudioLongPath)
+                ? record.AudioLongPath
+                : record.AudioShortPath;
+
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
             {
-                return localPath;
+                var info = new FileInfo(path);
+                if (info.Length > 0) return path;
             }
-            
-            _logger.LogWarning("AUDIO_FILE_CORRUPT", new { zoneId, path = localPath, size = info.Length });
+        }
+
+        // Fallback to legacy path logic (Shadow Mode)
+        var fileName = Path.GetFileName(audioUrl);
+        var legacyPath = Path.Combine(FileSystem.AppDataDirectory, "zones", zoneId, fileName);
+
+        if (File.Exists(legacyPath))
+        {
+            var info = new FileInfo(legacyPath);
+            if (info.Length > 0) return legacyPath;
         }
 
         return null;

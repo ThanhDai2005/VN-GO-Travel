@@ -99,10 +99,17 @@ public partial class App : Microsoft.Maui.Controls.Application
                     await presence.SendHeartbeatAsync().ConfigureAwait(false);
                     System.Diagnostics.Debug.WriteLine("[PRESENCE] Initial heartbeat sent on app startup");
                 }
+
+                // Task 7.2: Sync purchases on app start
+                var consistency = services.GetService<BackgroundConsistencyService>();
+                if (consistency != null)
+                {
+                    await consistency.TriggerFullReconciliationAsync("AppStart").ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[PRESENCE] Initial heartbeat failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[STARTUP-SYNC] Initial tasks failed: {ex.Message}");
             }
         });
 
@@ -177,10 +184,15 @@ public partial class App : Microsoft.Maui.Controls.Application
                 var presence = _services.GetService<DevicePresenceService>();
                 if (presence != null)
                     await presence.SendHeartbeatAsync().ConfigureAwait(false);
+
+                // Task 7.2: Sync purchases on resume
+                var consistency = _services.GetService<BackgroundConsistencyService>();
+                if (consistency != null)
+                    await consistency.TriggerFullReconciliationAsync("AppResume").ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[PRESENCE] Resume heartbeat: {ex}");
+                System.Diagnostics.Debug.WriteLine($"[RESUME-SYNC] Tasks failed: {ex}");
             }
         });
 #if ANDROID

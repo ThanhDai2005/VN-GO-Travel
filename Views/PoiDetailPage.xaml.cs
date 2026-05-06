@@ -18,8 +18,7 @@ public partial class PoiDetailPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        _vm.AttachPreferredLanguageListener();
-        await _vm.ReEvaluateAccessAsync();
+        _vm.AttachListeners();
         StartUiTicker();
         Debug.WriteLine($"[QR-LIFE] PoiDetailPage OnAppearing Poi null?={_vm.Poi == null}");
 
@@ -39,7 +38,7 @@ public partial class PoiDetailPage : ContentPage
     protected override void OnDisappearing()
     {
         _uiTickerCts?.Cancel();
-        _vm.DetachPreferredLanguageListener();
+        _vm.DetachListeners();
         base.OnDisappearing();
         Debug.WriteLine("[QR-LIFE] PoiDetailPage OnDisappearing");
     }
@@ -54,10 +53,18 @@ public partial class PoiDetailPage : ContentPage
         {
             try
             {
+                var accessTick = 0;
                 while (!cts.IsCancellationRequested)
                 {
                     await Task.Delay(500, cts.Token);
                     await MainThread.InvokeOnMainThreadAsync(_vm.RefreshAudioUiState);
+
+                    accessTick++;
+                    if (accessTick >= 20) // Every 10 seconds (20 * 500ms)
+                    {
+                        accessTick = 0;
+                        await _vm.ReEvaluateAccessAsync(ct: cts.Token);
+                    }
                 }
             }
             catch (OperationCanceledException) { }

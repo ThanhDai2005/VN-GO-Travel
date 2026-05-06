@@ -229,6 +229,28 @@ class PoiService {
         return result;
     }
 
+    async getZoneByPoiCode(poiCode) {
+        if (!poiCode) {
+            throw new AppError('POI code is required', 400);
+        }
+
+        const cacheKey = `poiZone:${poiCode.toUpperCase()}`;
+        const cached = poiCache.get(cacheKey);
+        if (cached) {
+            console.log(`[CACHE] Hit: ${cacheKey}`);
+            return cached;
+        }
+
+        const zones = await zoneRepository.findZonesContainingPoi(poiCode);
+        const result = {
+            poiCode,
+            zoneCode: zones && zones.length > 0 ? zones[0].code : null
+        };
+
+        poiCache.set(cacheKey, result);
+        return result;
+    }
+
     _invalidateCache() {
         poiCache.clear();
     }

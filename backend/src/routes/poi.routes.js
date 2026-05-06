@@ -19,6 +19,7 @@ router.use(protect);
 
 router.get('/nearby', poiController.getNearby);
 router.get('/code/:code', poiController.getByCode);
+router.get('/:code/zone', poiController.getZoneByCode);
 router.get('/check-sync', poiController.checkSync);
 
 router.post('/', requireRole(ROLES.ADMIN), poiController.create);

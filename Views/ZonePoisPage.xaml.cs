@@ -20,12 +20,14 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
     private readonly MauiApp1.ApplicationContracts.Services.ILocalizationService _localization;
     private readonly IZoneAccessService _zoneAccessService;
     private readonly IAudioDownloadService _audioDownloadService;
+    private readonly IAccessStateCoordinator _accessStateCoordinator;
     private readonly IServiceProvider _services;
 
     private string? _zoneCode;
     private string? _zoneName;
     private string? _language;
     private readonly ObservableCollection<PoiListItem> _pois = new();
+    private static readonly SemaphoreSlim _purchaseLock = new(1, 1);
 
     public ZonePoisPage(
         IPoiQueryRepository poiQuery,
@@ -35,6 +37,7 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
         MauiApp1.ApplicationContracts.Services.ILocalizationService localization,
         IZoneAccessService zoneAccessService,
         IAudioDownloadService audioDownloadService,
+        IAccessStateCoordinator accessStateCoordinator,
         IServiceProvider services)
     {
         InitializeComponent();
@@ -45,6 +48,7 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
         _localization = localization;
         _zoneAccessService = zoneAccessService;
         _audioDownloadService = audioDownloadService;
+        _accessStateCoordinator = accessStateCoordinator;
         _services = services;
 
         PoisCollectionView.ItemsSource = _pois;
@@ -275,24 +279,27 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
 
             if (!confirm) return;
 
-            LoadingIndicator.IsRunning = true;
-            LoadingIndicator.IsVisible = true;
-
-            // Call purchase API
-            using var response = await _apiService.PostAsJsonAsync("purchase/zone", new { zoneCode = _zoneCode });
-
-            if (response.IsSuccessStatusCode)
+            await _purchaseLock.WaitAsync().ConfigureAwait(false);
+            try
             {
-                var normalizedZone = _zoneCode?.Trim().ToUpperInvariant();
-                if (!string.IsNullOrWhiteSpace(_zoneCode))
-                {
-                    await _zoneAccessService.SetAccessAsync(normalizedZone!, true, "ZonePoisPurchase");
-                    await _zoneAccessService.RefreshAsync();
-                    WeakReferenceMessenger.Default.Send(new ZonePurchasedMessage(normalizedZone!));
-                }
+                // Call purchase API
+                using var response = await _apiService.PostAsJsonAsync("purchase/zone", new { zoneCode = _zoneCode });
 
-                await DisplayAlertAsync("Success", "Zone purchased successfully!", "OK");
-                AccessFrame.IsVisible = false;
+                if (response.IsSuccessStatusCode)
+                {
+                    var normalizedZone = _zoneCode?.Trim().ToUpperInvariant();
+                    if (!string.IsNullOrWhiteSpace(normalizedZone))
+                    {
+                        // Task 5.1: Atomic Sync + Cache Update
+                        await _zoneAccessService.SetAccessAsync(normalizedZone, true, "ZonePoisPurchase");
+                        await _zoneAccessService.SyncAsync(); 
+                    }
+
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        await DisplayAlertAsync("Success", "Zone purchased successfully!", "OK");
+                        AccessFrame.IsVisible = false;
+                    });
 
                 var modal = _services.GetRequiredService<DownloadProgressPage>();
                 await Navigation.PushModalAsync(modal);
@@ -304,6 +311,9 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"[ZONE-POIS] Audio download failed: {ex.Message}");
+                    await MainThread.InvokeOnMainThreadAsync(async () => {
+                        await DisplayAlert("Download Failed", "Could not download audio files. You can still stream them online.", "OK");
+                    });
                 }
                 finally
                 {
@@ -311,29 +321,42 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
                         await Navigation.PopModalAsync();
                 }
 
-                // Reload POIs to show them as accessible
-                await LoadZonePoisAsync();
-            }
-            else
-            {
-                string errorContent = await response.Content.ReadAsStringAsync();
-                string message = "Unknown error occurred";
-                try
-                {
-                    // Try to parse friendly message from JSON
-                    var errorObj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(errorContent);
-                    if (errorObj.TryGetProperty("error", out var errorProp) && errorProp.TryGetProperty("message", out var msgProp))
+                    // Reload POIs to show them as accessible
+                    await LoadZonePoisAsync();
+
+                    // Force refresh access states in coordinator for each POI in this zone
+                    foreach (var poi in _pois)
                     {
-                        message = msgProp.GetString() ?? "Unknown error";
-                    }
-                    else if (errorObj.TryGetProperty("message", out var directMsgProp))
-                    {
-                        message = directMsgProp.GetString() ?? "Unknown error";
+                        _ = _accessStateCoordinator.ForceRefreshAsync(poi.Code);
                     }
                 }
-                catch { message = errorContent; }
+                else
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    string message = "Unknown error occurred";
+                    try
+                    {
+                        var errorObj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(errorContent);
+                        if (errorObj.TryGetProperty("error", out var errorProp) && errorProp.TryGetProperty("message", out var msgProp))
+                        {
+                            message = msgProp.GetString() ?? "Unknown error";
+                        }
+                        else if (errorObj.TryGetProperty("message", out var directMsgProp))
+                        {
+                            message = directMsgProp.GetString() ?? "Unknown error";
+                        }
+                    }
+                    catch { message = errorContent; }
 
-                await DisplayAlertAsync("Purchase Failed", message, "OK");
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        await DisplayAlertAsync("Purchase Failed", message, "OK");
+                    });
+                }
+            }
+            finally
+            {
+                _purchaseLock.Release();
             }
         }
         catch (Exception ex)

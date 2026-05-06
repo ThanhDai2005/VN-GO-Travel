@@ -152,7 +152,7 @@ export default function UserManagementPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">Quản lý người dùng</h1>
-          <p className="mt-1 text-sm font-medium text-slate-500">Phân quyền vai trò, cấp gói Premium và kiểm soát trạng thái truy cập.</p>
+          <p className="mt-1 text-sm font-medium text-slate-500">Phân quyền vai trò và kiểm soát trạng thái truy cập.</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -189,8 +189,6 @@ export default function UserManagementPage() {
                 <tr>
                   <th className="px-6 py-4 font-bold uppercase tracking-widest text-[10px]">Người dùng</th>
                   <th className="px-6 py-4 font-bold uppercase tracking-widest text-[10px]">Vai trò</th>
-                  <th className="px-6 py-4 font-bold uppercase tracking-widest text-[10px]">Gói dịch vụ</th>
-                  <th className="px-6 py-4 font-bold uppercase tracking-widest text-[10px]">Quét QR</th>
                   <th className="px-6 py-4 font-bold uppercase tracking-widest text-[10px]">Trạng thái</th>
                   <th className="px-6 py-4 font-bold uppercase tracking-widest text-[10px] text-right">Hành động</th>
                 </tr>
@@ -209,16 +207,6 @@ export default function UserManagementPage() {
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant="role">{row.role || 'USER'}</Badge>
-                      </td>
-                      <td className="px-6 py-4">
-                        {row.isPremium === true ? (
-                            <Badge variant="premium">💎 PREMIUM</Badge>
-                        ) : (
-                            <Badge variant="default">THƯỜNG</Badge>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 font-mono font-bold text-slate-600">
-                        {Number(row.qrScanCount || 0)}
                       </td>
                       <td className="px-6 py-4">
                         {row.isActive !== false ? (
@@ -288,13 +276,6 @@ export default function UserManagementPage() {
                 value={form.password}
                 onChange={(v) => setForm((f) => ({ ...f, password: v }))}
               />
-              <Input
-                label="Lượt quét QR khởi tạo"
-                type="number"
-                min={0}
-                value={form.qrScanCount}
-                onChange={(v) => setForm((f) => ({ ...f, qrScanCount: v }))}
-              />
               <label className="block">
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">Vai trò</span>
                 <select
@@ -340,37 +321,32 @@ export default function UserManagementPage() {
                 onChange={(v) => setEditForm((f) => ({ ...f, fullName: v }))}
               />
               <Input
-                label="Lượt quét QR"
-                type="number"
-                min={0}
-                value={editForm.qrScanCount}
-                onChange={(v) => setEditForm((f) => ({ ...f, qrScanCount: v }))}
-              />
-              <Input
                 label="Mật khẩu mới (để trống nếu không đổi)"
                 type="password"
-                minLength={6}
                 value={editForm.password}
                 onChange={(v) => setEditForm((f) => ({ ...f, password: v }))}
               />
-              <div className="grid grid-cols-2 gap-3">
-                  <label className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer hover:border-amber-300 transition-all">
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5 rounded border-slate-300 text-amber-500 focus:ring-amber-500 mb-2"
-                      checked={editForm.isPremium}
-                      onChange={(e) => setEditForm((f) => ({ ...f, isPremium: e.target.checked }))}
-                    />
-                    <span className="text-[10px] font-black uppercase text-amber-700">PREMIUM</span>
-                  </label>
-                  <label className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer hover:border-emerald-300 transition-all">
+              <label className="block">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">Vai trò</span>
+                <select
+                  value={editForm.role}
+                  onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex justify-center">
+                  <label className="flex flex-col items-center justify-center p-4 w-full rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer hover:border-emerald-300 transition-all">
                     <input
                       type="checkbox"
                       className="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 mb-2"
                       checked={editForm.isActive}
                       onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.checked }))}
                     />
-                    <span className="text-[10px] font-black uppercase text-emerald-700">HOẠT ĐỘNG</span>
+                    <span className="text-[10px] font-black uppercase text-emerald-700">TRẠNG THÁI HOẠT ĐỘNG</span>
                   </label>
               </div>
         </Modal>

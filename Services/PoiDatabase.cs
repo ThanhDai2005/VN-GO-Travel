@@ -10,7 +10,7 @@ using SQLite;
 
 namespace MauiApp1.Services;
 
-public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslationRepository, IZoneAccessRepository
+public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslationRepository, IZoneAccessRepository, IZoneResolverRepository
 {
     private readonly SQLiteAsyncConnection _db;
     private readonly ILogger<PoiDatabase> _logger;
@@ -34,6 +34,7 @@ public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslat
         await _db.CreateTableAsync<ZoneDownload>().ConfigureAwait(false);
         await _db.CreateTableAsync<DownloadedAudio>().ConfigureAwait(false);
         await _db.CreateTableAsync<SyncQueueEntry>().ConfigureAwait(false);
+        await _db.CreateTableAsync<ZonePoiMapping>().ConfigureAwait(false);
 
         // Ensure indices
         await _db.ExecuteAsync("CREATE INDEX IF NOT EXISTS IX_pois_Code ON pois(Code)").ConfigureAwait(false);
@@ -247,6 +248,25 @@ public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslat
     public Task RemoveSyncQueueEntryAsync(string entryId, CancellationToken ct = default)
     {
         return _db.DeleteAsync<SyncQueueEntry>(entryId);
+    }
+
+    // ── IZoneResolverRepository Implementation ───────────────────────────────
+
+    public async Task<ZonePoiMapping?> GetZoneMappingAsync(string poiCode, CancellationToken ct = default)
+    {
+        var norm = poiCode.Trim().ToUpperInvariant();
+        return await _db.Table<ZonePoiMapping>()
+            .Where(m => m.PoiCode == norm)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+    }
+
+    public Task UpsertZoneMappingAsync(ZonePoiMapping mapping, CancellationToken ct = default)
+    {
+        mapping.PoiCode = mapping.PoiCode.Trim().ToUpperInvariant();
+        mapping.ZoneCode = mapping.ZoneCode?.Trim().ToUpperInvariant();
+        mapping.UpdatedAt = DateTime.UtcNow;
+        return _db.InsertOrReplaceAsync(mapping);
     }
 
     // ── Rest of PoiDatabase ──────────────────────────────────────────────────

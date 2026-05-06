@@ -32,29 +32,6 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Border Style="{StaticResource CardBorder}" IsVisible="{Binding IsLoggedIn}">
-                <Grid ColumnDefinitions="*, Auto">
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Ví điểm VN-GO"
-                               Style="{StaticResource SectionTitle}" />
-                        <Label Text="{Binding DisplayBalance}"
-                               FontSize="24"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource BrandPrimary}" />
-                    </VerticalStackLayout>
-                    
-                    <Button Grid.Column="1"
-                            Text="󰑐"
-                            FontFamily="MaterialIcons"
-                            FontSize="20"
-                            Padding="10"
-                            BackgroundColor="Transparent"
-                            TextColor="{StaticResource BrandPrimary}"
-                            Command="{Binding RefreshWalletCommand}"
-                            VerticalOptions="Center" />
-                </Grid>
-            </Border>
-
             <Button Text="Đăng nhập"
                     Style="{StaticResource PrimaryButton}"
                     Command="{Binding LoginCommand}"

@@ -6,6 +6,7 @@ namespace MauiApp1.Services;
 public interface IZoneAccessService
 {
     event EventHandler<string>? AccessRevoked;
+    event Action<string, bool>? AccessChanged;
 
     Task InitializeAsync(CancellationToken ct = default);
     
@@ -20,6 +21,8 @@ public interface IZoneAccessService
     Task<List<string>> GetAccessibleZonesAsync(CancellationToken ct = default);
 
     Task RefreshAsync(CancellationToken ct = default);
+
+    Task SyncAsync(CancellationToken ct = default);
 
     Task SyncWithServerAsync(CancellationToken ct = default);
     

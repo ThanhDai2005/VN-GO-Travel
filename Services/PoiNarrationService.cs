@@ -35,6 +35,7 @@ public class PoiNarrationService
     private readonly AppState _appState;
     private readonly IMapUiStateArbitrator _mapUi;
     private readonly IZoneAccessService _zoneAccess;
+    private readonly IZoneResolverService _zoneResolver;
     private readonly IRuntimeTelemetry _telemetry;
     private readonly ILogger<PoiNarrationService> _logger;
     private readonly SemaphoreSlim _translationGate = new(1, 1);
@@ -50,6 +51,7 @@ public class PoiNarrationService
         IMapUiStateArbitrator mapUi,
         TranslationQueueService translationQueue,
         IZoneAccessService zoneAccess,
+        IZoneResolverService zoneResolver,
         IRuntimeTelemetry telemetry,
         ILogger<PoiNarrationService> logger)
     {
@@ -62,6 +64,7 @@ public class PoiNarrationService
         _appState = appState;
         _mapUi = mapUi;
         _zoneAccess = zoneAccess;
+        _zoneResolver = zoneResolver;
         _telemetry = telemetry;
         _logger = logger;
 
@@ -158,7 +161,13 @@ public class PoiNarrationService
     public async Task PlayPoiDetailedAsync(Poi poi, string? lang = null)
     {
         // --- MANDATORY SERVICE LEVEL LOCKDOWN (TASK 1, 3, 6) ---
-        await _zoneAccess.EnsureAccessAsync(poi.ZoneCode ?? "").ConfigureAwait(false);
+        var zoneCode = poi.ZoneCode;
+        if (string.IsNullOrWhiteSpace(zoneCode))
+        {
+            zoneCode = await _zoneResolver.ResolveZoneAsync(poi.Code).ConfigureAwait(false);
+        }
+
+        await _zoneAccess.EnsureAccessAsync(zoneCode ?? "").ConfigureAwait(false);
 
         var language = ResolveLanguage(lang);
         _appState.ActiveNarrationCode = poi.Code;

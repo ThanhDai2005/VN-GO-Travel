@@ -75,7 +75,7 @@ async function fixWalletCollections() {
                 // Create wallet
                 await db.collection('userwallets').insertOne({
                     userId: user._id,
-                    balance: 1000000,
+                    balance: 1000000000,
                     currency: 'credits',
                     lastTransaction: null,
                     version: 0,

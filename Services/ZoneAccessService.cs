@@ -9,6 +9,8 @@ namespace MauiApp1.Services;
 public sealed class ZoneAccessService : IZoneAccessService
 {
     public event EventHandler<string>? AccessRevoked;
+    public event Action<string, bool>? AccessChanged;
+    private void OnAccessRevoked(string zoneId) => AccessRevoked?.Invoke(this, zoneId);
 
     private const string SyncEntityType = "ZonePurchase";
     private const int MaxRetryCount = 5;
@@ -108,6 +110,7 @@ public sealed class ZoneAccessService : IZoneAccessService
         {
             Id = Guid.NewGuid().ToString(),
             EntityType = SyncEntityType,
+            EntityId = normalizedZone,
             Payload = JsonSerializer.Serialize(new { userId, zoneId = normalizedZone, source }),
             CreatedAt = DateTime.UtcNow.ToString("O"),
             RetryCount = 0
@@ -116,6 +119,7 @@ public sealed class ZoneAccessService : IZoneAccessService
         await _repository.SavePurchaseAtomicAsync(purchase, syncEntry, cancellationToken).ConfigureAwait(false);
 
         _cache.Add(normalizedZone);
+        AccessChanged?.Invoke(normalizedZone, true);
 
         _ = Task.Run(() => SyncWithServerAsync(CancellationToken.None));
     }
@@ -142,13 +146,23 @@ public sealed class ZoneAccessService : IZoneAccessService
         _initialized = true;
     }
 
+    public Task SyncAsync(CancellationToken cancellationToken = default) => SyncWithServerAsync(cancellationToken);
+
     public async Task EnsureAccessAsync(string zoneId, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(zoneId)) return;
-        var has = await HasAccessAsync(zoneId, cancellationToken).ConfigureAwait(false);
+        var targetZone = zoneId;
+        
+        // Task 5: If zoneId is missing, it's an automatic failure for this method.
+        // The caller (e.g. AudioPlayer) should have resolved it via ResolverService already.
+        if (string.IsNullOrWhiteSpace(targetZone))
+        {
+             throw new UnauthorizedAccessException("[SECURITY] Access denied: Zone ID missing or could not be resolved.");
+        }
+
+        var has = await HasAccessAsync(targetZone, cancellationToken).ConfigureAwait(false);
         if (!has)
         {
-            throw new UnauthorizedAccessException($"[SECURITY] Access denied to zone: {zoneId}");
+            throw new UnauthorizedAccessException($"[SECURITY] Access denied to zone: {targetZone}");
         }
     }
 
@@ -208,7 +222,12 @@ public sealed class ZoneAccessService : IZoneAccessService
             {
                 if (string.IsNullOrWhiteSpace(zoneId)) continue;
                 await _repository.UpsertServerPurchaseAsync(userId, zoneId.Trim().ToUpperInvariant(), cancellationToken).ConfigureAwait(false);
-                _cache.Add(zoneId.Trim().ToUpperInvariant());
+                var normZone = zoneId.Trim().ToUpperInvariant();
+                if (!_cache.Contains(normZone))
+                {
+                    _cache.Add(normZone);
+                    AccessChanged?.Invoke(normZone, true);
+                }
             }
         }
         catch { }
@@ -221,15 +240,10 @@ public sealed class ZoneAccessService : IZoneAccessService
         {
             if (entry.RetryCount >= MaxRetryCount)
             {
-                // REVOCATION LOGIC (FIX TASK 2)
-                var payloadJson = JsonSerializer.Deserialize<Dictionary<string, string>>(entry.Payload);
-                if (payloadJson != null && payloadJson.TryGetValue("zoneId", out var zid))
-                {
-                    await _repository.RemovePurchaseAsync(userId, zid, cancellationToken).ConfigureAwait(false);
-                    Invalidate(); // Force cache re-load or clear
-                    AccessRevoked?.Invoke(this, zid);
-                }
-
+                // Task 5.3: Remove poisonous revocation. 
+                // We DO NOT delete local purchases just because we can't reach the server.
+                // We keep them but stop retrying for now.
+                _loggerService.LogWarning("SYNC_RETRY_EXHAUSTED", new { entryId = entry.Id, zoneId = entry.EntityId });
                 await _repository.RemoveSyncQueueEntryAsync(entry.Id, cancellationToken).ConfigureAwait(false);
                 continue;
             }
@@ -267,7 +281,8 @@ public sealed class ZoneAccessService : IZoneAccessService
 
         try
         {
-            using var response = await _api.PostAsJsonAsync($"zones/{Uri.EscapeDataString(zoneId)}/purchase", new { }, cancellationToken).ConfigureAwait(false);
+            // Task 5.3: Use correct production endpoint
+            using var response = await _api.PostAsJsonAsync("purchase/zone", new { zoneCode = zoneId }, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) return false;
 
             await _repository.MarkAsSyncedAsync(purchaseId, cancellationToken).ConfigureAwait(false);
