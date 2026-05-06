@@ -3,8 +3,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
     <!-- Brand identity -->
-    <Color x:Key="BrandPrimary">#DF6C82</Color>
-    <Color x:Key="BrandPrimaryDark">#C55A6E</Color> <!-- Slightly darker shade of Primary -->
+    <Color x:Key="BrandPrimary">#10B981</Color>
+    <Color x:Key="BrandPrimaryDark">#059669</Color>
     <Color x:Key="BrandAccent">#E7D050</Color>
     <Color x:Key="BrandDark">#5C362B</Color>
 

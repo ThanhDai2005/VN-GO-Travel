@@ -98,6 +98,9 @@ const path = require('path');
 // Serve static audio files
 app.use('/storage/audio', express.static(path.join(process.cwd(), 'storage', 'audio')));
 
+// Serve web bridge HTML for QR scan (at root to match /scan path)
+app.use('/', express.static(path.join(process.cwd(), 'public')));
+
 // Main routes
 app.use('/api/v1/public/zones', publicZoneRoutes);
 app.use('/api/v1/auth', authRoutes);

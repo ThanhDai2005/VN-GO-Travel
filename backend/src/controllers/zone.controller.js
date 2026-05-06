@@ -51,7 +51,8 @@ class ZoneController {
 
     /**
      * GET /api/v1/zones/:code
-     * Get zone by code
+     * Get zone by code with full POI details
+     * FIX: Mobile app needs full POI details, not just codes
      */
     async getZoneByCode(req, res, next) {
         try {
@@ -61,7 +62,12 @@ class ZoneController {
             const zone = await zoneRepository.findByCode(code);
 
             if (!zone) {
+                console.warn(`[ZONE-CONTROLLER] Zone not found for code: ${code}`);
                 throw new AppError('Zone not found', 404);
+            }
+
+            if (!zone.isActive) {
+                throw new AppError('Zone is not available', 403);
             }
 
             const zoneObj = zone.toObject();
@@ -70,7 +76,36 @@ class ZoneController {
             if (userId) {
                 const accessStatus = await accessControlService.canAccessZone(userId, code);
                 zoneObj.accessStatus = accessStatus;
+            } else {
+                // Guest user - show purchase required
+                zoneObj.accessStatus = {
+                    hasAccess: false,
+                    requiresPurchase: true,
+                    price: zone.price
+                };
             }
+
+            // FIX: Fetch full POI details for mobile app
+            const poiRepository = require('../repositories/poi.repository');
+            const poiService = require('../services/poi.service');
+            const { POI_STATUS } = require('../constants/poi-status');
+
+            const allPois = await poiRepository.findByCodes(zone.poiCodes);
+            const approvedPois = allPois.filter(poi => poi.status === POI_STATUS.APPROVED);
+
+            // Map POIs to DTO format (without audio for this endpoint)
+            zoneObj.pois = approvedPois.map(poi => {
+                const poiDto = poiService.mapPoiDto(poi);
+                return {
+                    code: poiDto.code,
+                    name: poiDto.name,
+                    summary: poiDto.summary,
+                    location: poiDto.location,
+                    radius: poiDto.radius,
+                    priority: poiDto.priority,
+                    languageCode: poiDto.languageCode
+                };
+            });
 
             res.json({
                 success: true,
@@ -90,6 +125,7 @@ class ZoneController {
         const startTime = Date.now();
         try {
             const { token } = req.body;
+            console.log(`[ZONE-CONTROLLER] Scanning zone QR. Token provided: ${token ? (token.substring(0, 10) + '...') : 'NONE'}`);
 
             if (!token || typeof token !== 'string') {
                 throw new AppError('token is required', 400);
@@ -98,7 +134,10 @@ class ZoneController {
             const userId = req.user ? req.user._id : null;
 
             // Resolve zone scan token
-            const result = await zoneService.resolveZoneScanToken(token, userId);
+            const result = await zoneService.resolveZoneScanToken(token, userId, {
+                ip: req.ip,
+                userAgent: req.get('user-agent')
+            });
 
             // Log successful scan event
             await logEvent('ZONE_SCAN', {

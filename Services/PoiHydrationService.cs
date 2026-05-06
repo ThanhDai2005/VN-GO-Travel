@@ -30,6 +30,7 @@ public class PoiHydrationService
     private readonly IEventTracker _eventTracker;
     private readonly IUserContextSnapshotProvider _userContext;
     private readonly TranslationTrackingSession _trackingSession;
+    private readonly IZoneAccessService _zoneAccess;
     private readonly SemaphoreSlim _loadGate = new(1, 1);
 
     public PoiHydrationService(
@@ -42,7 +43,8 @@ public class PoiHydrationService
         AuthService auth,
         IEventTracker eventTracker,
         IUserContextSnapshotProvider userContext,
-        TranslationTrackingSession trackingSession)
+        TranslationTrackingSession trackingSession,
+        IZoneAccessService zoneAccess)
     {
         _poiQuery = poiQuery;
         _poiCommand = poiCommand;
@@ -54,6 +56,7 @@ public class PoiHydrationService
         _eventTracker = eventTracker;
         _userContext = userContext;
         _trackingSession = trackingSession;
+        _zoneAccess = zoneAccess;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -126,6 +129,7 @@ public class PoiHydrationService
             Debug.WriteLine("[MAP-LOAD] LoadPoisAsync START");
 
             await _poiQuery.InitAsync().ConfigureAwait(false);
+            await _zoneAccess.InitializeAsync().ConfigureAwait(false);
 
             var targetLang = string.IsNullOrWhiteSpace(preferredLanguage)
                 ? _appState.CurrentLanguage

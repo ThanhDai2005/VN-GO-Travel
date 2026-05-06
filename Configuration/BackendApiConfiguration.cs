@@ -20,9 +20,12 @@ public static class BackendApiConfiguration
     /// - Set UseNgrokTunnel = false
     /// - Dùng LocalNetworkHost (IP máy Windows từ ipconfig)
     /// </summary>
-    private const bool UseNgrokTunnel = true;
-    private const string NgrokTunnelUrl = "https://repugnant-liberty-dragging.ngrok-free.dev"; // Thay bằng URL ngrok của bạn (KHÔNG có dấu / ở cuối)
-    private const string LocalNetworkHost = "10.186.18.235"; // IP máy Windows khi cùng mạng
+    private const bool UseNgrokTunnel = false;
+    
+    // WARNING: If you get a 404 error, your ngrok tunnel might have expired or pointing to the wrong port.
+    // Ensure you run 'ngrok http 3000' and paste the NEW URL here.
+    private const string NgrokTunnelUrl = "https://repugnant-liberty-dragging.ngrok-free.dev"; 
+    private const string LocalNetworkHost = "192.168.1.8"; // IP máy Windows khi cùng mạng
 
 
     public static string BaseUrl { get; set; } = UseNgrokTunnel

@@ -67,9 +67,6 @@ public sealed class UserDto
     [JsonPropertyName("role")]
     public string? Role { get; set; }
 
-    [JsonPropertyName("isPremium")]
-    public bool IsPremium { get; set; }
-
     [JsonPropertyName("qrScanCount")]
     public int QrScanCount { get; set; }
 }

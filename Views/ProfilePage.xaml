@@ -30,15 +30,6 @@
                                TextColor="{StaticResource BrandPrimaryDark}" />
                     </HorizontalStackLayout>
 
-                    <HorizontalStackLayout Spacing="12">
-                        <Label Text="Gói:"
-                               FontSize="15"
-                               TextColor="{StaticResource TextPrimary}" />
-                        <Label Text="{Binding PremiumDisplay}"
-                               FontSize="15"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource BrandPrimaryDark}" />
-                    </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Border>
 
@@ -51,12 +42,6 @@
                     Style="{StaticResource SecondaryButton}"
                     Command="{Binding LogoutCommand}"
                     IsVisible="{Binding IsLoggedIn}" />
-
-            <Button Text="🚀 Mở khóa Đặc quyền Premium"
-                    Style="{StaticResource PrimaryButton}"
-                    Command="{Binding UpgradePremiumCommand}"
-                    IsVisible="{Binding CanUpgradePremium}"
-                    BackgroundColor="{StaticResource NatureEmerald}" />
 
             <Border Style="{StaticResource CardBorder}"
                     IsVisible="{Binding ShowOwnerSection}">

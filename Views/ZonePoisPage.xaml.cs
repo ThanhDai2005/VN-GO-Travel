@@ -4,12 +4,14 @@ using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.Models;
 using MauiApp1.Services;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.ApplicationModel;
 
 namespace MauiApp1.Views;
 
 public partial class ZonePoisPage : ContentPage, IQueryAttributable
 {
     private readonly IPoiQueryRepository _poiQuery;
+    private readonly IPoiCommandRepository _poiCommand;
     private readonly ApiService _apiService;
     private readonly AuthService _authService;
     private readonly MauiApp1.ApplicationContracts.Services.ILocalizationService _localization;
@@ -21,12 +23,14 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
 
     public ZonePoisPage(
         IPoiQueryRepository poiQuery,
+        IPoiCommandRepository poiCommand,
         ApiService apiService,
         AuthService authService,
         MauiApp1.ApplicationContracts.Services.ILocalizationService localization)
     {
         InitializeComponent();
         _poiQuery = poiQuery;
+        _poiCommand = poiCommand;
         _apiService = apiService;
         _authService = authService;
         _localization = localization;
@@ -80,7 +84,7 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
             if (string.IsNullOrEmpty(zoneCode))
             {
                 Debug.WriteLine("[ZONE-POIS] Missing zoneCode from navigation query");
-                MainThread.BeginInvokeOnMainThread(async () => await DisplayAlert("Error", "Zone code is missing", "OK"));
+                MainThread.BeginInvokeOnMainThread(async () => await DisplayAlertAsync("Error", "Zone code is missing", "OK"));
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     _pois.Clear();
@@ -100,7 +104,7 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
             if (!response.IsSuccessStatusCode)
             {
                 Debug.WriteLine($"[ZONE-POIS] zones/{{code}} failed status={(int)response.StatusCode} body={json}");
-                MainThread.BeginInvokeOnMainThread(async () => await DisplayAlert("Error", "Unable to load zone data", "OK"));
+                MainThread.BeginInvokeOnMainThread(async () => await DisplayAlertAsync("Error", "Unable to load zone data", "OK"));
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     _pois.Clear();
@@ -117,29 +121,46 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
                 json,
                 new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            var zonePoiCodes = zoneData?.Data?.PoiCodes?
-                .Where(c => !string.IsNullOrWhiteSpace(c))
-                .Select(c => c.Trim().ToUpperInvariant())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList() ?? new List<string>();
+            // FIX: Backend now returns full POI objects in 'pois' array
+            var apiPois = zoneData?.Data?.Pois ?? new List<ZonePoiDto>();
+            Debug.WriteLine($"[ZONE-POIS] API returned {apiPois.Count} POIs");
 
-            Debug.WriteLine($"[ZONE-POIS] API zonePoiCodes count={zonePoiCodes.Count}");
-
+            // Merge API POIs into local database
             await _poiQuery.InitAsync();
-            var allPois = await _poiQuery.GetAllAsync();
-            Debug.WriteLine($"[ZONE-POIS] Local POIs available count={allPois.Count}");
-
-            var poisToShow = zonePoiCodes.Count > 0
-                ? allPois.Where(p => zonePoiCodes.Contains(p.Code, StringComparer.OrdinalIgnoreCase)).ToList()
-                : new List<Poi>();
-            
-            if (zonePoiCodes.Count > 0 && poisToShow.Count < zonePoiCodes.Count)
+            foreach (var apiPoi in apiPois)
             {
-                var missing = zonePoiCodes.Where(c => !allPois.Any(p => string.Equals(p.Code, c, StringComparison.OrdinalIgnoreCase))).ToList();
-                Debug.WriteLine($"[ZONE-POIS] Warning: {missing.Count} POIs missing from local database: {string.Join(", ", missing)}");
+                if (apiPoi.Location != null && !string.IsNullOrWhiteSpace(apiPoi.Code))
+                {
+                    var poi = new Poi
+                    {
+                        Id = apiPoi.Code,
+                        Code = apiPoi.Code,
+                        Latitude = apiPoi.Location.Lat,
+                        Longitude = apiPoi.Location.Lng,
+                        Radius = apiPoi.Radius > 0 ? apiPoi.Radius : 50,
+                        Priority = apiPoi.Priority
+                    };
+                    await _poiCommand.UpsertAsync(poi);
+
+                    // Register localization
+                    if (!string.IsNullOrWhiteSpace(apiPoi.Name))
+                    {
+                        var localization = new PoiLocalization
+                        {
+                            Code = apiPoi.Code,
+                            LanguageCode = apiPoi.LanguageCode ?? "vi",
+                            Name = apiPoi.Name,
+                            Summary = apiPoi.Summary ?? "",
+                            NarrationShort = apiPoi.Summary ?? "",
+                            NarrationLong = apiPoi.Summary ?? ""
+                        };
+                        _localization.RegisterDynamicTranslation(apiPoi.Code, localization.LanguageCode, localization);
+                    }
+                }
             }
 
-            Debug.WriteLine($"[ZONE-POIS] Filtered POIs count={poisToShow.Count} for zoneCode='{zoneCode}'");
+            var poisToShow = apiPois;
+            Debug.WriteLine($"[ZONE-POIS] Displaying {poisToShow.Count} POIs for zoneCode='{zoneCode}'");
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -165,16 +186,15 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
                 }
 
                 _pois.Clear();
-                foreach (var poi in poisToShow)
+                foreach (var apiPoi in poisToShow)
                 {
-                    var localization = _localization.GetLocalization(poi.Code, _language ?? "vi");
                     _pois.Add(new PoiListItem
                     {
-                        Code = poi.Code,
-                        Name = localization?.Name ?? poi.Code,
-                        Summary = localization?.Summary ?? "A beautiful location",
-                        Latitude = poi.Latitude,
-                        Longitude = poi.Longitude
+                        Code = apiPoi.Code,
+                        Name = apiPoi.Name ?? apiPoi.Code,
+                        Summary = apiPoi.Summary ?? "A beautiful location",
+                        Latitude = apiPoi.Location?.Lat ?? 0,
+                        Longitude = apiPoi.Location?.Lng ?? 0
                     });
                 }
 
@@ -189,7 +209,7 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
         catch (Exception ex)
         {
             Debug.WriteLine($"[ZONE-POIS] Load error: {ex}");
-            MainThread.BeginInvokeOnMainThread(async () => await DisplayAlert("Error", "Failed to load zone POIs", "OK"));
+            MainThread.BeginInvokeOnMainThread(async () => await DisplayAlertAsync("Error", "Failed to load zone POIs", "OK"));
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 _pois.Clear();
@@ -234,7 +254,7 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
                 return;
             }
 
-            var confirm = await DisplayAlert(
+            var confirm = await DisplayAlertAsync(
                 "Purchase Zone",
                 $"Do you want to purchase '{_zoneName}' zone?",
                 "Yes",
@@ -250,7 +270,7 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
 
             if (response.IsSuccessStatusCode)
             {
-                await DisplayAlert("Success", "Zone purchased successfully!", "OK");
+                await DisplayAlertAsync("Success", "Zone purchased successfully!", "OK");
                 AccessFrame.IsVisible = false;
             }
             else
@@ -272,13 +292,13 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
                 }
                 catch { message = errorContent; }
 
-                await DisplayAlert("Purchase Failed", message, "OK");
+                await DisplayAlertAsync("Purchase Failed", message, "OK");
             }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[ZONE-POIS] Purchase error: {ex.Message}");
-            await DisplayAlert("Error", "Failed to purchase zone", "OK");
+            await DisplayAlertAsync("Error", "Failed to purchase zone", "OK");
         }
         finally
         {
@@ -310,6 +330,24 @@ public class ZoneAccessData
     public string? Description { get; set; }
     public ZoneAccessStatus? AccessStatus { get; set; }
     public List<string>? PoiCodes { get; set; }
+    public List<ZonePoiDto>? Pois { get; set; } // FIX: Add full POI objects
+}
+
+public class ZonePoiDto
+{
+    public string Code { get; set; } = "";
+    public string? Name { get; set; }
+    public string? Summary { get; set; }
+    public string? LanguageCode { get; set; }
+    public PoiLocation? Location { get; set; }
+    public double Radius { get; set; }
+    public int Priority { get; set; }
+}
+
+public class PoiLocation
+{
+    public double Lat { get; set; }
+    public double Lng { get; set; }
 }
 
 public class ZoneAccessStatus

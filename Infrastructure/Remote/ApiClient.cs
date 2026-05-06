@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using MauiApp1.Configuration;
 
 namespace MauiApp1.Infrastructure.Remote;
 
@@ -12,9 +13,12 @@ public class ApiClient : IApiClient
 
     public ApiClient()
     {
+        var baseUrl = MauiApp1.Configuration.BackendApiConfiguration.BaseUrl;
+        if (!baseUrl.EndsWith("/")) baseUrl += "/";
+        
         _httpClient = new HttpClient
         {
-            BaseAddress = new Uri("https://api.vngo-travel.com/v1/")
+            BaseAddress = new Uri(baseUrl)
         };
     }
 

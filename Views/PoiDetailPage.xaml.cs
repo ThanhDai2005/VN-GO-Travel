@@ -27,7 +27,7 @@ public partial class PoiDetailPage : ContentPage
             content.TranslationY = 20;
             
             await Task.WhenAll(
-                content.FadeTo(1, 450, Easing.CubicOut),
+                content.FadeToAsync(1, 450, Easing.CubicOut),
                 content.TranslateToAsync(0, 0, 450, Easing.CubicOut)
             );
         }

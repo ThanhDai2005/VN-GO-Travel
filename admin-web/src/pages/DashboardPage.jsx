@@ -44,7 +44,7 @@ function RejectModal({ open, onClose, onConfirm, poiCode }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Lý do từ chối..."
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-red-500/50"
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-slate-500/50"
           />
           <div className="flex justify-end gap-2">
             <button
@@ -57,7 +57,7 @@ function RejectModal({ open, onClose, onConfirm, poiCode }) {
             <button
               type="submit"
               disabled={busy || !reason.trim()}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              className="rounded-lg bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-500 disabled:opacity-50"
             >
               {busy ? "..." : "Xác nhận từ chối"}
             </button>
@@ -205,7 +205,7 @@ export default function DashboardPage() {
                           type="button"
                           disabled={busy}
                           onClick={() => setRejectFor({ id, code: row.code })}
-                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-50"
+                          className="rounded-lg bg-slate-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-500 disabled:opacity-50"
                         >
                           Từ chối
                         </button>

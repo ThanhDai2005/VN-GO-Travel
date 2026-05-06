@@ -6,6 +6,7 @@ const poiRepository = require('../repositories/poi.repository');
 const poiService = require('./poi.service');
 const accessControlService = require('./access-control.service');
 const RevokedToken = require('../models/revoked-token.model');
+const ScanLog = require('../models/scan-log.model');
 const { AppError } = require('../middlewares/error.middleware');
 const { POI_STATUS } = require('../constants/poi-status');
 
@@ -81,11 +82,8 @@ class ZoneService {
         }
     }
 
-    /**
-     * Resolve zone scan token
-     * Verifies JWT, checks blacklist, and returns zone + POIs + access status
-     */
-    async resolveZoneScanToken(token, userId = null) {
+    async resolveZoneScanToken(token, userId = null, requestInfo = {}) {
+        const { ip, userAgent } = requestInfo;
         try {
             // 1. Verify JWT signature and expiration
             let decoded;
@@ -93,6 +91,16 @@ class ZoneService {
                 decoded = jwt.verify(token, config.jwtSecret);
             } catch (err) {
                 if (err.name === 'TokenExpiredError') {
+                    // Record expired scan
+                    const payload = jwt.decode(token);
+                    if (payload && payload.zoneCode) {
+                        await ScanLog.create({ 
+                            zoneCode: payload.zoneCode, 
+                            userId, ip, userAgent, 
+                            status: 'EXPIRED',
+                            error: 'Token expired'
+                        });
+                    }
                     throw new AppError('Zone QR code has expired. Please request a new QR code.', 401);
                 }
                 throw new AppError('Invalid zone QR token', 401);
@@ -108,6 +116,11 @@ class ZoneService {
             if (jti) {
                 const isRevoked = await RevokedToken.isRevoked(jti);
                 if (isRevoked) {
+                    await ScanLog.create({ 
+                        zoneCode, userId, ip, userAgent, 
+                        status: 'REVOKED',
+                        error: 'Token revoked'
+                    });
                     throw new AppError('This QR code has been revoked. Please request a new QR code.', 401);
                 }
             }
@@ -149,32 +162,41 @@ class ZoneService {
             // 7. Filter POI content based on access (Distributed + Versioned Audio)
             const filteredPois = await Promise.all(approvedPois.map(async (poi) => {
                 const poiObj = poiService.mapPoiDto(poi);
-                const text = poi.narrationLong || poi.narrationShort || poi.name;
+                const hasAccess = accessStatus.hasAccess;
+                
+                // Select content for audio based on access
+                const textForAudio = (hasAccess && poi.narrationLong) ? poi.narrationLong : (poi.narrationShort || poi.name);
                 const lang = poi.languageCode || 'vi';
                 const version = poi.version || 1;
 
-                // Check audio readiness (Version-aware)
-                const audioStatus = await audioService.getAudioStatus(text, lang, 'female', version, poi.code);
-                
-                poiObj.audio = {
-                    url: audioStatus.url,
-                    ready: audioStatus.ready
-                };
-                poiObj.audioUrl = audioStatus.url; // Legacy support
+                try {
+                    // Check audio readiness (Version-aware)
+                    const audioStatus = await audioService.getAudioStatus(textForAudio, lang, 'female', version, poi.code);
+                    
+                    poiObj.audio = {
+                        url: audioStatus.url,
+                        ready: audioStatus.ready
+                    };
+                    poiObj.audioUrl = audioStatus.url; // Legacy support
 
-                // Trigger background generation if not ready
-                if (!audioStatus.ready) {
-                    audioService.generateAudioAsync({ 
-                        text, 
-                        language: lang, 
-                        version, 
-                        poiCode: poi.code,
-                        zoneCode: zone.code
-                    });
+                    // Trigger background generation if not ready (Production guard: catch errors)
+                    if (!audioStatus.ready) {
+                        audioService.generateAudioAsync({ 
+                            text: textForAudio, 
+                            language: lang, 
+                            version, 
+                            poiCode: poi.code,
+                            zoneCode: zone.code
+                        });
+                    }
+                } catch (audioErr) {
+                    console.error(`[ZONE-SCAN] Audio status check failed for POI ${poi.code}:`, audioErr.message);
+                    // Fallback: Don't break the scan if audio service is flaky
+                    poiObj.audio = { ready: false };
                 }
 
-                // If no access, remove narrationLong
-                if (!accessStatus.hasAccess) {
+                // If no access, strictly sanitize premium content
+                if (!hasAccess) {
                     poiObj.narrationLong = null;
 
                     // Also filter localizedContent
@@ -189,6 +211,12 @@ class ZoneService {
 
                 return poiObj;
             }));
+
+            // 8. Log successful scan
+            await ScanLog.create({ 
+                zoneCode, userId, ip, userAgent, 
+                status: 'SUCCESS'
+            });
 
             // 8. Return zone + POIs + access status
             return {

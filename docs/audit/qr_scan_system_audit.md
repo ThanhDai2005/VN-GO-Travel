@@ -1,203 +1,210 @@
-# QR Scan System Audit Report
+﻿# QR Scan + Purchase System Audit (Mobile App Focus)
 
 **Project:** VN-GO-Travel6  
 **Audit Date:** 2026-04-25  
 **Auditor:** System Review  
-**Scope:** Zone-based QR scanning functionality across Mobile App, Backend API, and Admin Web
+**Scope:** .NET MAUI mobile app QR scan → map → POI → purchase flow, and local data persistence.
+
+**Non‑negotiable statement:** **SYSTEM IS INCOMPLETE – PURCHASE DOMAIN DOES NOT EXIST.**
 
 ---
 
-## Executive Summary
+# 1. 🔍 FULL SYSTEM AUDIT
 
-The QR scan system enables users to scan QR codes (physical or digital) to access **Zone** information containing multiple Points of Interest (POIs). The system implements **Zone-based access control**, where users purchase zones to unlock premium content for all POIs within that zone.
+## 1.1 Observed User Flow (Mobile App)
 
-**Key Components:**
-- Mobile App (MAUI): Camera-based QR scanning with zone unlock flow
-- Backend API (Node.js): Zone token generation, validation, and purchase verification
-- Admin Web: Zone management and QR code generation per zone
+| Step | Observed Component | Current Behavior | Notes |
+|------|--------------------|------------------|-------|
+| QR Scan | `Services/PoiEntryCoordinator` | Parses QR → navigates to POI detail or zone list | Handles scan tokens and direct code routes. |
+| Navigation | `Shell` routes (e.g., `/zonepois`, `/poidetail`) | Navigation occurs without purchase state checks | No guard for guest access beyond login prompt. |
+| POI interaction | `ViewModels/PoiDetailViewModel` | Loads POI, map focus, audio | No purchase logic or ownership tracking. |
+| Purchase UI | `Views/ZonePoisPage.xaml.cs` | Has “Purchase” button logic | Acts on zone purchase only; no POI purchase system. |
 
-**Core Principle:** **ONE ZONE = ONE QR CODE**
+## 1.2 Missing Guards / Broken Flows
+
+- **Guest purchase guard is incomplete:** Zone purchase handler redirects to login, but does **not** display required message (“Please login to purchase”).
+- **No UI state for “already purchased”:** AccessFrame visibility is toggled but not backed by persisted ownership state.
+- **Premium logic is present and conflicts with requirements:** `PremiumService` and `AuthService.IsPremium` are active, violating “Premium feature must be removed”.
+- **No purchase state stored in local SQLite:** No table stores purchases, ownership, or transactions.
+- **Navigation & state race conditions:** POI loading is concurrent with map state arbitration; there is no purchase lock and no UI gating while navigation is in-flight.
+
+## 1.3 Race Conditions Affecting Purchase UX
+
+- **Zone list view loads POIs asynchronously and updates UI after purchase flow begins.** The access state can be stale when the purchase button is tapped.
+- **POI detail navigation can happen without zone access revalidation.** POIs are shown regardless of purchase state.
 
 ---
 
-## 1. System Architecture Overview
+# 2. 🔄 CURRENT PURCHASE FLOW (AS‑IS)
 
-### 1.1 Zone-Based QR Flow
+## 2.1 Guest clicks purchase
 
-#### Zone QR Format (JWT-based)
-- Format: `https://thuyetminh.netlify.app/app/scan?t=<JWT>`
-- JWT Payload: `{ zoneId: "zone-123", type: "zone_qr" }`
-- Flow: Parse JWT → POST to backend `/api/v1/zones/scan` → Return zone + POIs + access status
+- `ZonePoisPage.OnPurchaseClicked` checks `_authService.IsAuthenticated`.
+- If guest: navigates to `//login` and returns **without** showing the required message.
+- No ownership or purchase history is recorded.
 
-**No POI-based QR codes exist in this system.**
+## 2.2 Logged-in user clicks purchase
+
+- Confirmation dialog is shown.
+- Calls backend endpoint `purchase/zone` with `zoneCode`.
+- On success: shows a success alert and hides `AccessFrame` only.
+- No purchase record is written locally.
+- No revenue event or analytics event is recorded.
+
+## 2.3 Where logic fails
+
+- **No persistence layer for purchases.** App relies on the server response and immediate UI toggles only.
+- **No duplicate purchase guard.** The same zone can be purchased repeatedly.
+- **No consistent “already purchased” UI state.** Reloading the page resets access UI.
 
 ---
 
-## 2. Mobile App (MAUI) - Zone QR Scanning Flow
+# 3. ❌ GAP ANALYSIS (CRITICAL)
 
-### 2.1 Entry Points
+## 3.1 Missing Components
 
-**File:** `Views/QrScannerPage.xaml.cs`
-- Camera-based scanning using ZXing.Net.MAUI
-- Manual text input fallback
-- Permission handling for camera access
+| Area | Missing Component | Status | Impact |
+|------|-------------------|--------|--------|
+| Domain | PurchaseService | Missing | No central business logic or validation. |
+| State | Purchase/Ownership state | Missing | UI cannot reflect access reliably. |
+| Storage | Purchases table | Missing | **CRITICAL DATA LOSS RISK**. |
+| Storage | Revenue logs | Missing | Analytics impossible. |
+| Validation | Duplicate purchase check | Missing | Users can be charged multiple times. |
+| Auth guard | Login-required message | Missing | Requirement not met. |
+| Premium removal | PremiumService + IsPremium | Still present | Violates requirement. |
 
-**File:** `ViewModels/QrScannerViewModel.cs`
-- Manages scan state machine
-- Integrates with `QrScanLimitService` for quota checks
-- Handles zone unlock flow
+## 3.2 Data Persistence Status
 
-### 2.2 QR Parsing
+**Is there any table storing purchased POIs?** **No** → **CRITICAL DATA LOSS RISK**  
+**Is there any table storing user ownership?** **No** → **CRITICAL DATA LOSS RISK**  
+**Is there any table storing transaction logs?** **No** → **CRITICAL DATA LOSS RISK**
 
-**File:** `Services/QrResolver.cs`
-**Class:** `QrResolver.Parse(string? input)`
+---
 
-**Supported Format:**
-- `https://domain.com/app/scan?t=<JWT>` - Zone scan token
+# 4. 🧱 REQUIRED DATABASE DESIGN (VERY IMPORTANT)
 
-**Output:** `QrParseResult`
-- `Success`: bool
-- `ZoneId`: Zone identifier
-- `IsZoneScanToken`: true
-- `ScanToken`: JWT string
-- `Error`: Error message if parsing fails
+**Target:** Local SQLite (offline-first) + sync-ready design.
 
-### 2.3 Zone Entry Coordination
+## 4.1 Schema Overview
 
-**File:** `Services/ZoneEntryCoordinator.cs`
-**Class:** `ZoneEntryCoordinator.HandleZoneScanAsync(ZoneScanRequest)`
+| Table | Purpose | Notes |
+|-------|---------|-------|
+| Users | Local user profile cache | Verify existence; must include Id used by AuthService. |
+| Purchases | Ownership & purchase history | Core of purchase domain. |
+| UserBalance (optional) | Credit balance cache | Optional if credits exist locally. |
+| RevenueLogs | Analytics and revenue aggregation | Needed for revenue tracking. |
+
+## 4.2 Table Definitions
+
+### Users (verify if exists)
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| Id | TEXT (PK) | Auth user ID from server token. |
+| Email | TEXT | User identity display and cross-reference. |
+| CreatedAt | TEXT | Audit and lifecycle tracking. |
+
+### Purchases
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| Id | TEXT (PK) | Unique purchase identifier. |
+| UserId | TEXT (FK → Users.Id) | Ownership reference. |
+| PoiCode | TEXT | Purchased POI or zone code reference. |
+| Price | INTEGER | Amount paid (credits). |
+| Currency | TEXT | “credits” per requirement. |
+| PurchasedAt | TEXT | Transaction timestamp (UTC). |
+| IsFakePurchase | INTEGER (0/1) | Marks simulated purchases. |
+
+### UserBalance (optional)
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| UserId | TEXT (PK) | Ownership reference. |
+| Credits | INTEGER | Current credits for UI display and offline checks. |
+
+### RevenueLogs
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| Id | TEXT (PK) | Unique revenue event identifier. |
+| TotalAmount | INTEGER | Amount added (credits). |
+| Date | TEXT | Revenue event timestamp (UTC). |
+| Source | TEXT | “QR”, “Map”, “Manual”. |
+
+---
+
+# 5. ⚙️ DOMAIN LOGIC DESIGN
+
+## 5.1 PurchaseService
 
 **Responsibilities:**
-- Zone scan token resolution via backend API
-- Access status verification
-- POI batch download for purchased zones
-- Navigation to zone detail page
-- Analytics tracking
+- Validate login.
+- Validate already purchased.
+- Simulate purchase (fake purchase allowed).
+- Record transaction and analytics.
 
-**Flow for Zone Scan Token:**
-1. Detect `IsZoneScanToken = true`
-2. POST to `/api/v1/zones/scan` with `{ token: "<JWT>" }`
-3. Backend verifies JWT and returns:
-   - Zone metadata (name, description, price)
-   - List of POIs in zone
-   - Access status (`hasAccess: boolean`)
-4. **If hasAccess = false:**
-   - Show zone preview with `narrationShort` only
-   - Display purchase prompt
-5. **If hasAccess = true:**
-   - Trigger POI download (see section 2.4)
-   - Unlock `narrationLong` for all POIs
-   - Navigate to zone detail page
-6. Track analytics event
+## 5.2 AuthGuard
 
-### 2.4 POI Download Logic
+**Responsibility:**
+- Block guest purchase attempts and show message: **“Please login to purchase”**.
 
-**File:** `Services/ZoneDownloadService.cs`
+## 5.3 Ownership Check
 
-**Trigger Conditions:**
-- User has purchased zone (`hasAccess = true`)
-- Network connectivity available
-
-**Download Flow:**
-1. Check network type (WiFi vs Cellular)
-2. **If WiFi:** Auto-download all POIs in zone
-3. **If 4G/5G:** Show confirmation dialog
-   - "Tải xuống {count} địa điểm qua dữ liệu di động?"
-   - User confirms → Download
-   - User cancels → Queue for later
-4. **If Offline:** Queue download for next connection
-5. Batch insert POIs into local SQLite database
-6. Register dynamic translations (vi/en)
-7. Update zone unlock status locally
-
-**Download Optimization:**
-- Batch API call: `POST /api/v1/zones/:zoneId/download`
-- Returns all POIs in single response
-- Progress indicator during download
-
-### 2.5 Access Control
-
-**File:** `Services/ZoneAccessService.cs`
-
-**Access Rules:**
-
-| User Status | Zone Purchased | narrationShort | narrationLong | Download |
-|-------------|----------------|----------------|---------------|----------|
-| Guest | No | ✅ | ❌ | ❌ |
-| Authenticated | No | ✅ | ❌ | ❌ |
-| Authenticated | Yes | ✅ | ✅ | ✅ |
-| Premium | Yes | ✅ | ✅ | ✅ |
-
-**Implementation:**
-```csharp
-public bool CanAccessPremiumContent(Zone zone, User user)
-{
-    if (user == null) return false;
-    return user.PurchasedZones.Contains(zone.Id);
-}
-```
+**Responsibility:**
+- Verify if user already owns the POI/zone to prevent duplicates.
 
 ---
 
-## 3. Backend API - Zone QR & Access Management
+# 6. 🔄 CORRECTED FLOW (TO‑BE)
 
-### 3.1 API Endpoints
+## Guest
 
-#### POST `/api/v1/zones/scan`
-**File:** `backend/src/controllers/zone.controller.js` → `zoneController.scan`  
-**Service:** `backend/src/services/zone.service.js` → `resolveZoneScanToken()`  
-**Auth:** `optionalAuth` (allows guest scans, attaches `req.user` if JWT present)
+QR → Map → Click purchase → **BLOCK** → Show **“Please login to purchase”**
 
-**Request:**
-```json
-{
-  "token": "<JWT_STRING>"
-}
-```
+## Logged‑in user
 
-**Response (Success - No Access):**
-```json
-{
-  "success": true,
-  "data": {
-    "zone": {
-      "id": "zone-123",
-      "name": "Hanoi Old Quarter",
-      "description": "Historic district with 36 streets",
-      "price": 50,
-      "poiCount": 12
-    },
-    "pois": [
-      {
-        "id": "poi-1",
-        "code": "HK001",
-        "name": "Hoan Kiem Lake",
-        "location": { "lat": 21.0285, "lng": 105.8542 },
-        "narrationShort": "Beautiful lake in city center",
-        "narrationLong": null
-      }
-    ],
-    "accessStatus": {
-      "hasAccess": false,
-      "requiresPurchase": true,
-      "price": 50
-    }
-  }
-}
-```
+QR → Map → Click purchase → **SUCCESS** → Save purchase → Update revenue → Unlock POI
 
-**Response (Success - Has Access):**
-```json
-{
-  "success": true,
-  "data": {
-    "zone": {
-      "id": "zone-123",
-      "name": "Hanoi Old Quarter",
-      "description": "Historic district with 36 streets",
-      "price": 50,
-      "poiCount": 12
-    },
+---
+
+# 7. 🧩 UI/VIEWMODEL FIXES
+
+## Required
+
+- **Remove Premium button and all premium UI states.**
+- Add Purchase state binding (loading, success, failed).
+- Add “Already Purchased” UI state with disabled purchase button.
+- Add Login-required state that shows the exact message.
+
+---
+
+# 8. ⚠️ SYSTEM RISKS
+
+- **Revenue data loss:** No transaction logging means revenue is unrecoverable.
+- **Analytics impossible:** No revenue logs or purchase events to aggregate.
+- **Inconsistent UI behavior:** Purchase success is not persisted; refresh resets access state.
+- **Premium conflict:** Premium logic still exists; contradicts requirements.
+
+---
+
+# 9. 🛠️ IMPLEMENTATION PLAN (PHASED)
+
+| Phase | Scope | Outcome |
+|-------|-------|---------|
+| Phase 1 | DB schema | Add Purchases, RevenueLogs, UserBalance. |
+| Phase 2 | PurchaseService | Centralize validation, purchase recording. |
+| Phase 3 | Auth integration | Enforce login-required message. |
+| Phase 4 | UI binding fix | Remove Premium UI; add purchase states. |
+| Phase 5 | Analytics tracking | Record revenue events and source. |
+
+---
+
+## Final Verdict
+
+**SYSTEM IS INCOMPLETE – PURCHASE DOMAIN DOES NOT EXIST.**
+
+This system currently implements a **UI-only purchase illusion** with no persisted ownership, no transaction logs, and no analytics pipeline. Shipping this as‑is will result in **untraceable revenue loss** and **inconsistent access control**.
     "pois": [
       {
         "id": "poi-1",

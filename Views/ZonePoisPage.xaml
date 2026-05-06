@@ -11,11 +11,13 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Frame Grid.Row="0"
+        <Border Grid.Row="0"
                BackgroundColor="#2196F3"
                Padding="20"
-               Margin="0"
-               CornerRadius="0">
+               Margin="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="0"/>
+            </Border.StrokeShape>
             <StackLayout>
                 <Label x:Name="ZoneNameLabel"
                        Text="Zone Name"
@@ -36,7 +38,7 @@
                        HorizontalOptions="Center"
                        Margin="0,5,0,0"/>
             </StackLayout>
-        </Frame>
+        </Border>
 
         <Grid Grid.Row="1">
             <CollectionView x:Name="PoisCollectionView"
@@ -44,11 +46,15 @@
                             SelectionChanged="OnPoiSelected">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Frame Padding="15"
+                        <Border Padding="15"
                                Margin="10,5"
-                               BackgroundColor="White"
-                               CornerRadius="8"
-                               HasShadow="True">
+                               BackgroundColor="White">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8"/>
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="Black" Offset="0,2" Radius="5" Opacity="0.1"/>
+                            </Border.Shadow>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -78,7 +84,7 @@
                                        HeightRequest="24"
                                        VerticalOptions="Center"/>
                             </Grid>
-                        </Frame>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
@@ -108,13 +114,15 @@
                                HorizontalOptions="Center"/>
         </Grid>
 
-        <Frame x:Name="AccessFrame"
+        <Border x:Name="AccessFrame"
                Grid.Row="2"
                BackgroundColor="#FFF3E0"
                Padding="20"
                Margin="0"
-               CornerRadius="0"
                IsVisible="False">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="0"/>
+            </Border.StrokeShape>
             <StackLayout>
                 <Label x:Name="AccessMessageLabel"
                        Text="Purchase this zone to unlock all locations"
@@ -129,6 +137,6 @@
                         Margin="0,10,0,0"
                         Clicked="OnPurchaseClicked"/>
             </StackLayout>
-        </Frame>
+        </Border>
     </Grid>
 </ContentPage>

@@ -59,15 +59,27 @@ class AudioService {
 
     async getAudioStatus(text, language, voice, version, poiCode) {
         const hash = this.getHash(text, language, voice, version);
+        const fileName = `${hash}.mp3`;
+        const filePath = path.join(this.storageDir, fileName);
+
+        // FIX: Check file existence FIRST to prevent 404 race condition
+        const fileExists = fs.existsSync(filePath);
         let audio = await Audio.findOne({ hash });
-        
+
         if (audio && audio.status === 'ready') {
-            const fileName = `${hash}.mp3`;
-            if (fs.existsSync(path.join(this.storageDir, fileName))) {
+            if (fileExists) {
                 return { url: audio.audioUrl, ready: true, hash };
+            } else {
+                // FIX: File missing but DB says ready - mark as failed and regenerate
+                console.warn(`[Audio] File missing for ready audio: ${hash}. Marking as failed.`);
+                audio.status = 'failed';
+                audio.retryCount = 0;
+                audio.nextRetryAt = null;
+                await audio.save();
+                return { url: `/storage/audio/${hash}.mp3`, ready: false, hash, status: 'failed' };
             }
         }
-        
+
         return { url: `/storage/audio/${hash}.mp3`, ready: false, hash, status: audio ? audio.status : 'not_started' };
     }
 

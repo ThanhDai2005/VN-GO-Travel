@@ -7,13 +7,14 @@ namespace MauiApp1.Services;
 
 public class AudioPrefetchService
 {
-    private static readonly char[] InvalidFileChars = Path.GetInvalidFileNameChars();
     private readonly HttpClient _httpClient;
+    private readonly IZoneAccessService _zoneAccess;
     private readonly Uri _audioBase;
     private readonly SemaphoreSlim _downloadGate = new(3, 3);
 
-    public AudioPrefetchService()
+    public AudioPrefetchService(IZoneAccessService zoneAccess)
     {
+        _zoneAccess = zoneAccess;
         _httpClient = new HttpClient
         {
             Timeout = TimeSpan.FromSeconds(30)
@@ -22,9 +23,23 @@ public class AudioPrefetchService
         _audioBase = new Uri(new Uri(BackendApiConfiguration.BaseUrl), "/");
     }
 
-    public async Task PrefetchZoneAudioAsync(IEnumerable<ZonePoiData> pois, CancellationToken cancellationToken = default)
+    private static readonly char[] InvalidFileChars = Path.GetInvalidFileNameChars();
+
+    public async Task PrefetchZoneAudioAsync(string zoneCode, IEnumerable<ZonePoiData> pois, CancellationToken cancellationToken = default)
     {
         if (pois == null) return;
+        
+        try
+        {
+            // --- MANDATORY SECURITY LOCKDOWN (TASK 1, 3, 5) ---
+            await _zoneAccess.EnsureAccessAsync(zoneCode).ConfigureAwait(false);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Debug.WriteLine($"[SECURITY] BLOCKED PrefetchZoneAudioAsync for Zone {zoneCode} - Unauthorized");
+            return;
+        }
+
         if (!IsWifiOnline()) return;
 
         var audioDir = Path.Combine(FileSystem.AppDataDirectory, "audio");

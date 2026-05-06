@@ -33,7 +33,7 @@ public class PoiNarrationService
     private readonly TranslationOrchestrator _translationOrchestrator;
     private readonly IPoiQueryRepository _poiQuery;
     private readonly AppState _appState;
-    private readonly IMapUiStateArbitrator _mapUi;
+    private readonly IZoneAccessService _zoneAccess;
     private readonly IRuntimeTelemetry _telemetry;
     private readonly ILogger<PoiNarrationService> _logger;
     private readonly SemaphoreSlim _translationGate = new(1, 1);
@@ -48,6 +48,7 @@ public class PoiNarrationService
         AppState appState,
         IMapUiStateArbitrator mapUi,
         TranslationQueueService translationQueue,
+        IZoneAccessService zoneAccess,
         IRuntimeTelemetry telemetry,
         ILogger<PoiNarrationService> logger)
     {
@@ -59,6 +60,7 @@ public class PoiNarrationService
         _poiQuery = poiQuery;
         _appState = appState;
         _mapUi = mapUi;
+        _zoneAccess = zoneAccess;
         _telemetry = telemetry;
         _logger = logger;
 
@@ -154,6 +156,9 @@ public class PoiNarrationService
     /// </summary>
     public async Task PlayPoiDetailedAsync(Poi poi, string? lang = null)
     {
+        // --- MANDATORY SERVICE LEVEL LOCKDOWN (TASK 1, 3, 6) ---
+        await _zoneAccess.EnsureAccessAsync(poi.ZoneCode ?? "").ConfigureAwait(false);
+
         var language = ResolveLanguage(lang);
         _appState.ActiveNarrationCode = poi.Code;
         Debug.WriteLine($"[AUDIO] PlayPoiDetailedAsync: code={poi.Code} lang={language} _activeNarrationCode='{_appState.ActiveNarrationCode}'");

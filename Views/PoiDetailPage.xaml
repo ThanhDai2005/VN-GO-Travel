@@ -76,15 +76,15 @@
                             </HorizontalStackLayout>
                         </Border>
 
-                        <!-- PREMIUM UPGRADE BANNER (Subtle Ad) -->
-                        <Border IsVisible="{Binding IsNotPremium}"
+                        <!-- ZONE PURCHASE BANNER -->
+                        <Border IsVisible="{Binding DoesNotHaveZoneAccess}"
                                 BackgroundColor="{StaticResource SurfaceSoft}"
                                 StrokeThickness="0"
                                 Padding="16,12"
                                 Margin="0,0,0,8"
                                 StrokeShape="RoundRectangle 12">
                             <HorizontalStackLayout Spacing="12">
-                                <Label Text="💎" FontSize="20" VerticalOptions="Center" />
+                                <Label Text="🏷️" FontSize="20" VerticalOptions="Center" />
                                 <VerticalStackLayout VerticalOptions="Center">
                                     <Label Text="Mua khu vực để mở khóa" 
                                            TextColor="{StaticResource BrandPrimary}" 
@@ -96,7 +96,7 @@
                                 </VerticalStackLayout>
                             </HorizontalStackLayout>
                             <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding UpgradeCommand}" />
+                                <TapGestureRecognizer Command="{Binding PurchaseZoneCommand}" />
                             </Border.GestureRecognizers>
                         </Border>
 
@@ -116,15 +116,14 @@
                                     Clicked="OnStopClicked"
                                     Grid.Column="1" />
 
-                            <!-- PREMIUM DETAILED BUTTON (locked for non-premium) -->
-                            <!-- Luôn bật: user thường bấm → hộp thoại Premium / nâng cấp; Premium → phát NarrationLong -->
-                            <Button Text="💎 Nghe chi tiết"
+                            <!-- DETAILED NARRATION BUTTON -->
+                            <Button Text="🎧 Nghe chi tiết"
                                     Style="{StaticResource CTAButton}"
                                     Clicked="OnPlayDetailedClicked"
                                     Grid.Row="1"
                                     Grid.ColumnSpan="2">
                                 <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding IsPremium}" Value="False">
+                                    <DataTrigger TargetType="Button" Binding="{Binding HasZoneAccess}" Value="False">
                                         <Setter Property="Text" Value="🔒 Mua khu vực để nghe chi tiết" />
                                         <Setter Property="BackgroundColor" Value="{StaticResource BrandAccent}" />
                                     </DataTrigger>

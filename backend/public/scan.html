@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VN-GO Travel - Zone QR Scan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .zone-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .zone-info.show {
+            display: block;
+        }
+
+        .zone-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .zone-description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .poi-count {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .poi-preview {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .poi-card {
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .poi-card-name {
+            font-weight: bold;
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .poi-card-desc {
+            font-size: 10px;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px 32px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .info {
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🗺️</div>
+        <h1>VN-GO Travel</h1>
+        <p class="info">Scan QR code to explore zones</p>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">Loading zone information...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="zone-info" id="zoneInfo">
+            <div class="zone-name" id="zoneName"></div>
+            <div class="zone-description" id="zoneDescription"></div>
+            <div class="poi-count" id="poiCount"></div>
+            <div class="poi-preview" id="poiPreview"></div>
+        </div>
+
+        <button class="button" id="openAppBtn" style="display: none;">
+            Open in VN-GO App
+        </button>
+
+        <div class="footer">
+            <p>© 2026 VN-GO Travel</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api/v1';
+        let zoneToken = null;
+        let zoneCode = null;
+
+        // Parse token from URL
+        function getTokenFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('t');
+        }
+
+        // Verify and decode token
+        async function verifyToken(token) {
+            try {
+                // Decode JWT without verification (just to get zoneCode)
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid token format');
+                }
+                const payload = JSON.parse(atob(parts[1]));
+                return payload;
+            } catch (error) {
+                console.error('Token decode error:', error);
+                throw new Error('Invalid QR code');
+            }
+        }
+
+        // Fetch zone information
+        async function fetchZoneInfo(zoneCode) {
+            const response = await fetch(`${API_BASE}/public/zones/${zoneCode}`);
+            if (!response.ok) {
+                throw new Error('Zone not found');
+            }
+            const data = await response.json();
+            return data.data;
+        }
+
+        // Display zone information
+        function displayZoneInfo(zoneData) {
+            document.getElementById('zoneName').textContent = zoneData.name;
+            document.getElementById('zoneDescription').textContent = zoneData.description || 'Explore amazing locations in this zone';
+            document.getElementById('poiCount').textContent = `${zoneData.totalPois} locations to discover`;
+
+            // Display POI preview (max 4)
+            const poiPreview = document.getElementById('poiPreview');
+            poiPreview.innerHTML = '';
+            const pois = zoneData.pois || [];
+            pois.slice(0, 4).forEach(poi => {
+                const card = document.createElement('div');
+                card.className = 'poi-card';
+                card.innerHTML = `
+                    <div class="poi-card-name">${poi.name}</div>
+                    <div class="poi-card-desc">${poi.shortDescription || 'Discover this location'}</div>
+                `;
+                poiPreview.appendChild(card);
+            });
+
+            document.getElementById('zoneInfo').classList.add('show');
+            document.getElementById('openAppBtn').style.display = 'block';
+        }
+
+        // Show error
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+
+        // Hide loading
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+        }
+
+        // Open mobile app with deep link
+        function openMobileApp() {
+            const deepLink = `vngo://zone?token=${encodeURIComponent(zoneToken)}`;
+
+            // Try to open the app
+            window.location.href = deepLink;
+
+            // Fallback: If app is not installed, show message after 2 seconds
+            setTimeout(() => {
+                const shouldRedirect = confirm(
+                    'VN-GO app is not installed.\n\n' +
+                    'Would you like to download it from the app store?'
+                );
+                if (shouldRedirect) {
+                    // Redirect to app store (update with actual URLs)
+                    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                        window.location.href = 'https://apps.apple.com/app/vngo-travel';
+                    } else {
+                        window.location.href = 'https://play.google.com/store/apps/details?id=com.vngo.travel';
+                    }
+                }
+            }, 2000);
+        }
+
+        // Initialize
+        async function init() {
+            document.getElementById('loading').classList.add('show');
+
+            try {
+                // Get token from URL
+                zoneToken = getTokenFromUrl();
+                if (!zoneToken) {
+                    throw new Error('No QR code token found. Please scan a valid QR code.');
+                }
+
+                // Verify token and get zone code
+                const payload = await verifyToken(zoneToken);
+                zoneCode = payload.zoneCode;
+
+                if (!zoneCode) {
+                    throw new Error('Invalid QR code format');
+                }
+
+                // Fetch zone information
+                const zoneData = await fetchZoneInfo(zoneCode);
+
+                // Display zone info
+                displayZoneInfo(zoneData);
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showError(error.message || 'Failed to load zone information');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Event listeners
+        document.getElementById('openAppBtn').addEventListener('click', openMobileApp);
+
+        // Auto-initialize on page load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
