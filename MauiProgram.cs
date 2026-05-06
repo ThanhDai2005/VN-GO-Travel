@@ -63,6 +63,7 @@ public static class MauiProgram
         // Keep Command and Translation repositories on local (PoiDatabase) for now
         builder.Services.AddSingleton<IPoiCommandRepository>(sp => sp.GetRequiredService<PoiDatabase>());
         builder.Services.AddSingleton<ITranslationRepository>(sp => sp.GetRequiredService<PoiDatabase>());
+        builder.Services.AddSingleton<IZoneResolverRepository>(sp => sp.GetRequiredService<PoiDatabase>());
 
         builder.Services.AddSingleton<IPreferredLanguageService, PreferredLanguageService>();
         builder.Services.AddSingleton<LocalizationService>();
@@ -183,6 +184,9 @@ public static class MauiProgram
         });
         builder.Services.AddSingleton<IZoneAccessService, ZoneAccessService>();
         builder.Services.AddSingleton<IUserEntitlementService, UserEntitlementService>();
+        builder.Services.AddSingleton<IZoneResolverService, ZoneResolverService>();
+        builder.Services.AddSingleton<IAccessStateCoordinator, AccessStateCoordinator>();
+        builder.Services.AddSingleton<BackgroundConsistencyService>();
         builder.Services.AddSingleton<IAudioDownloadService, AudioDownloadService>();
         builder.Services.AddSingleton<PurchaseAudioBackfillService>();
         builder.Services.AddSingleton<IZoneAccessRepository>(sp => sp.GetRequiredService<PoiDatabase>());

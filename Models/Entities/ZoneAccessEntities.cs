@@ -81,3 +81,15 @@ public class SyncQueueEntry
 
     public int RetryCount { get; set; } = 0;
 }
+
+[Table("zone_poi_map")]
+public class ZonePoiMapping
+{
+    [PrimaryKey]
+    public string PoiCode { get; set; } = string.Empty;
+
+    [Indexed]
+    public string? ZoneCode { get; set; }
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}

@@ -35,7 +35,8 @@ const userWalletSchema = new mongoose.Schema({
         min: 0
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    collection: 'userwallets'
 });
 
 // Index for efficient queries

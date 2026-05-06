@@ -48,20 +48,34 @@ public sealed class AudioDownloadService : IAudioDownloadService
         Directory.CreateDirectory(root);
 
         var completed = 0;
+        var successCount = 0;
+        var failCount = 0;
+
         foreach (var poi in zonePois)
         {
             ct.ThrowIfCancellationRequested();
+            var success = false;
             try
             {
-                await DownloadPoiAudioAsync(normalizedZone, poi, lang, root, ct).ConfigureAwait(false);
+                success = await DownloadPoiAudioAsync(normalizedZone, poi, lang, root, ct).ConfigureAwait(false);
+                if (success) successCount++;
+                else failCount++;
             }
             catch (Exception ex)
             {
+                failCount++;
                 Debug.WriteLine($"[AUDIO-DL] POI download failed code={poi.Code}: {ex.Message}");
             }
 
             completed++;
             Emit("DOWNLOAD_PROGRESS", normalizedZone, completed, zonePois.Count, (double)completed / zonePois.Count);
+        }
+
+        if (successCount == 0 && zonePois.Count > 0)
+        {
+            var error = $"Failed to download any audio files for zone {normalizedZone}. Check server availability.";
+            Emit("DOWNLOAD_FAILED", normalizedZone, successCount, zonePois.Count, 0, error);
+            throw new InvalidOperationException(error);
         }
 
         await _repository.SaveDownloadAsync(normalizedZone, true, ct).ConfigureAwait(false);
@@ -101,7 +115,7 @@ public sealed class AudioDownloadService : IAudioDownloadService
         await _repository.SaveDownloadAsync(normalizedZone, false, ct).ConfigureAwait(false);
     }
 
-    private async Task DownloadPoiAudioAsync(string zoneCode, Models.Poi poi, string lang, string rootDir, CancellationToken ct)
+    private async Task<bool> DownloadPoiAudioAsync(string zoneCode, Models.Poi poi, string lang, string rootDir, CancellationToken ct)
     {
         var code = poi.Code.Trim().ToUpperInvariant();
         var poiDir = Path.Combine(rootDir, code);
@@ -129,6 +143,7 @@ public sealed class AudioDownloadService : IAudioDownloadService
         };
 
         await _repository.UpsertDownloadedAudioAsync(row, ct).ConfigureAwait(false);
+        return hasShort || hasLong;
     }
 
     private static List<string> BuildCandidates(string poiCode, string lang, bool isShort)
@@ -161,9 +176,9 @@ public sealed class AudioDownloadService : IAudioDownloadService
                 await File.WriteAllBytesAsync(outputPath, bytes, ct).ConfigureAwait(false);
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                // try next candidate
+                Debug.WriteLine($"[AUDIO-DL] Candidate {relative} failed: {ex.Message}");
             }
         }
         return false;

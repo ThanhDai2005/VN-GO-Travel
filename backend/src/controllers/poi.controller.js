@@ -107,6 +107,19 @@ exports.getByCode = async (req, res, next) => {
     }
 };
 
+exports.getZoneByCode = async (req, res, next) => {
+    try {
+        const { code } = req.params;
+        const result = await poiService.getZoneByPoiCode(code);
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 exports.create = async (req, res, next) => {
     try {
         const poi = await poiService.createPoi(req.body);

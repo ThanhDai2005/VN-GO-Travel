@@ -60,6 +60,11 @@ exports.createUser = async (req, res, next) => {
             isActive,
             qrScanCount
         });
+
+        // Initialize wallet with high credits for testing
+        const walletRepository = require('../repositories/user-wallet.repository');
+        await walletRepository.getOrCreate(user._id, 1000000000);
+
         res.status(201).json({
             success: true,
             data: toUserResponse(user)
