@@ -83,6 +83,8 @@ public class PoiHydrationService
             Longitude = core.Longitude,
             Radius    = core.Radius,
             Priority  = core.Priority,
+            ZoneCode  = core.ZoneCode,
+            ZoneName  = core.ZoneName,
             IsFallback        = result.IsFallback,
             UsedLanguage      = result.UsedLang,
             RequestedLanguage = result.RequestedLang
@@ -238,7 +240,9 @@ public class PoiHydrationService
                     Latitude = row.Location.Lat,
                     Longitude = row.Location.Lng,
                     Radius = row.Radius > 0 ? row.Radius : 50,
-                    Priority = row.Priority > 0 ? row.Priority : 1
+                    Priority = row.Priority > 0 ? row.Priority : 1,
+                    ZoneCode = row.ZoneCode,
+                    ZoneName = row.ZoneName
                 };
                 await _poiCommand.UpsertAsync(poi, cancellationToken).ConfigureAwait(false);
 
@@ -337,6 +341,8 @@ public class PoiHydrationService
         public string? Summary { get; set; }
         public string? NarrationShort { get; set; }
         public string? NarrationLong { get; set; }
+        public string? ZoneCode { get; set; }
+        public string? ZoneName { get; set; }
     }
 
     private sealed class NearbyLoc

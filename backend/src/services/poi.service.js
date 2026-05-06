@@ -91,7 +91,7 @@ class PoiService {
     }
 
     // Helper to format/map DTO
-    mapPoiDto(poi, lang, translations = null) {
+    mapPoiDto(poi, lang, translations = null, zoneOverride = null) {
         const viContent = this._extractViContent(poi);
         const normalizedContent = { vi: viContent };
         const legacyByLang = { vi: this._pickDisplayText(viContent), en: '' };
@@ -114,8 +114,8 @@ class PoiService {
             contentByLang: legacyByLang,
             localizedContent: normalizedContent,
             isPremiumOnly: poi.isPremiumOnly,
-            zoneCode: poi.zoneCode || null,
-            zoneName: poi.zoneName || null,
+            zoneCode: zoneOverride?.code || poi.zoneCode || null,
+            zoneName: zoneOverride?.name || poi.zoneName || null,
             accessStatus: poi.accessStatus || null,
             version: poi.version || 1
         };
@@ -159,6 +159,13 @@ class PoiService {
         const pois = await poiRepository.findNearby(lng, lat, radius, verifiedLimit, verifiedPage);
         
         const mappedPois = await Promise.all(pois.map(async (poi) => {
+            // Find zone containing this POI for mobile sync linkage
+            const zones = await zoneRepository.findZonesContainingPoi(poi.code);
+            if (zones && zones.length > 0) {
+                poi.zoneCode = zones[0].code;
+                poi.zoneName = zones[0].name;
+            }
+
             let translations = null;
             if (includeTranslations) {
                 translations = await poiContentService.getAllContentForPoi(poi.code);
@@ -197,9 +204,9 @@ class PoiService {
 
         // Find zone containing this POI
         const zones = await zoneRepository.findZonesContainingPoi(code);
+        let zoneData = null;
         if (zones && zones.length > 0) {
-            poi.zoneCode = zones[0].code;
-            poi.zoneName = zones[0].name;
+            zoneData = { code: zones[0].code, name: zones[0].name };
         }
 
         // Check access status if userId is provided
@@ -212,7 +219,7 @@ class PoiService {
             translations = await poiContentService.getAllContentForPoi(code);
         }
 
-        const result = this.mapPoiDto(poi, lang, translations);
+        const result = this.mapPoiDto(poi, lang, translations, zoneData);
         
         // Store in cache only if not personalized and not including translations (or separate cache)
         if (!userId && !includeTranslations) {
@@ -493,8 +500,25 @@ class PoiService {
 
         const totalPages = Math.ceil(total / limit) || 0;
 
+        // Fetch all active zones to map POI -> Zone
+        const zones = await Zone.find({ isActive: true }).select('code name poiCodes');
+        const poiToZoneMap = {};
+        zones.forEach(z => {
+            if (z.poiCodes && Array.isArray(z.poiCodes)) {
+                z.poiCodes.forEach(pc => {
+                    poiToZoneMap[pc] = { code: z.code, name: z.name };
+                });
+            }
+        });
+
         return {
-            items: pois.map((p) => this._mapModerationDto(p)),
+            items: pois.map((p) => {
+                const dto = this._mapModerationDto(p);
+                const zone = poiToZoneMap[p.code];
+                dto.zoneCode = zone?.code || null;
+                dto.zoneName = zone?.name || null;
+                return dto;
+            }),
             pagination: {
                 page,
                 limit,
@@ -517,8 +541,25 @@ class PoiService {
 
         const totalPages = Math.ceil(total / limit) || 0;
 
+        // Fetch all active zones to map POI -> Zone
+        const zones = await Zone.find({ isActive: true }).select('code name poiCodes');
+        const poiToZoneMap = {};
+        zones.forEach(z => {
+            if (z.poiCodes && Array.isArray(z.poiCodes)) {
+                z.poiCodes.forEach(pc => {
+                    poiToZoneMap[pc] = { code: z.code, name: z.name };
+                });
+            }
+        });
+
         return {
-            items: pois.map((p) => this._mapModerationDto(p)),
+            items: pois.map((p) => {
+                const dto = this._mapModerationDto(p);
+                const zone = poiToZoneMap[p.code];
+                dto.zoneCode = zone?.code || null;
+                dto.zoneName = zone?.name || null;
+                return dto;
+            }),
             pagination: {
                 page,
                 limit,
