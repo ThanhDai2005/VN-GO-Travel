@@ -33,6 +33,7 @@ public class PoiNarrationService
     private readonly TranslationOrchestrator _translationOrchestrator;
     private readonly IPoiQueryRepository _poiQuery;
     private readonly AppState _appState;
+    private readonly IMapUiStateArbitrator _mapUi;
     private readonly IZoneAccessService _zoneAccess;
     private readonly IRuntimeTelemetry _telemetry;
     private readonly ILogger<PoiNarrationService> _logger;

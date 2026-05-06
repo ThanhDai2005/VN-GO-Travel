@@ -5,6 +5,7 @@ import {
   fetchMasterPois,
   updatePoiByCode,
 } from "../apiClient.js";
+import TranslationWorkflow from "../components/TranslationWorkflow.jsx";
 
 function safeText(v) {
   return v && String(v).trim() ? String(v).trim() : "—";
@@ -59,6 +60,7 @@ export default function MasterPoisPage() {
   const [editRow, setEditRow] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [editTab, setEditTab] = useState("base"); // "base" | "translations"
 
   const load = useCallback(async (page = 1) => {
     setErr("");
@@ -104,6 +106,7 @@ export default function MasterPoisPage() {
       priority: row.priority != null ? String(row.priority) : "0",
     });
     setEditRow(row);
+    setEditTab("base");
   }
 
   async function submitCreate(e) {
@@ -420,55 +423,94 @@ export default function MasterPoisPage() {
       {/* Edit modal */}
       {editRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+          <div className={`max-h-[95vh] w-full ${editTab === 'translations' ? 'max-w-6xl' : 'max-w-lg'} overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl transition-all duration-300`}>
             <h2 className="text-lg font-semibold text-white">Sửa POI</h2>
             <p className="mt-1 font-mono text-sm text-emerald-300">
               {editRow.code}
             </p>
-            <form onSubmit={submitEdit} className="mt-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="flex border-b border-slate-700">
+              <button
+                onClick={() => setEditTab("base")}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${editTab === "base" ? "border-b-2 border-emerald-500 text-emerald-400" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                Cấu hình & Nội dung gốc
+              </button>
+              <button
+                onClick={() => setEditTab("translations")}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${editTab === "translations" ? "border-b-2 border-emerald-500 text-emerald-400" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                Bản dịch đa ngôn ngữ
+              </button>
+            </div>
+
+            {editTab === "base" ? (
+              <form onSubmit={submitEdit} className="mt-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field
+                    label="Vĩ độ"
+                    value={form.lat}
+                    onChange={(v) => setForm((f) => ({ ...f, lat: v }))}
+                    required
+                  />
+                  <Field
+                    label="Kinh độ"
+                    value={form.lng}
+                    onChange={(v) => setForm((f) => ({ ...f, lng: v }))}
+                    required
+                  />
+                </div>
+                <Field label="Tên" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} required />
+                <Field label="Tóm tắt" value={form.summary} onChange={(v) => setForm((f) => ({ ...f, summary: v }))} />
+                <Field label="Văn bản ngắn" value={form.narrationShort} onChange={(v) => setForm((f) => ({ ...f, narrationShort: v }))} />
                 <Field
-                  label="Vĩ độ"
-                  value={form.lat}
-                  onChange={(v) => setForm((f) => ({ ...f, lat: v }))}
-                  required
+                  label="Văn bản dài (premium)"
+                  value={form.narrationLong}
+                  onChange={(v) => setForm((f) => ({ ...f, narrationLong: v }))}
                 />
-                <Field
-                  label="Kinh độ"
-                  value={form.lng}
-                  onChange={(v) => setForm((f) => ({ ...f, lng: v }))}
-                  required
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Bán kính (m)" value={form.radius} onChange={(v) => setForm((f) => ({ ...f, radius: v }))} required />
+                  <Field label="Priority" value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v }))} required />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditRow(null)}
+                    className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={busyCode === editRow.code}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    {busyCode === editRow.code ? "..." : "Lưu thay đổi gốc"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="mt-4">
+                <TranslationWorkflow 
+                  poiCode={editRow.code} 
+                  baseContent={{
+                    name: form.name,
+                    summary: form.summary,
+                    narrationShort: form.narrationShort,
+                    narrationLong: form.narrationLong
+                  }}
+                  baseVersion={editRow.version || 1}
                 />
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setEditRow(null)}
+                    className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+                  >
+                    Đóng
+                  </button>
+                </div>
               </div>
-              <Field label="Tên" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} required />
-              <Field label="Tóm tắt" value={form.summary} onChange={(v) => setForm((f) => ({ ...f, summary: v }))} />
-              <Field label="Văn bản ngắn" value={form.narrationShort} onChange={(v) => setForm((f) => ({ ...f, narrationShort: v }))} />
-              <Field
-                label="Văn bản dài (premium)"
-                value={form.narrationLong}
-                onChange={(v) => setForm((f) => ({ ...f, narrationLong: v }))}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Bán kính (m)" value={form.radius} onChange={(v) => setForm((f) => ({ ...f, radius: v }))} required />
-                <Field label="Priority" value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v }))} required />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditRow(null)}
-                  className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={busyCode === editRow.code}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500 disabled:opacity-50"
-                >
-                  {busyCode === editRow.code ? "..." : "Lưu"}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
       )}

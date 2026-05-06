@@ -20,6 +20,35 @@ public class PoiDto
     public string? ZoneCode { get; set; }
     public string? ZoneName { get; set; }
     public AccessStatusDto? AccessStatus { get; set; }
+    public int Version { get; set; } = 1;
+    public List<PoiTranslationDto>? Translations { get; set; }
+}
+
+public class PoiTranslationDto
+{
+    public string lang_code { get; set; } = "";
+    public string mode { get; set; } = "partial";
+    public string translationSource { get; set; } = "manual";
+    public PoiTranslationContentDto content { get; set; } = new();
+    public PoiTranslationMetadataDto metadata { get; set; } = new();
+}
+
+public class PoiTranslationContentDto
+{
+    public string name { get; set; } = "";
+    public string summary { get; set; } = "";
+    public string narrationShort { get; set; } = "";
+    public string narrationLong { get; set; } = "";
+}
+
+public class PoiTranslationMetadataDto
+{
+    public bool isComplete { get; set; }
+    public bool isOutdated { get; set; }
+    public int baseVersion { get; set; }
+    public int translatedVersion { get; set; }
+    public double confidenceScore { get; set; } = 1.0;
+    public DateTime updatedAt { get; set; }
 }
 
 public class AccessStatusDto

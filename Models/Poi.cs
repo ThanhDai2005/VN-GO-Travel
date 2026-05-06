@@ -10,6 +10,10 @@ namespace MauiApp1.Models;
 public class Poi
 {
     // ── Persisted columns (SQLite) ───────────────────────────────────────────
+    public int Version { get; set; } = 1;
+
+    [Ignore]
+    public List<PoiTranslationDto>? Translations { get; set; }
 
     /// <summary>
     /// Primary key for the current DB shape. In this MVP: one row per POI code.
@@ -101,6 +105,36 @@ public class Poi
     /// </summary>
     [Ignore]
     public string? ZoneName { get; set; }
+
+    /// <summary>
+    /// Indicates if the user has access to this POI's zone.
+    /// </summary>
+    [Ignore]
+    public bool HasAccess { get; set; }
+
+    /// <summary>
+    /// The source of the resolved text (manual, jit_en, jit_vi, base).
+    /// </summary>
+    [Ignore]
+    public string? SourceType { get; set; }
+
+    /// <summary>
+    /// Confidence score of the translation (0.0 to 1.0).
+    /// </summary>
+    [Ignore]
+    public double ConfidenceScore { get; set; } = 1.0;
+
+    /// <summary>
+    /// UI signal: Show badge "Auto-translated".
+    /// </summary>
+    [Ignore]
+    public bool ShowBadgeAutoTranslated { get; set; }
+
+    /// <summary>
+    /// UI signal: Show badge "Outdated content".
+    /// </summary>
+    [Ignore]
+    public bool ShowBadgeOutdated { get; set; }
 
     // ── Navigation property ──────────────────────────────────────────────────
 

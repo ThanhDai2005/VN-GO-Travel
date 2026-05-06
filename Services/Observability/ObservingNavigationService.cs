@@ -17,11 +17,13 @@ public sealed class ObservingNavigationService : INavigationService
 
     public Task PushModalAsync(Page page, bool animated = true)
     {
+        if (page == null) return Task.CompletedTask;
+
         _telemetry.TryEnqueue(new RuntimeTelemetryEvent(
             RuntimeTelemetryEventKind.NavigationExecuted,
             DateTime.UtcNow.Ticks,
             routeOrAction: nameof(PushModalAsync),
-            detail: page?.GetType().Name));
+            detail: page.GetType().Name));
         return _inner.PushModalAsync(page, animated);
     }
 

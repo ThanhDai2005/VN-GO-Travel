@@ -7,44 +7,48 @@ const poiContentSchema = new mongoose.Schema(
       required: true,
       index: true
     },
-    language: {
+    lang_code: {
       type: String,
       required: true,
       index: true,
-      match: /^[a-z]{2}$/
+      match: /^[a-z]{2}(-[A-Z]{2})?$/
     },
-    title: {
+    mode: {
       type: String,
-      required: true,
-      trim: true
-    },
-    description: {
-      type: String,
+      enum: ['partial', 'full'],
+      default: 'partial',
       required: true
     },
-    narrationShort: {
+    translationSource: {
       type: String,
+      enum: ['manual', 'jit_vi', 'jit_en'],
+      default: 'manual',
       required: true
     },
-    narrationLong: {
-      type: String,
-      required: true
+    content: {
+      name: { type: String, trim: true, default: '' },
+      summary: { type: String, default: '' },
+      narrationShort: { type: String, default: '' },
+      narrationLong: { type: String, default: '' }
     },
-    audioShortId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'AudioAsset',
-      default: null
+    audio: {
+      shortId: { type: mongoose.Schema.Types.ObjectId, ref: 'AudioAsset', default: null },
+      longId: { type: mongoose.Schema.Types.ObjectId, ref: 'AudioAsset', default: null }
     },
-    audioLongId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'AudioAsset',
-      default: null
+    metadata: {
+      isOutdated: { type: Boolean, default: false },
+      baseVersionAtUpdate: { type: Number, default: 1 },
+      translatedVersion: { type: Number, default: 1 },
+      updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      confidenceScore: { type: Number, default: 1.0 } // 1.0 for manual, lower for JIT
     },
-    version: {
-      type: Number,
-      default: 1,
-      min: 1
-    }
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    deletedAt: { type: Date, default: null },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
   },
   {
     timestamps: true,
@@ -52,7 +56,7 @@ const poiContentSchema = new mongoose.Schema(
   }
 );
 
-poiContentSchema.index({ poiCode: 1, language: 1 }, { unique: true });
+poiContentSchema.index({ poiCode: 1, lang_code: 1 }, { unique: true });
 
 const PoiContent = mongoose.model('PoiContent', poiContentSchema);
 

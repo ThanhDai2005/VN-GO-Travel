@@ -10,6 +10,7 @@ const IntelligenceEventRaw = require('../models/intelligence-event-raw.model');
 const PoiHourlyStats = require('../models/poi-hourly-stats.model');
 const Poi = require('../models/poi.model');
 const User = require('../models/user.model');
+const DeviceSession = require('../models/device-session.model');
 const { POI_STATUS } = require('../constants/poi-status');
 
 /** Metrics API: max window between start and end (inclusive span). */
@@ -173,6 +174,87 @@ async function getTimeline(params) {
     ];
 
     return Model.aggregate(pipeline).option({ maxTimeMS: MAX_TIME_MS });
+}
+
+/**
+ * @param {{ start: string, end: string }} params
+ */
+async function getRevenueAnalytics(params) {
+    const { start, end } = parseIsoRange(params.start, params.end);
+    const UserUnlockZone = require('../models/user-unlock-zone.model');
+    const Zone = require('../models/zone.model');
+
+    // 1. Transactions matching range
+    const transactions = await UserUnlockZone.find({
+        purchasedAt: { $gte: start, $lte: end }
+    })
+    .populate('userId', 'email fullName')
+    .sort({ purchasedAt: -1 })
+    .lean();
+
+    // 2. Aggregate stats
+    const totalRevenue = transactions.reduce((sum, t) => sum + (t.purchasePrice || 0), 0);
+    const totalPurchases = transactions.length;
+    
+    // 3. Top Zones
+    const zoneCounts = {};
+    const zoneRevenue = {};
+    transactions.forEach(t => {
+        zoneCounts[t.zoneCode] = (zoneCounts[t.zoneCode] || 0) + 1;
+        zoneRevenue[t.zoneCode] = (zoneRevenue[t.zoneCode] || 0) + (t.purchasePrice || 0);
+    });
+    
+    const topZones = Object.entries(zoneCounts)
+        .map(([code, count]) => ({ code, count, revenue: zoneRevenue[code] }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+        
+    const enrichedTopZones = await Promise.all(topZones.map(async (item) => {
+        const zone = await Zone.findOne({ code: item.code }).select('name').lean();
+        return {
+            name: zone?.name || item.code,
+            count: item.count,
+            revenue: item.revenue
+        };
+    }));
+
+    // 4. Timeline
+    const dailyStats = await UserUnlockZone.aggregate([
+        { $match: { purchasedAt: { $gte: start, $lte: end } } },
+        {
+            $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$purchasedAt' } },
+                revenue: { $sum: '$purchasePrice' },
+                count: { $sum: 1 }
+            }
+        },
+        { $sort: { _id: 1 } }
+    ]);
+
+    return {
+        summary: {
+            totalRevenue,
+            totalPurchases,
+            uniqueZonesSold: Object.keys(zoneCounts).length,
+            bestSeller: enrichedTopZones[0]?.name || 'N/A'
+        },
+        topZones: enrichedTopZones,
+        timeline: dailyStats.map(d => ({
+            date: d._id,
+            revenue: d.revenue,
+            count: d.count
+        })),
+        transactions: transactions.map(t => ({
+            id: t._id,
+            userName: t.userId?.fullName || 'Unknown',
+            userEmail: t.userId?.email || 'Unknown',
+            zoneCode: t.zoneCode,
+            amount: t.purchasePrice,
+            purchasedAt: t.purchasedAt,
+            source: t.source || 'MAP',
+            serverVerified: t.serverVerified ?? true
+        }))
+    };
 }
 
 module.exports = {
@@ -383,16 +465,25 @@ module.exports = {
      * @returns {Promise<{ totalUsers: number, totalPremiumUsers: number }>}
      */
     async getSystemOverview() {
-        const [totalUsers, totalPremiumUsers] = await Promise.all([
+        const ONLINE_GRACE_MS = 10 * 1000; // 10 seconds grace for online status
+        const threshold = new Date(Date.now() - ONLINE_GRACE_MS);
+
+        const [totalUsers, totalPremiumUsers, onlineUsers] = await Promise.all([
             User.countDocuments({}),
-            User.countDocuments({ isPremium: true })
+            User.countDocuments({ isPremium: true }),
+            DeviceSession.countDocuments({
+                isOnline: true,
+                lastSeenAt: { $gte: threshold }
+            })
         ]);
 
         return {
             totalUsers,
-            totalPremiumUsers
+            totalPremiumUsers,
+            onlineUsers
         };
     },
+    getRevenueAnalytics,
     MAX_RANGE_MS,
     MAX_TIME_MS
 };

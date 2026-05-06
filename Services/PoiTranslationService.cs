@@ -62,7 +62,7 @@ public sealed class PoiTranslationService : IPoiTranslationService
         if (direct != null)
             return direct;
 
-        var key = PoiTranslationCacheEntry.MakeKey(code, targetLang);
+        var key = PoiTranslationCacheEntry.MakeKey(code, targetLang, 1, 1, "partial");
         Debug.WriteLine($"[TRANSLATE] GetOrTranslateAsync start code={code} target={targetLang}");
         var gate = _locks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
         var entered = false;
@@ -338,7 +338,7 @@ public sealed class PoiTranslationService : IPoiTranslationService
 
                 var allSucceeded = nameR.Succeeded && summaryR.Succeeded && narrSR.Succeeded && narrLR.Succeeded;
 
-                var key = PoiTranslationCacheEntry.MakeKey(r.Code, r.TargetLang);
+                var key = PoiTranslationCacheEntry.MakeKey(r.Code, r.TargetLang, 1, 1, "partial");
                 var entry = new PoiTranslationCacheEntry
                 {
                     Key = key,

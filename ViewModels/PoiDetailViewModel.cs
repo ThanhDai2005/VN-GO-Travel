@@ -28,6 +28,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
     private readonly IAudioPlayerService     _audioPlayer;
     private readonly IZoneDownloadService    _downloadService;
     private readonly ILoggerService          _logger;
+    private readonly ITranslationResolverService _translationResolver;
 
     public System.Windows.Input.ICommand PurchaseZoneCommand { get; }
     public System.Windows.Input.ICommand PlayCommand { get; }
@@ -52,7 +53,8 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         IZoneAccessService zoneAccessService,
         IAudioPlayerService audioPlayer,
         IZoneDownloadService downloadService,
-        ILoggerService logger)
+        ILoggerService logger,
+        ITranslationResolverService translationResolver)
     {
         _getPoiDetailUseCase = getPoiDetailUseCase;
         _playPoiAudioUseCase = playPoiAudioUseCase;
@@ -68,6 +70,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         _audioPlayer       = audioPlayer;
         _downloadService   = downloadService;
         _logger            = logger;
+        _translationResolver = translationResolver;
 
         PurchaseZoneCommand = new Command(async () => await PurchaseZoneAsync());
         PlayCommand         = new Command(async () => await PlayDetailedAsync());
@@ -248,8 +251,21 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 return;
             }
 
-            // Attach localization from in-memory lookup
+            // Attach localization from in-memory lookup as a baseline
             var locResult = _locService.GetLocalizationResult(_lastLoadedCode, effectiveLang);
+
+            // RUNTIME RESOLUTION ENGINE (HYBRID)
+            // Resolve content using backend translations and fallback rules
+            var resolved = await _translationResolver.ResolvePoiContentAsync(new PoiDto
+            {
+                Code = core.Code,
+                Name = core.Localization?.Name ?? "",
+                Summary = core.Localization?.Summary ?? "",
+                NarrationShort = core.Localization?.NarrationShort ?? "",
+                NarrationLong = core.Localization?.NarrationLong ?? "",
+                Version = core.Version,
+                Translations = core.Translations
+            }, effectiveLang).ConfigureAwait(false);
 
             // New Poi instance — ensures MAUI bindings update
             var poi = new Poi
@@ -260,13 +276,27 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 Longitude = core.Longitude,
                 Radius    = core.Radius,
                 Priority  = core.Priority,
-                IsFallback = locResult.IsFallback,
-                UsedLanguage = locResult.UsedLang,
-                RequestedLanguage = locResult.RequestedLang,
+                IsFallback = resolved.IsFallback,
+                UsedLanguage = effectiveLang,
+                RequestedLanguage = effectiveLang,
                 ZoneCode = core.ZoneCode,
-                ZoneName = core.ZoneName
+                ZoneName = core.ZoneName,
+                SourceType = resolved.SourceType,
+                ConfidenceScore = resolved.ConfidenceScore,
+                ShowBadgeAutoTranslated = resolved.ShowBadgeAutoTranslated,
+                ShowBadgeOutdated = resolved.ShowBadgeOutdated,
+                Version = core.Version
             };
-            poi.Localization = locResult.Localization;
+            
+            poi.Localization = new PoiLocalization
+            {
+                Code = core.Code,
+                LanguageCode = effectiveLang,
+                Name = resolved.Name,
+                Summary = resolved.Summary,
+                NarrationShort = resolved.NarrationShort,
+                NarrationLong = resolved.NarrationLong
+            };
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
@@ -364,6 +394,13 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
     }
 
     public void Stop() => _narrationService.Stop();
+
+    public async Task StopAsync()
+    {
+        _narrationService.Stop();
+        await _audioPlayer.StopAsync().ConfigureAwait(false);
+        OnPropertyChanged(nameof(IsPlaying));
+    }
 
     public async Task PurchaseZoneAsync()
     {

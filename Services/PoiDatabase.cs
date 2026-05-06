@@ -1,6 +1,10 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.Models;
+using MauiApp1.Models.Entities;
 using Microsoft.Extensions.Logging;
 using SQLite;
 
@@ -71,11 +75,11 @@ public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslat
         }).ConfigureAwait(false);
     }
 
-    public Task<ZonePurchase?> GetPurchaseRecordAsync(string userId, string zoneId, CancellationToken ct = default)
+    public async Task<ZonePurchase?> GetPurchaseRecordAsync(string userId, string zoneId, CancellationToken ct = default)
     {
-        return _db.Table<ZonePurchase>()
+        return await _db.Table<ZonePurchase>()
             .Where(p => p.UserId == userId && p.ZoneId == zoneId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync().ConfigureAwait(false);
     }
 
     public async Task<List<string>> GetPurchasedZonesAsync(string userId, CancellationToken ct = default)
@@ -313,16 +317,16 @@ public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslat
         return matches.Count == 0 ? null : matches[0];
     }
 
-    public Task<PoiTranslationCacheEntry?> GetTranslationCacheAsync(
+    public async Task<PoiTranslationCacheEntry?> GetTranslationCacheAsync(
         string code,
         string languageCode,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var key = PoiTranslationCacheEntry.MakeKey(code, languageCode);
-        return _db.Table<PoiTranslationCacheEntry>()
+        var key = PoiTranslationCacheEntry.MakeKey(code, languageCode, 1, 1, "partial");
+        return await _db.Table<PoiTranslationCacheEntry>()
             .Where(e => e.Key == key)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync().ConfigureAwait(false);
     }
 
     public async Task UpsertTranslationCacheAsync(PoiTranslationCacheEntry entry, CancellationToken cancellationToken = default)

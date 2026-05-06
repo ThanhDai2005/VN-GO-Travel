@@ -22,6 +22,7 @@ export default function DashboardLayout() {
     { to: "/devices", label: "Quản lý Thiết bị" },
     { to: "/audits", label: "Nhật ký duyệt" },
     { to: "/intelligence/dashboard", label: "Intelligence Dashboard" },
+    { to: "/revenue", label: "Thống kê doanh thu" },
     { to: "/change-requests", label: "Yêu cầu thay đổi" },
   ];
 
