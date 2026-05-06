@@ -5,8 +5,11 @@ using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.Application.UseCases;
 using MauiApp1.ApplicationContracts.Services;
 using MauiApp1.Models;
+using MauiApp1.Models.Entities;
 using MauiApp1.Services;
 using MauiApp1.Services.MapUi;
+using MauiApp1.Messages;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 
@@ -29,15 +32,22 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
     private readonly IZoneDownloadService    _downloadService;
     private readonly ILoggerService          _logger;
     private readonly ITranslationResolverService _translationResolver;
+    private readonly IUserEntitlementService _entitlementService;
+    private readonly IAudioDownloadService _audioDownloadService;
 
     public System.Windows.Input.ICommand PurchaseZoneCommand { get; }
     public System.Windows.Input.ICommand PlayCommand { get; }
     public System.Windows.Input.ICommand StopCommand { get; }
     public System.Windows.Input.ICommand DownloadCommand { get; }
+    public System.Windows.Input.ICommand PlayPurchasedAudioCommand { get; }
+    public System.Windows.Input.ICommand PausePurchasedAudioCommand { get; }
+    public System.Windows.Input.ICommand ReplayPurchasedAudioCommand { get; }
 
     private string? _lastLoadedCode;
     private bool    _languageListenerAttached;
     private CancellationTokenSource? _loadingCts;
+    private string? _queryZoneCode;
+    private string? _queryZoneName;
 
     public PoiDetailViewModel(
         GetPoiDetailUseCase getPoiDetailUseCase,
@@ -54,7 +64,9 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         IAudioPlayerService audioPlayer,
         IZoneDownloadService downloadService,
         ILoggerService logger,
-        ITranslationResolverService translationResolver)
+        ITranslationResolverService translationResolver,
+        IUserEntitlementService entitlementService,
+        IAudioDownloadService audioDownloadService)
     {
         _getPoiDetailUseCase = getPoiDetailUseCase;
         _playPoiAudioUseCase = playPoiAudioUseCase;
@@ -71,11 +83,31 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         _downloadService   = downloadService;
         _logger            = logger;
         _translationResolver = translationResolver;
+        _entitlementService = entitlementService;
+        _audioDownloadService = audioDownloadService;
 
         PurchaseZoneCommand = new Command(async () => await PurchaseZoneAsync());
         PlayCommand         = new Command(async () => await PlayDetailedAsync());
         StopCommand         = new Command(async () => await StopAsync());
         DownloadCommand     = new Command(async () => await DownloadAsync());
+        PlayPurchasedAudioCommand = new Command(async () => await PlayPurchasedAudioAsync());
+        PausePurchasedAudioCommand = new Command(() => _audioPlayer.Pause());
+        ReplayPurchasedAudioCommand = new Command(async () =>
+        {
+            _audioPlayer.Seek(TimeSpan.Zero);
+            await PlayPurchasedAudioAsync();
+        });
+
+        WeakReferenceMessenger.Default.Register<ZonePurchasedMessage>(this, async (_, m) =>
+        {
+            if (Poi == null || string.IsNullOrWhiteSpace(Poi.ZoneCode))
+                return;
+
+            if (!string.Equals(Poi.ZoneCode.Trim(), m.ZoneCode.Trim(), StringComparison.OrdinalIgnoreCase))
+                return;
+
+            await ReEvaluateAccessAsync().ConfigureAwait(false);
+        });
     }
 
     // ── Language change listener ──────────────────────────────────────────────
@@ -150,9 +182,78 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         IsDownloaded = await _downloadService.IsZoneDownloadedAsync(_poi.ZoneCode).ConfigureAwait(false);
     }
 
-    public bool HasZoneAccess => _poi != null && _zoneAccessService.HasAccess(_poi.ZoneCode ?? string.Empty);
+    private DownloadedAudio? _downloadedAudio;
+    public bool HasOfflineAudio => _downloadedAudio != null &&
+                                   (!string.IsNullOrWhiteSpace(_downloadedAudio.AudioLongPath) ||
+                                    !string.IsNullOrWhiteSpace(_downloadedAudio.AudioShortPath));
+    public string AudioDurationText => _audioPlayer.Duration == TimeSpan.Zero ? "--:--" : _audioPlayer.Duration.ToString(@"mm\:ss");
+    public string AudioPositionText => _audioPlayer.CurrentPosition == TimeSpan.Zero ? "00:00" : _audioPlayer.CurrentPosition.ToString(@"mm\:ss");
+    public bool ShowPurchasedAudioPlayer => AccessState == PoiAccessState.Purchased;
+    public bool ShowSummaryButton => true; // Luôn cho phép nghe tóm tắt
+    public bool ShowDetailedCTA => AccessState != PoiAccessState.Purchased;
+    public double AudioSeekValue
+    {
+        get
+        {
+            if (_audioPlayer.Duration.TotalSeconds <= 0) return 0;
+            return _audioPlayer.CurrentPosition.TotalSeconds / _audioPlayer.Duration.TotalSeconds;
+        }
+        set
+        {
+            if (_audioPlayer.Duration.TotalSeconds <= 0) return;
+            var pos = TimeSpan.FromSeconds(_audioPlayer.Duration.TotalSeconds * value);
+            _audioPlayer.Seek(pos);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AudioPositionText));
+        }
+    }
+
+    private PoiAccessState _accessState = PoiAccessState.NotForSale;
+    public PoiAccessState AccessState
+    {
+        get => _accessState;
+        private set
+        {
+            if (_accessState == value) return;
+            _accessState = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasZoneAccess));
+            OnPropertyChanged(nameof(DoesNotHaveZoneAccess));
+            OnPropertyChanged(nameof(ShowPurchaseBanner));
+            OnPropertyChanged(nameof(PurchaseBannerTitle));
+            OnPropertyChanged(nameof(PurchaseBannerDescription));
+            OnPropertyChanged(nameof(DetailedActionButtonText));
+            OnPropertyChanged(nameof(ShowPurchasedAudioPlayer));
+            OnPropertyChanged(nameof(ShowDetailedCTA));
+            OnPropertyChanged(nameof(ShowSummaryButton));
+        }
+    }
+
+    public bool HasZoneAccess => AccessState == PoiAccessState.Purchased;
 
     public bool DoesNotHaveZoneAccess => !HasZoneAccess;
+    public bool ShowPurchaseBanner => AccessState == PoiAccessState.NotLoggedIn || AccessState == PoiAccessState.NotPurchased;
+    public string PurchaseBannerTitle => AccessState switch
+    {
+        PoiAccessState.NotLoggedIn => "Đăng nhập để mua",
+        PoiAccessState.NotPurchased => "Mua khu vực để mở khóa",
+        _ => string.Empty
+    };
+    public string PurchaseBannerDescription => AccessState switch
+    {
+        PoiAccessState.NotLoggedIn => "Bạn cần đăng nhập để mua khu vực và mở khóa thuyết minh chi tiết.",
+        PoiAccessState.NotPurchased => "Sở hữu khu vực này để nghe thuyết minh chi tiết.",
+        PoiAccessState.NotForSale => "POI chưa thuộc khu vực nào",
+        _ => string.Empty
+    };
+    public string DetailedActionButtonText => AccessState switch
+    {
+        PoiAccessState.Purchased => "🎧 Nghe chi tiết",
+        PoiAccessState.NotLoggedIn => "🔐 Đăng nhập để mua",
+        PoiAccessState.NotPurchased => "🔒 Mua khu vực để nghe chi tiết",
+        PoiAccessState.NotForSale => "ℹ POI chưa thuộc khu vực nào",
+        _ => "🎧 Nghe chi tiết"
+    };
 
     // ── Shell query attributes ────────────────────────────────────────────────
 
@@ -195,6 +296,10 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 string? lang = null;
                 if (query.TryGetValue("lang", out var l_lobj) && l_lobj is string l_lstr)
                     lang = l_lstr;
+                if (query.TryGetValue("zoneCode", out var z_cobj) && z_cobj is string z_code)
+                    _queryZoneCode = z_code.Trim().ToUpperInvariant();
+                if (query.TryGetValue("zoneName", out var z_nobj) && z_nobj is string z_name)
+                    _queryZoneName = z_name.Trim();
 
                 Debug.WriteLine($"[QR-NAV] PoiDetail ApplyQueryAttributes code='{l_code}' lang='{lang}'");
 
@@ -204,6 +309,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 _loadingCts = new CancellationTokenSource();
 
                 await LoadPoiAsync(l_code, lang, _loadingCts.Token);
+                await ReEvaluateAccessAsync(_loadingCts.Token);
                 Debug.WriteLine($"[QR-NAV] PoiDetail ApplyQueryAttributes done Poi null?={Poi == null}");
             }
         }
@@ -287,6 +393,13 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 ShowBadgeOutdated = resolved.ShowBadgeOutdated,
                 Version = core.Version
             };
+
+            // Trust explicit navigation zone context when local cache row is stale.
+            if (string.IsNullOrWhiteSpace(poi.ZoneCode) && !string.IsNullOrWhiteSpace(_queryZoneCode))
+            {
+                poi.ZoneCode = _queryZoneCode;
+                poi.ZoneName = string.IsNullOrWhiteSpace(_queryZoneName) ? poi.ZoneName : _queryZoneName;
+            }
             
             poi.Localization = new PoiLocalization
             {
@@ -305,6 +418,8 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 _mapVm?.RequestFocusOnPoiCode(code, effectiveLang);
                 await _mapUi.ApplySelectedPoiAsync(MapUiSelectionSource.PoiDetailPageLoad, poi).ConfigureAwait(false);
             });
+
+            await ReEvaluateAccessAsync(ct).ConfigureAwait(false);
 
             Debug.WriteLine($"[POI-DETAIL] LoadPoiAsync completed for {_lastLoadedCode}");
         }
@@ -356,6 +471,17 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
 
         if (!HasZoneAccess)
         {
+            if (AccessState == PoiAccessState.NotForSale)
+            {
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    var page = ResolveAlertPage();
+                    if (page != null)
+                        await page.DisplayAlertAsync("Thông báo", "POI chưa thuộc khu vực nào.", "OK");
+                });
+                return;
+            }
+
             var wantPurchase = await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 var page = ResolveAlertPage();
@@ -375,9 +501,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         IsBusy = true;
         try
         {
-            // Use narration service for TTS detailed narration
-            var lang = _languagePrefs.GetStoredOrDefault();
-            await _narrationService.PlayPoiDetailedAsync(Poi, lang).ConfigureAwait(false);
+            await PlayPurchasedAudioAsync().ConfigureAwait(false);
             
             OnPropertyChanged(nameof(IsPlaying));
             OnPropertyChanged(nameof(IsBuffering));
@@ -456,7 +580,7 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                     
                     if (login)
                     {
-                        await Shell.Current.GoToAsync("//login");
+                        await Shell.Current.GoToAsync("login");
                     }
                 }
             });
@@ -466,13 +590,96 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         try
         {
             Debug.WriteLine($"[POI_DETAIL] Navigating to zone purchase for: {Poi.ZoneCode}");
-            // Navigate to Zone Purchase page
-            await Shell.Current.GoToAsync($"/zonepois?zoneCode={Uri.EscapeDataString(Poi.ZoneCode)}");
+
+            // First ensure we have the zone name if possible to pass along
+            var zoneName = Poi.ZoneName ?? "Zone";
+
+            // Navigate to Zone Purchase page correctly passing BOTH zoneCode and zoneName
+            await Shell.Current.GoToAsync($"/zonepois?zoneCode={Uri.EscapeDataString(Poi.ZoneCode)}&zoneName={Uri.EscapeDataString(zoneName)}");
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[POI_DETAIL] Navigation error: {ex}");
         }
+    }
+
+    public async Task ReEvaluateAccessAsync(CancellationToken ct = default)
+    {
+        var nextState = PoiAccessState.NotForSale;
+        var zoneCode = Poi?.ZoneCode?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(zoneCode))
+        {
+            if (!_auth.IsAuthenticated)
+            {
+                nextState = PoiAccessState.NotLoggedIn;
+            }
+            else if (Poi != null)
+            {
+                var hasAccess = await _entitlementService.HasAccessToPoiAsync(Poi.Code, ct).ConfigureAwait(false);
+                nextState = hasAccess ? PoiAccessState.Purchased : PoiAccessState.NotPurchased;
+            }
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(() => AccessState = nextState);
+        await ResolveDownloadedAudioAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task ResolveDownloadedAudioAsync(CancellationToken ct = default)
+    {
+        if (Poi == null)
+        {
+            _downloadedAudio = null;
+        }
+        else
+        {
+            var lang = _languagePrefs.GetStoredOrDefault();
+            _downloadedAudio = await _audioDownloadService.GetDownloadedAudioAsync(Poi.Code, lang, ct).ConfigureAwait(false)
+                ?? await _audioDownloadService.GetDownloadedAudioAsync(Poi.Code, "en", ct).ConfigureAwait(false)
+                ?? await _audioDownloadService.GetDownloadedAudioAsync(Poi.Code, "vi", ct).ConfigureAwait(false);
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            OnPropertyChanged(nameof(HasOfflineAudio));
+            OnPropertyChanged(nameof(ShowPurchasedAudioPlayer));
+            OnPropertyChanged(nameof(AudioDurationText));
+            OnPropertyChanged(nameof(AudioPositionText));
+            OnPropertyChanged(nameof(AudioSeekValue));
+        });
+    }
+
+    public async Task PlayPurchasedAudioAsync()
+    {
+        if (Poi == null) return;
+        var lang = _languagePrefs.GetStoredOrDefault();
+
+        if (HasZoneAccess && _downloadedAudio != null)
+        {
+            var local = !string.IsNullOrWhiteSpace(_downloadedAudio.AudioLongPath)
+                ? _downloadedAudio.AudioLongPath
+                : _downloadedAudio.AudioShortPath;
+
+            if (!string.IsNullOrWhiteSpace(local) && File.Exists(local))
+            {
+                await _audioPlayer.PlayAsync(local, Poi.ZoneCode ?? "", CancellationToken.None).ConfigureAwait(false);
+                return;
+            }
+        }
+
+        if (HasZoneAccess)
+            await _narrationService.PlayPoiDetailedAsync(Poi, lang).ConfigureAwait(false);
+        else
+            await _narrationService.PlayPoiAsync(Poi, lang).ConfigureAwait(false);
+    }
+
+    public void RefreshAudioUiState()
+    {
+        OnPropertyChanged(nameof(IsPlaying));
+        OnPropertyChanged(nameof(IsBuffering));
+        OnPropertyChanged(nameof(AudioPositionText));
+        OnPropertyChanged(nameof(AudioDurationText));
+        OnPropertyChanged(nameof(AudioSeekValue));
     }
 
     /// <summary>Trang đang hiển thị (Shell push) — tránh Windows[0].Page không phải PoiDetail khiến alert không hiện.</summary>

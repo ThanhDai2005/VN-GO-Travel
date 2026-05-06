@@ -3,8 +3,11 @@ using System.Diagnostics;
 using MauiApp1.ApplicationContracts.Repositories;
 using MauiApp1.Models;
 using MauiApp1.Services;
+using MauiApp1.Messages;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MauiApp1.Views;
 
@@ -15,6 +18,9 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
     private readonly ApiService _apiService;
     private readonly AuthService _authService;
     private readonly MauiApp1.ApplicationContracts.Services.ILocalizationService _localization;
+    private readonly IZoneAccessService _zoneAccessService;
+    private readonly IAudioDownloadService _audioDownloadService;
+    private readonly IServiceProvider _services;
 
     private string? _zoneCode;
     private string? _zoneName;
@@ -26,7 +32,10 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
         IPoiCommandRepository poiCommand,
         ApiService apiService,
         AuthService authService,
-        MauiApp1.ApplicationContracts.Services.ILocalizationService localization)
+        MauiApp1.ApplicationContracts.Services.ILocalizationService localization,
+        IZoneAccessService zoneAccessService,
+        IAudioDownloadService audioDownloadService,
+        IServiceProvider services)
     {
         InitializeComponent();
         _poiQuery = poiQuery;
@@ -34,6 +43,9 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
         _apiService = apiService;
         _authService = authService;
         _localization = localization;
+        _zoneAccessService = zoneAccessService;
+        _audioDownloadService = audioDownloadService;
+        _services = services;
 
         PoisCollectionView.ItemsSource = _pois;
     }
@@ -138,7 +150,9 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
                         Latitude = apiPoi.Location.Lat,
                         Longitude = apiPoi.Location.Lng,
                         Radius = apiPoi.Radius > 0 ? apiPoi.Radius : 50,
-                        Priority = apiPoi.Priority
+                        Priority = apiPoi.Priority,
+                        ZoneCode = zoneCode,
+                        ZoneName = _zoneName ?? zoneCode
                     };
                     await _poiCommand.UpsertAsync(poi);
 
@@ -235,7 +249,7 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
         if (e.CurrentSelection.FirstOrDefault() is PoiListItem selectedPoi)
         {
             // Navigate to POI detail
-            var route = $"/poidetail?code={Uri.EscapeDataString(selectedPoi.Code)}&lang={Uri.EscapeDataString(_language ?? "vi")}";
+            var route = $"/poidetail?code={Uri.EscapeDataString(selectedPoi.Code)}&lang={Uri.EscapeDataString(_language ?? "vi")}&zoneCode={Uri.EscapeDataString(_zoneCode ?? "")}&zoneName={Uri.EscapeDataString(_zoneName ?? "")}";
             await Shell.Current.GoToAsync(route);
 
             // Deselect
@@ -249,8 +263,7 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
         {
             if (!_authService.IsAuthenticated)
             {
-                // Navigate to login
-                await Shell.Current.GoToAsync("//login");
+                await NavigateToLoginSafeAsync();
                 return;
             }
 
@@ -270,8 +283,36 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
 
             if (response.IsSuccessStatusCode)
             {
+                var normalizedZone = _zoneCode?.Trim().ToUpperInvariant();
+                if (!string.IsNullOrWhiteSpace(_zoneCode))
+                {
+                    await _zoneAccessService.SetAccessAsync(normalizedZone!, true, "ZonePoisPurchase");
+                    await _zoneAccessService.RefreshAsync();
+                    WeakReferenceMessenger.Default.Send(new ZonePurchasedMessage(normalizedZone!));
+                }
+
                 await DisplayAlertAsync("Success", "Zone purchased successfully!", "OK");
                 AccessFrame.IsVisible = false;
+
+                var modal = _services.GetRequiredService<DownloadProgressPage>();
+                await Navigation.PushModalAsync(modal);
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(normalizedZone))
+                        await _audioDownloadService.DownloadZoneAudioAsync(normalizedZone);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ZONE-POIS] Audio download failed: {ex.Message}");
+                }
+                finally
+                {
+                    if (!modal.Skipped)
+                        await Navigation.PopModalAsync();
+                }
+
+                // Reload POIs to show them as accessible
+                await LoadZonePoisAsync();
             }
             else
             {
@@ -283,11 +324,11 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
                     var errorObj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(errorContent);
                     if (errorObj.TryGetProperty("error", out var errorProp) && errorProp.TryGetProperty("message", out var msgProp))
                     {
-                        message = msgProp.GetString();
+                        message = msgProp.GetString() ?? "Unknown error";
                     }
                     else if (errorObj.TryGetProperty("message", out var directMsgProp))
                     {
-                        message = directMsgProp.GetString();
+                        message = directMsgProp.GetString() ?? "Unknown error";
                     }
                 }
                 catch { message = errorContent; }
@@ -304,6 +345,27 @@ public partial class ZonePoisPage : ContentPage, IQueryAttributable
         {
             LoadingIndicator.IsRunning = false;
             LoadingIndicator.IsVisible = false;
+        }
+    }
+
+    private async Task NavigateToLoginSafeAsync()
+    {
+        try
+        {
+            await Shell.Current.GoToAsync("login");
+        }
+        catch
+        {
+            try
+            {
+                var loginPage = _services.GetRequiredService<LoginPage>();
+                await Navigation.PushModalAsync(loginPage);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ZONE-POIS] Login navigation failed: {ex.Message}");
+                await DisplayAlertAsync("Error", "Không thể mở trang đăng nhập.", "OK");
+            }
         }
     }
 }

@@ -121,6 +121,16 @@ public class MapViewModel : INotifyPropertyChanged
             });
         });
 
+        WeakReferenceMessenger.Default.Register<ZonePurchasedMessage>(this, async (_, __) =>
+        {
+            // Keep map POI interactions in sync with latest entitlement state.
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                OnPropertyChanged(nameof(SelectedPoi));
+                OnPropertyChanged(nameof(Pois));
+            });
+        });
+
         _appState.LanguageChanged += (s, lang) =>
         {
             OnPropertyChanged(nameof(CurrentLanguage));

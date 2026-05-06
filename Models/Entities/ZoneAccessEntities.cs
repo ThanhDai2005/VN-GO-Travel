@@ -37,6 +37,31 @@ public class ZoneDownload
     public int IsComplete { get; set; } = 0;
 }
 
+[Table("downloaded_audio")]
+public class DownloadedAudio
+{
+    [PrimaryKey]
+    public string Id { get; set; } = string.Empty;
+
+    [Indexed]
+    public string ZoneId { get; set; } = string.Empty;
+
+    [Indexed]
+    public string PoiCode { get; set; } = string.Empty;
+
+    [Indexed]
+    public string Lang { get; set; } = "vi";
+
+    public string AudioShortPath { get; set; } = string.Empty;
+
+    public string AudioLongPath { get; set; } = string.Empty;
+
+    /// <summary>manual | tts</summary>
+    public string SourceType { get; set; } = "tts";
+
+    public string DownloadedAt { get; set; } = DateTime.UtcNow.ToString("O");
+}
+
 [Table("sync_queue")]
 public class SyncQueueEntry
 {

@@ -29,8 +29,30 @@
                                FontAttributes="Bold"
                                TextColor="{StaticResource BrandPrimaryDark}" />
                     </HorizontalStackLayout>
-
                 </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource CardBorder}" IsVisible="{Binding IsLoggedIn}">
+                <Grid ColumnDefinitions="*, Auto">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Ví điểm VN-GO"
+                               Style="{StaticResource SectionTitle}" />
+                        <Label Text="{Binding DisplayBalance}"
+                               FontSize="24"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource BrandPrimary}" />
+                    </VerticalStackLayout>
+                    
+                    <Button Grid.Column="1"
+                            Text="󰑐"
+                            FontFamily="MaterialIcons"
+                            FontSize="20"
+                            Padding="10"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource BrandPrimary}"
+                            Command="{Binding RefreshWalletCommand}"
+                            VerticalOptions="Center" />
+                </Grid>
             </Border>
 
             <Button Text="Đăng nhập"
@@ -41,6 +63,16 @@
             <Button Text="Dang xuat"
                     Style="{StaticResource SecondaryButton}"
                     Command="{Binding LogoutCommand}"
+                    IsVisible="{Binding IsLoggedIn}" />
+
+            <Button Text="Lịch sử mua khu vực"
+                    Style="{StaticResource PrimaryButton}"
+                    Command="{Binding OpenPurchaseHistoryCommand}"
+                    IsVisible="{Binding IsLoggedIn}" />
+
+            <Button Text="Quản lý tải xuống"
+                    Style="{StaticResource SecondaryButton}"
+                    Command="{Binding OpenDownloadManagerCommand}"
                     IsVisible="{Binding IsLoggedIn}" />
 
             <Border Style="{StaticResource CardBorder}"

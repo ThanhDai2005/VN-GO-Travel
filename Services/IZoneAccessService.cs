@@ -19,6 +19,8 @@ public interface IZoneAccessService
     
     Task<List<string>> GetAccessibleZonesAsync(CancellationToken ct = default);
 
+    Task RefreshAsync(CancellationToken ct = default);
+
     Task SyncWithServerAsync(CancellationToken ct = default);
     
     /// <summary>Strict enforcement: throws UnauthorizedAccessException if access is missing.</summary>

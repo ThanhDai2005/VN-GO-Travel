@@ -36,4 +36,12 @@ router.get(
     intelligenceOwnerController.getPoiSummary
 );
 
+// Get geo heatmap for owner POIs
+const intelligenceMetricsController = require('../controllers/intelligence-metrics.controller');
+router.get(
+    '/metrics/geo-heatmap',
+    requireAuth,
+    intelligenceMetricsController.getOwnerGeoHeatmap
+);
+
 module.exports = router;

@@ -340,8 +340,17 @@ export default function TranslationWorkflow({ poiCode, baseContent, baseVersion 
                         <div className="space-y-6">
                             <div className="flex items-center justify-between rounded-xl border border-slate-800 p-4 bg-slate-950/30">
                                 <div className="flex gap-4">
-                                    <ModeBtn active={form.mode === 'partial'} onClick={() => !isLocked && setForm(f=>({...f, mode:'partial'}))} label="Partial" />
-                                    <ModeBtn active={form.mode === 'full'} onClick={() => !isLocked && setForm(f=>({...f, mode:'full'}))} label="Full (Strict)" />
+                                    <ModeBtn 
+                                        active={form.mode === 'partial'} 
+                                        disabled={true}
+                                        onClick={() => alert("Chưa tích hợp A.i, chưa sử dụng được")} 
+                                        label="Partial" 
+                                    />
+                                    <ModeBtn 
+                                        active={form.mode === 'full'} 
+                                        onClick={() => !isLocked && setForm(f=>({...f, mode:'full'}))} 
+                                        label="Full (Strict)" 
+                                    />
                                 </div>
                             </div>
 
@@ -416,13 +425,20 @@ function StaticField({ label, value }) {
     );
 }
 
-function ModeBtn({ active, onClick, label }) {
+function ModeBtn({ active, onClick, label, disabled }) {
     return (
         <button 
             onClick={onClick}
-            className={`rounded px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-all ${active ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`relative rounded px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-all ${active ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' : 'text-slate-500 hover:text-slate-300'} ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
         >
-            {label}
+            <div className="flex items-center gap-1.5">
+                {disabled && (
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                )}
+                {label}
+            </div>
         </button>
     );
 }

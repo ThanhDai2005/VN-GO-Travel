@@ -39,5 +39,33 @@ public static class AppBootstrapPipeline
         {
             Debug.WriteLine($"[BOOT-7.2] Deep link dispatch: {ex.Message}");
         }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var auth = services.GetService<AuthService>();
+                var zoneAccess = services.GetService<IZoneAccessService>();
+                var repo = services.GetService<IZoneAccessRepository>();
+                var audioDownload = services.GetService<IAudioDownloadService>();
+                if (auth == null || zoneAccess == null || repo == null || audioDownload == null)
+                    return;
+                if (!auth.IsAuthenticated || string.IsNullOrWhiteSpace(auth.UserId))
+                    return;
+
+                await zoneAccess.SyncWithServerAsync().ConfigureAwait(false);
+                var purchasedZones = await repo.GetPurchasedZonesAsync(auth.UserId).ConfigureAwait(false);
+                foreach (var zone in purchasedZones.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    var downloaded = await repo.IsZoneDownloadedAsync(zone).ConfigureAwait(false);
+                    if (!downloaded)
+                        await audioDownload.DownloadZoneAudioAsync(zone).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[BOOT-7.2] Purchase audio backfill: {ex.Message}");
+            }
+        });
     }
 }

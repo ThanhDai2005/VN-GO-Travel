@@ -14,11 +14,14 @@ public sealed class AudioPlayerService : IAudioPlayerService
 
     public bool IsPlaying { get; private set; }
     public bool IsBuffering { get; private set; }
-    public TimeSpan CurrentPosition => TimeSpan.Zero; // Placeholder for platform impl
-    public TimeSpan Duration => TimeSpan.Zero;        // Placeholder for platform impl
+    public TimeSpan CurrentPosition => _currentPosition;
+    public TimeSpan Duration => _duration;
 
     private string? _currentZoneId;
     private string? _currentAudioUrl;
+    private TimeSpan _currentPosition = TimeSpan.Zero;
+    private TimeSpan _duration = TimeSpan.Zero;
+    private CancellationTokenSource? _playbackTickerCts;
 
     public AudioPlayerService(
         IZoneAccessService zoneAccess, 
@@ -77,7 +80,9 @@ public sealed class AudioPlayerService : IAudioPlayerService
         await _zoneAccess.EnsureAccessAsync(zoneId, ct).ConfigureAwait(false);
 
         // STEP 1: FILE INTEGRITY & RESOLUTION
-        var localSource = await GetPlayableLocalSource(zoneId, audioUrl).ConfigureAwait(false);
+        var localSource = Path.IsPathRooted(audioUrl)
+            ? audioUrl
+            : await GetPlayableLocalSource(zoneId, audioUrl).ConfigureAwait(false);
         var playSource = localSource ?? audioUrl;
         var isLocal = localSource != null;
 
@@ -124,18 +129,25 @@ public sealed class AudioPlayerService : IAudioPlayerService
         // Simulating platform playback
         await Task.Delay(100); 
         
+        _duration = ResolveDuration(source);
+        if (_currentPosition >= _duration || _currentPosition == TimeSpan.Zero)
+            _currentPosition = TimeSpan.Zero;
         IsPlaying = true;
         IsBuffering = false;
+        StartPlaybackTicker();
     }
 
     public void Pause() 
     {
         IsPlaying = false;
+        _playbackTickerCts?.Cancel();
         _logger.LogInfo("AUDIO_PAUSE");
     }
 
     public void Resume() 
     {
+        if (_duration > TimeSpan.Zero && _currentPosition < _duration)
+            StartPlaybackTicker();
         IsPlaying = true;
         _logger.LogInfo("AUDIO_RESUME");
     }
@@ -143,6 +155,9 @@ public sealed class AudioPlayerService : IAudioPlayerService
     public async Task StopAsync(CancellationToken ct = default)
     {
         IsPlaying = false;
+        _playbackTickerCts?.Cancel();
+        _currentPosition = TimeSpan.Zero;
+        _duration = TimeSpan.Zero;
         _currentZoneId = null;
         _currentAudioUrl = null;
         _ttsCts?.Cancel();
@@ -152,7 +167,59 @@ public sealed class AudioPlayerService : IAudioPlayerService
 
     public void Seek(TimeSpan position)
     {
+        if (_duration <= TimeSpan.Zero)
+            return;
+
+        if (position < TimeSpan.Zero) position = TimeSpan.Zero;
+        if (position > _duration) position = _duration;
+        _currentPosition = position;
         _logger.LogInfo("AUDIO_SEEK", new { position });
+    }
+
+    private static TimeSpan ResolveDuration(string source)
+    {
+        try
+        {
+            if (File.Exists(source))
+            {
+                var bytes = new FileInfo(source).Length;
+                var estimatedSeconds = Math.Max(20, Math.Min(900, bytes / 24_000d));
+                return TimeSpan.FromSeconds(estimatedSeconds);
+            }
+        }
+        catch
+        {
+            // fallback
+        }
+
+        return TimeSpan.FromMinutes(3);
+    }
+
+    private void StartPlaybackTicker()
+    {
+        _playbackTickerCts?.Cancel();
+        _playbackTickerCts = new CancellationTokenSource();
+        var localCts = _playbackTickerCts;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!localCts.IsCancellationRequested && IsPlaying)
+                {
+                    await Task.Delay(1000, localCts.Token).ConfigureAwait(false);
+                    if (!IsPlaying) continue;
+                    _currentPosition += TimeSpan.FromSeconds(1);
+                    if (_currentPosition >= _duration)
+                    {
+                        _currentPosition = _duration;
+                        IsPlaying = false;
+                        break;
+                    }
+                }
+            }
+            catch (OperationCanceledException) { }
+        }, localCts.Token);
     }
 
     private async Task<string?> GetPlayableLocalSource(string zoneId, string audioUrl)

@@ -135,6 +135,13 @@ public sealed class ZoneAccessService : IZoneAccessService
         return zones;
     }
 
+    public async Task RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        await _repository.InitializeAsync(cancellationToken).ConfigureAwait(false);
+        await LoadCacheAsync(cancellationToken).ConfigureAwait(false);
+        _initialized = true;
+    }
+
     public async Task EnsureAccessAsync(string zoneId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(zoneId)) return;

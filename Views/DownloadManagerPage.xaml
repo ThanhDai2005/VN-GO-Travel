@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiApp1.Views.DownloadManagerPage"
+             Title="Download Manager">
+    <Grid Padding="16" RowDefinitions="Auto,Auto,*">
+        <Label Text="{Binding StorageUsedText, StringFormat='Storage used: {0}'}"
+               FontAttributes="Bold"
+               FontSize="15" />
+
+        <Button Grid.Row="1"
+                Margin="0,8,0,8"
+                Text="Refresh"
+                Command="{Binding RefreshCommand}" />
+
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Items}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Padding="12" Margin="0,0,0,10" BackgroundColor="White">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{Binding ZoneCode}" FontAttributes="Bold" FontSize="16" />
+                            <Label Text="{Binding Language, StringFormat='Language: {0}'}" />
+                            <Label Text="{Binding ItemCount, StringFormat='POIs: {0}'}" />
+                            <Label Text="{Binding SourceTypes, StringFormat='Source: {0}'}" />
+                            <HorizontalStackLayout>
+                                <Button Text="Delete"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeletePackageCommand}"
+                                        CommandParameter="{Binding ZoneCode}" />
+                                <Button Text="Re-download"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RedownloadCommand}"
+                                        CommandParameter="{Binding ZoneCode}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

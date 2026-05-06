@@ -36,6 +36,11 @@ class AuthService {
 
         const token = this.signToken(user._id);
 
+        // Fetch wallet balance
+        const walletRepository = require('../repositories/user-wallet.repository');
+        const wallet = await walletRepository.getOrCreate(user._id);
+        const walletBalance = wallet ? wallet.balance : 0;
+
         // Remove password from output
         user.password = undefined;
 
@@ -48,7 +53,8 @@ class AuthService {
                 role: user.role ?? ROLES.USER,
                 isPremium: user.isPremium,
                 isActive: user.isActive !== false,
-                qrScanCount: Number(user.qrScanCount || 0)
+                qrScanCount: Number(user.qrScanCount || 0),
+                walletBalance: Number(walletBalance)
             },
             token
         };
@@ -84,6 +90,11 @@ class AuthService {
             fullName: String(fullName || '').trim()
         });
 
+        // Initialize wallet for new user
+        const walletRepository = require('../repositories/user-wallet.repository');
+        const wallet = await walletRepository.getOrCreate(created._id, 1000000000);
+        const walletBalance = wallet ? wallet.balance : 1000000000;
+
         const token = this.signToken(created._id);
         return {
             user: {
@@ -93,7 +104,8 @@ class AuthService {
                 role: created.role ?? ROLES.USER,
                 isPremium: created.isPremium === true,
                 isActive: created.isActive !== false,
-                qrScanCount: Number(created.qrScanCount || 0)
+                qrScanCount: Number(created.qrScanCount || 0),
+                walletBalance: Number(walletBalance)
             },
             token
         };

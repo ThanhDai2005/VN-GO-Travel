@@ -7,6 +7,8 @@ using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Maps;
 using MauiApp1.Services.Visuals;
 using System.Diagnostics;
+using CommunityToolkit.Mvvm.Messaging;
+using MauiApp1.Messages;
 
 namespace MauiApp1.Views;
 
@@ -49,6 +51,12 @@ public partial class MapPage : ContentPage, IQueryAttributable
         _zoneAccess = zoneAccess;
 
         InitBottomPanel();
+
+        // Lắng nghe sự kiện mua hàng để cập nhật nút bấm ngay lập tức
+        WeakReferenceMessenger.Default.Register<ZonePurchasedMessage>(this, (_, _) =>
+        {
+            MainThread.BeginInvokeOnMainThread(UpdatePlayAudioButtonText);
+        });
 
         _vm.PoisRefreshed += (_, _) =>
         {
@@ -258,6 +266,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
     {
         base.OnDisappearing();
         _auth.PropertyChanged -= OnAuthPropertyChanged;
+        WeakReferenceMessenger.Default.Unregister<ZonePurchasedMessage>(this);
 
         _isTracking = false;
         _poisDrawn = false;
@@ -517,6 +526,8 @@ public partial class MapPage : ContentPage, IQueryAttributable
 
     private async Task ShowBottomPanelAsync()
     {
+        UpdatePlayAudioButtonText();
+
         if (!BottomPanel.IsVisible)
         {
             BottomPanel.Opacity = 0;
@@ -532,9 +543,22 @@ public partial class MapPage : ContentPage, IQueryAttributable
         BottomPanel.IsVisible = false;
     }
 
-    private void UpdatePlayAudioButtonText()
+    private async void UpdatePlayAudioButtonText()
     {
         if (PlayAudioButton == null) return;
+
+        var poi = _vm.SelectedPoi;
+        if (poi != null && _auth.IsAuthenticated)
+        {
+            // Kiểm tra xem đã mua chưa để đổi icon/text cho "nhiệt tình" và đúng flow
+            var hasAccess = await _zoneAccess.HasAccessAsync(poi.ZoneCode ?? "");
+            if (hasAccess)
+            {
+                PlayAudioButton.Text = "🎧 Nghe chi tiết";
+                return;
+            }
+        }
+
         PlayAudioButton.Text = "🔊 Thuyết minh";
     }
 
@@ -543,8 +567,11 @@ public partial class MapPage : ContentPage, IQueryAttributable
         var poi = _vm.SelectedPoi;
         if (poi == null) return;
 
-        // Navigate to PoiDetailPage to handle access control and play detailed narration
-        var route = $"/poidetail?code={Uri.EscapeDataString(poi.Code)}&lang={Uri.EscapeDataString(_vm.CurrentLanguage)}";
+        // "Fix nhẹ nhàng": Dừng âm thanh đang phát trên bản đồ trước khi chuyển trang
+        _vm.StopAudio();
+
+        // Sử dụng route tương đối và đảm bảo tham số được truyền chính xác
+        var route = $"poidetail?code={Uri.EscapeDataString(poi.Code)}&lang={Uri.EscapeDataString(_vm.CurrentLanguage)}";
         await _navService.NavigateToAsync(route);
     }
 

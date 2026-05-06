@@ -80,8 +80,11 @@ export async function fetchAudits(page = 1, limit = 20) {
 }
 
 /** All POIs (any status), paginated — ADMIN only. */
-export async function fetchMasterPois(page = 1, limit = 50) {
+export async function fetchMasterPois(page = 1, limit = 50, options = {}) {
   const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (options.search) q.set("search", options.search);
+  if (options.status) q.set("status", options.status);
+  if (options.sort) q.set("sort", options.sort);
   return apiRequest(`/api/v1/admin/pois/master?${q}`);
 }
 
@@ -287,6 +290,12 @@ export async function fetchOwnerIntelligenceHeatmap(start, end, poiId) {
   const q = new URLSearchParams({ start, end });
   if (poiId) q.set('poi_id', String(poiId));
   return apiRequest(`/api/v1/owner/intelligence/heatmap?${q}`);
+}
+
+export async function fetchOwnerGeoHeatmap(start, end, poiId) {
+  const q = new URLSearchParams({ start, end });
+  if (poiId) q.set('poiId', String(poiId));
+  return apiRequest(`/api/v1/owner/intelligence/metrics/geo-heatmap?${q}`);
 }
 
 export async function fetchOwnerIntelligenceTimeline(start, end, granularity = "daily") {

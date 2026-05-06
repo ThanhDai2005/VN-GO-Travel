@@ -2,6 +2,12 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchPendingPois, fetchSystemOverview } from '../apiClient.js';
 
+const Card = ({ children, className = "" }) => (
+    <div className={`rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 ${className}`}>
+        {children}
+    </div>
+);
+
 export default function AdminHomePage() {
   const [pendingCount, setPendingCount] = useState(null);
   const [systemData, setSystemData] = useState(null);
@@ -30,11 +36,9 @@ export default function AdminHomePage() {
 
   useEffect(() => {
     load(true);
-    
-    // Auto-refresh online status every 5 seconds
     refreshTimer.current = setInterval(() => {
       load(false);
-    }, 5000);
+    }, 30000);
 
     return () => {
       if (refreshTimer.current) clearInterval(refreshTimer.current);
@@ -43,111 +47,134 @@ export default function AdminHomePage() {
 
   const stats = [
     { 
-      label: 'NGƯỜI DÙNG ONLINE', 
-      value: systemData?.onlineUsers ?? '—', 
+      label: 'ONLINE', 
+      value: systemData?.onlineUsers ?? 0, 
       desc: 'Thiết bị đang hoạt động', 
-      color: 'text-indigo-600', 
-      bg: 'bg-indigo-50', 
-      border: 'hover:border-indigo-300',
-      isPulse: (systemData?.onlineUsers > 0)
+      icon: (
+        <div className="h-10 w-10 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+        </div>
+      ),
+      pulse: true
     },
     { 
-      label: 'TỔNG NGƯỜI DÙNG', 
-      value: systemData?.totalUsers ?? '—', 
-      desc: 'Tài khoản đã đăng ký', 
-      color: 'text-slate-900', 
-      bg: 'bg-slate-50', 
-      border: 'hover:border-slate-300' 
+      label: 'NGƯỜI DÙNG', 
+      value: systemData?.totalUsers ?? 0, 
+      desc: 'Tổng tài khoản đăng ký', 
+      icon: (
+        <div className="h-10 w-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+        </div>
+      )
     },
     { 
-      label: 'TÀI KHOẢN PREMIUM', 
-      value: systemData?.totalPremiumUsers ?? '—', 
-      desc: 'Người dùng trả phí', 
-      color: 'text-amber-600', 
-      bg: 'bg-amber-50', 
-      border: 'hover:border-amber-300' 
+      label: 'ZONE PASS', 
+      value: systemData?.totalZonePurchasers ?? 0, 
+      desc: 'Người dùng đã mua zone', 
+      icon: (
+        <div className="h-10 w-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        </div>
+      )
     },
   ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight text-slate-900">Bảng <span className="text-emerald-600">điều khiển</span></h1>
-        <p className="mt-1 text-sm font-medium text-slate-500">Tổng quan nhanh các khu vực quản trị và chỉ số hệ thống VNGo.</p>
+    <div className="space-y-10">
+      {/* Welcome Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Bảng điều khiển</h1>
+          <p className="mt-1 text-sm font-medium text-slate-500">Chào mừng trở lại! Dưới đây là tình trạng hệ thống hiện tại.</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full">
+            <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            AUTO-REFRESH: 30s
+        </div>
       </div>
 
       {err && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 animate-in fade-in slide-in-from-top-2">{err}</div>
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-600 font-medium">
+          {err}
+        </div>
       )}
 
-      {/* 🚀 NEW: SYSTEM OVERVIEW STATS */}
+      {/* Main Stats Grid */}
       <div className="grid gap-6 md:grid-cols-3">
         {stats.map((stat, i) => (
-          <div 
-            key={i} 
-            className={`group relative overflow-hidden rounded-2xl border border-slate-200 ${stat.bg} p-6 shadow-sm transition-all hover:-translate-y-1 ${stat.border} hover:shadow-md`}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stat.label}</p>
-              {stat.isPulse && (
-                <span className="flex h-2 w-2">
-                  <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500"></span>
-                </span>
-              )}
+          <Card key={i} className="relative overflow-hidden group hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1">
+            <div className="flex items-start justify-between">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
+                    <p className="text-4xl font-black text-slate-900 tracking-tight">
+                        {loading ? '...' : stat.value.toLocaleString()}
+                    </p>
+                </div>
+                {stat.icon}
             </div>
-            <p className={`mt-3 text-4xl font-black ${stat.color}`}>
-              {stat.value.toLocaleString()}
+            <p className="mt-4 text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                {stat.desc}
             </p>
-            <p className="mt-2 text-xs font-medium text-slate-500">{stat.desc}</p>
-          </div>
+            {stat.pulse && stat.value > 0 && (
+                <div className="absolute top-0 right-0 h-1 w-full bg-indigo-500/10">
+                    <div className="h-full bg-indigo-500 animate-[shimmer_2s_infinite]" style={{ width: '30%' }}></div>
+                </div>
+            )}
+          </Card>
         ))}
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Link
-          to="/pending"
-          className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-emerald-300 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between">
-             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">CHỜ DUYỆT</p>
-             <div className="rounded-full bg-emerald-100 p-1.5 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-             </div>
-          </div>
-          <p className="mt-3 text-4xl font-black text-emerald-600">
-            {pendingCount === null ? '—' : pendingCount}
-          </p>
-          <p className="mt-2 text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">Duyệt POI mới</p>
-          <p className="mt-1 text-xs text-slate-500">Xem và xử lý địa điểm do Owner gửi lên hệ thống.</p>
+      {/* Quick Actions / Important Areas */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Pending Card */}
+        <Link to="/pending" className="group">
+            <Card className="h-full border-emerald-100 bg-emerald-50/30 hover:bg-emerald-50 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-100">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="h-12 w-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    </div>
+                    <span className="text-3xl font-black text-emerald-600 tracking-tighter">
+                        {pendingCount === null ? '—' : pendingCount}
+                    </span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">Duyệt địa điểm</h3>
+                <p className="mt-1 text-xs font-bold text-slate-500 uppercase tracking-wide">Yêu cầu mới từ Owner</p>
+                <div className="mt-4 flex items-center text-xs font-black text-emerald-600 group-hover:gap-2 transition-all">
+                    <span>XỬ LÝ NGAY</span>
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+                </div>
+            </Card>
         </Link>
 
-        <Link
-          to="/pois"
-          className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between">
-             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">QUẢN LÝ POI</p>
-             <div className="rounded-full bg-indigo-100 p-1.5 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-             </div>
-          </div>
-          <p className="mt-3 text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors uppercase tracking-tight">Danh sách địa điểm</p>
-          <p className="mt-2 text-xs text-slate-500">Quản lý nội dung, vị trí và QR Code bảo mật cho từng điểm đến.</p>
+        {/* POI Management Card */}
+        <Link to="/pois" className="group">
+            <Card className="h-full hover:border-slate-300 hover:shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="h-12 w-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-200 group-hover:scale-110 transition-transform">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    </div>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">Quản lý POI</h3>
+                <p className="mt-1 text-xs font-bold text-slate-500 uppercase tracking-wide">Nội dung & Bản đồ</p>
+                <p className="mt-3 text-xs text-slate-500 line-clamp-2">Điều chỉnh thông tin địa danh, tọa độ và quản lý mã QR bảo mật.</p>
+            </Card>
         </Link>
 
-        <Link
-          to="/users"
-          className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-amber-300 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between">
-             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">NGƯỜI DÙNG</p>
-             <div className="rounded-full bg-amber-100 p-1.5 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-             </div>
-          </div>
-          <p className="mt-3 text-sm font-black text-slate-900 group-hover:text-amber-700 transition-colors uppercase tracking-tight">Phân quyền & Premium</p>
-          <p className="mt-2 text-xs text-slate-500">Quản lý vai trò (Admin/Owner), cấp quyền Premium và khóa tài khoản.</p>
+        {/* User Card */}
+        <Link to="/users" className="group">
+            <Card className="h-full hover:border-slate-300 hover:shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="h-12 w-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-100 group-hover:scale-110 transition-transform">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    </div>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">Người dùng</h3>
+                <p className="mt-1 text-xs font-bold text-slate-500 uppercase tracking-wide">Premium & Phân quyền</p>
+                <p className="mt-3 text-xs text-slate-500 line-clamp-2">Quản lý đặc quyền tài khoản, mở khóa zone pass và lịch sử quét.</p>
+            </Card>
         </Link>
       </div>
     </div>

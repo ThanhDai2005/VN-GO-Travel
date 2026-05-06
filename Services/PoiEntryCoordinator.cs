@@ -242,7 +242,9 @@ public class PoiEntryCoordinator : IPoiEntryCoordinator
                 Latitude = poiData.Location.Lat,
                 Longitude = poiData.Location.Lng,
                 Radius = poiData.Radius > 0 ? poiData.Radius : 50,
-                Priority = poiData.Priority != 0 ? poiData.Priority : 1
+                Priority = poiData.Priority != 0 ? poiData.Priority : 1,
+                ZoneCode = data.Zone?.Code?.Trim().ToUpperInvariant(),
+                ZoneName = data.Zone?.Name
             };
             await _poiCommand.UpsertAsync(poi, cancellationToken).ConfigureAwait(false);
 

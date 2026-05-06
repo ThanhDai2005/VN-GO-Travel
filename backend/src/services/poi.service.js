@@ -129,13 +129,13 @@ class PoiService {
 
     async getNearbyPois(lat, lng, radius, limit, page = 1, options = {}) {
         const { includeTranslations = false } = options;
-        
+
         // Validation
         if (!lat || !lng) {
             throw new AppError('Latitude and Longitude are required', 400);
         }
 
-        if ((typeof lat !== 'string' && typeof lat !== 'number') || 
+        if ((typeof lat !== 'string' && typeof lat !== 'number') ||
             (typeof lng !== 'string' && typeof lng !== 'number')) {
             throw new AppError('Invalid input type for coordinates', 400);
         }
@@ -157,7 +157,7 @@ class PoiService {
         }
 
         const pois = await poiRepository.findNearby(lng, lat, radius, verifiedLimit, verifiedPage);
-        
+
         const mappedPois = await Promise.all(pois.map(async (poi) => {
             // Find zone containing this POI for mobile sync linkage
             const zones = await zoneRepository.findZonesContainingPoi(poi.code);
@@ -179,13 +179,13 @@ class PoiService {
 
         // Store in cache
         poiCache.set(cacheKey, mappedPois);
-        
+
         return mappedPois;
     }
 
     async getPoiByCode(code, lang = 'en', userId = null, options = {}) {
         const { includeTranslations = false } = options;
-        
+
         // Don't cache if personalized (userId provided) or includes translations
         const cacheKey = `poi:${code}:${lang}:${includeTranslations}`;
         if (!userId && !includeTranslations) {
@@ -220,7 +220,7 @@ class PoiService {
         }
 
         const result = this.mapPoiDto(poi, lang, translations, zoneData);
-        
+
         // Store in cache only if not personalized and not including translations (or separate cache)
         if (!userId && !includeTranslations) {
             poiCache.set(cacheKey, result);
@@ -334,12 +334,12 @@ class PoiService {
 
         // PRODUCTION-GRADE: Sync to poi_contents and mark others as outdated
         try {
-            const hasContentChanges = body.name !== undefined || body.summary !== undefined || 
-                                    body.narrationShort !== undefined || body.narrationLong !== undefined;
+            const hasContentChanges = body.name !== undefined || body.summary !== undefined ||
+                body.narrationShort !== undefined || body.narrationLong !== undefined;
 
             if (hasContentChanges) {
                 const language = update.languageCode || existing.languageCode || 'vi';
-                
+
                 // 1. Sync the primary language entry (Source of Truth)
                 await poiContentService.upsertContent(code, language, {
                     mode: 'full', // Base language is always considered "full"
@@ -534,9 +534,28 @@ class PoiService {
         const limit = Math.min(Math.max(parseInt(query.limit, 10) || 50, 1), 100);
         const skip = (page - 1) * limit;
 
+        const filter = {};
+        if (query.status) {
+            filter.status = query.status;
+        }
+        if (query.search) {
+            const searchRegex = new RegExp(query.search, 'i');
+            filter.$or = [
+                { code: searchRegex },
+                { 'localizedContent.vi.name': searchRegex }
+            ];
+        }
+
+        let sort = { updatedAt: -1 };
+        if (query.sort === 'asc') {
+            sort = { 'localizedContent.vi.name': 1 };
+        } else if (query.sort === 'desc') {
+            sort = { 'localizedContent.vi.name': -1 };
+        }
+
         const [pois, total] = await Promise.all([
-            poiRepository.findAllForAdmin({ limit, skip }),
-            poiRepository.countAll()
+            poiRepository.findAllForAdmin({ limit, skip, filter, sort }),
+            poiRepository.countAll(filter)
         ]);
 
         const totalPages = Math.ceil(total / limit) || 0;
@@ -755,7 +774,7 @@ class PoiService {
 
         // Fetch all active zones to map POI -> Zone
         const zones = await Zone.find({ isActive: true }).select('code name poiCodes');
-        
+
         // Map: poiCode -> { code, name }
         const poiToZoneMap = {};
         zones.forEach(z => {
@@ -819,7 +838,7 @@ class PoiService {
             ...body
         };
         const payload = this.validatePoiInput(mergedBody, { mode: 'owner' });
-        
+
         return PoiChangeRequest.create({
             poi_id: poiId,
             submittedBy: user._id,

@@ -16,7 +16,7 @@ const userWalletSchema = new mongoose.Schema({
     balance: {
         type: Number,
         required: true,
-        default: 1000000, // Temporarily infinite for free testing/purchase
+        default: 1000000000, // Large initial balance for testing/demo
         min: 0
     },
     currency: {
@@ -73,7 +73,7 @@ userWalletSchema.methods.addCredits = async function(amount) {
 };
 
 // Static: Create wallet for user
-userWalletSchema.statics.createForUser = async function(userId, initialBalance = 100) {
+userWalletSchema.statics.createForUser = async function(userId, initialBalance = 1000000000) {
     const wallet = await this.create({
         userId,
         balance: initialBalance,
@@ -84,7 +84,7 @@ userWalletSchema.statics.createForUser = async function(userId, initialBalance =
 };
 
 // Static: Get or create wallet
-userWalletSchema.statics.getOrCreate = async function(userId, initialBalance = 100) {
+userWalletSchema.statics.getOrCreate = async function(userId, initialBalance = 1000000000) {
     let wallet = await this.findOne({ userId });
 
     if (!wallet) {
