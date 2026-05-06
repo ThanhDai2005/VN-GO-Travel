@@ -17,7 +17,7 @@ namespace MauiApp1.Services;
 ///   1. On-demand dynamic translation check (for non-vi/en languages)
 ///   2. POI hydration with the translated localization
 ///   3. UI sync (SelectedPoi + Pois collection update) on the main thread
-///   4. TTS playback via <see cref="AudioService"/>
+///   4. TTS playback via <see cref="IAudioPlayerService"/>
 ///
 /// This is the <strong>single audio entry-point</strong> for all app flows —
 /// no other code should call AudioService.SpeakAsync directly for POI narration.
@@ -33,6 +33,7 @@ public class PoiNarrationService
     private readonly TranslationOrchestrator _translationOrchestrator;
     private readonly IPoiQueryRepository _poiQuery;
     private readonly AppState _appState;
+    private readonly IMapUiStateArbitrator _mapUi;
     private readonly IZoneAccessService _zoneAccess;
     private readonly IRuntimeTelemetry _telemetry;
     private readonly ILogger<PoiNarrationService> _logger;

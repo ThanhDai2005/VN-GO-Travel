@@ -65,9 +65,11 @@ exports.scanLegacy = async (req, res, next) => {
 
 exports.getNearby = async (req, res, next) => {
     try {
-        const { lat, lng, radius, limit, page } = req.query;
+        const { lat, lng, radius, limit, page, includeTranslations } = req.query;
 
-        const pois = await poiService.getNearbyPois(lat, lng, radius, limit, page);
+        const pois = await poiService.getNearbyPois(lat, lng, radius, limit, page, {
+            includeTranslations: includeTranslations === 'true'
+        });
 
         const verifiedLimit = Math.min(parseInt(limit) || 10, 50);
         const verifiedPage = Math.max(parseInt(page) || 1, 1);
@@ -89,10 +91,12 @@ exports.getNearby = async (req, res, next) => {
 exports.getByCode = async (req, res, next) => {
     try {
         const { code } = req.params;
-        const { lang } = req.query;
+        const { lang, includeTranslations } = req.query;
 
         const userId = req.user ? req.user._id : null;
-        const poi = await poiService.getPoiByCode(code, lang, userId);
+        const poi = await poiService.getPoiByCode(code, lang, userId, {
+            includeTranslations: includeTranslations === 'true'
+        });
 
         res.status(200).json({
             success: true,

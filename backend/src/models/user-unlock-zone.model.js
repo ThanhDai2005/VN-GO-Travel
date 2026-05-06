@@ -28,6 +28,17 @@ const userUnlockZoneSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
         index: true
+    },
+    source: {
+        type: String,
+        enum: ['QR', 'MAP', 'MANUAL'],
+        default: 'MAP',
+        index: true
+    },
+    serverVerified: {
+        type: Boolean,
+        default: true,
+        index: true
     }
 }, {
     timestamps: true

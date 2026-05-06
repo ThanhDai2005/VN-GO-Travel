@@ -59,22 +59,43 @@
                                    Style="{StaticResource BodyText}" />
                         </VerticalStackLayout>
 
-                        <!-- AUTO TRANSLATED BADGE -->
-                        <Border IsVisible="{Binding Poi.IsAutoTranslated}"
-                                BackgroundColor="{StaticResource BrandAccent}"
-                                StrokeThickness="0"
-                                HorizontalOptions="Start"
-                                Padding="8,4"
-                                StrokeShape="RoundRectangle 8">
-                            <HorizontalStackLayout Spacing="4">
-                                <Label Text="✨" FontSize="12" VerticalOptions="Center" />
-                                <Label Text="Bản dịch tự động"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource BrandDark}"
-                                       VerticalOptions="Center" />
-                            </HorizontalStackLayout>
-                        </Border>
+                        <!-- HYBRID TRANSLATION BADGES -->
+                        <HorizontalStackLayout Spacing="8">
+                            <!-- AUTO TRANSLATED BADGE -->
+                            <Border IsVisible="{Binding Poi.ShowBadgeAutoTranslated}"
+                                    BackgroundColor="{StaticResource BrandAccent}"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="Start"
+                                    Padding="8,4"
+                                    StrokeShape="RoundRectangle 8">
+                                <HorizontalStackLayout Spacing="4">
+                                    <Label Text="✨" FontSize="12" VerticalOptions="Center" />
+                                    <Label Text="Bản dịch tự động"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource BrandDark}"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </Border>
+
+                            <!-- OUTDATED CONTENT BADGE -->
+                            <Border IsVisible="{Binding Poi.ShowBadgeOutdated}"
+                                    BackgroundColor="#FFF3CD"
+                                    StrokeThickness="1"
+                                    Stroke="#FFEEBA"
+                                    HorizontalOptions="Start"
+                                    Padding="8,4"
+                                    StrokeShape="RoundRectangle 8">
+                                <HorizontalStackLayout Spacing="4">
+                                    <Label Text="⚠️" FontSize="12" VerticalOptions="Center" />
+                                    <Label Text="Nội dung cũ"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#856404"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </HorizontalStackLayout>
 
                         <!-- ZONE PURCHASE BANNER -->
                         <Border IsVisible="{Binding DoesNotHaveZoneAccess}"

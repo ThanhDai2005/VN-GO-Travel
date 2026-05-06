@@ -1,1 +1,13 @@
+global using System;
 global using GeneratedContract;
+global using System.Collections.Generic;
+global using System.IO;
+global using System.Linq;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using MauiApp1.Models.Entities;
+global using Microsoft.Maui.Storage;
+global using Microsoft.Extensions.Logging;
+global using MauiApp1.ApplicationContracts.Repositories;
+global using MauiApp1.ApplicationContracts.Services;
+global using MauiApp1.Models.Auth;

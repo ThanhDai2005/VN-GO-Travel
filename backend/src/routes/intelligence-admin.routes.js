@@ -19,6 +19,7 @@ router.get('/metrics/timeline', intelligenceMetricsController.getTimeline);
 router.get('/metrics/geo-heatmap', intelligenceMetricsController.getGeoHeatmap);
 router.get('/metrics/overview', intelligenceMetricsController.getOverview);
 router.get('/metrics/system-overview', intelligenceMetricsController.getSystemOverview);
+router.get('/metrics/revenue', intelligenceMetricsController.getRevenueAnalytics);
 router.get('/heatmap', intelligenceHeatmapController.getAdminHeatmap);
 
 module.exports = router;

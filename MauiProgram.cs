@@ -71,6 +71,14 @@ public static class MauiProgram
         builder.Services.AddSingleton<GTranslateTranslationProvider>();
         builder.Services.AddSingleton<ITranslationProvider, LangblyTranslationProvider>();
         builder.Services.AddSingleton<IPoiTranslationService, PoiTranslationService>();
+        builder.Services.AddSingleton<INetworkService, NetworkService>();
+        builder.Services.AddSingleton<ISmartCacheManager, SmartCacheManager>();
+        builder.Services.AddSingleton<IDeduplicationService, DeduplicationService>();
+        builder.Services.AddSingleton<IQuotaGuardService, QuotaGuardService>();
+        builder.Services.AddSingleton<IJitOptimizationService, JitOptimizationService>();
+        builder.Services.AddSingleton<ITranslationResolverService, TranslationResolverService>();
+        builder.Services.AddSingleton<IPreloadService, PreloadService>();
+        builder.Services.AddSingleton<IBackgroundHydrationService, BackgroundHydrationService>();
         builder.Services.AddSingleton<TranslationQueueService>();
         builder.Services.AddSingleton<TranslationOrchestrator>();
 
@@ -277,6 +285,7 @@ public static class MauiProgram
         builder.Services.AddTransient<MauiApp1.Application.UseCases.GetNearbyPoisUseCase>();
         builder.Services.AddTransient<MauiApp1.Application.UseCases.GetPoiDetailUseCase>();
         builder.Services.AddTransient<MauiApp1.Application.UseCases.GetAvailableLanguagesUseCase>();
+        builder.Services.AddTransient<MauiApp1.Application.UseCases.PlayPoiAudioUseCase>();
 
         return builder.Build();
     }

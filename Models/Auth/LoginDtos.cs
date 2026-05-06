@@ -69,4 +69,7 @@ public sealed class UserDto
 
     [JsonPropertyName("qrScanCount")]
     public int QrScanCount { get; set; }
+
+    [JsonPropertyName("purchasedZones")]
+    public List<string> PurchasedZones { get; set; } = new();
 }

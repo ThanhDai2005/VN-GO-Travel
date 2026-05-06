@@ -91,12 +91,12 @@ class PoiService {
     }
 
     // Helper to format/map DTO
-    mapPoiDto(poi, lang) {
+    mapPoiDto(poi, lang, translations = null) {
         const viContent = this._extractViContent(poi);
         const normalizedContent = { vi: viContent };
         const legacyByLang = { vi: this._pickDisplayText(viContent), en: '' };
 
-        return {
+        const result = {
             id: poi._id,
             code: poi.code,
             location: {
@@ -116,11 +116,20 @@ class PoiService {
             isPremiumOnly: poi.isPremiumOnly,
             zoneCode: poi.zoneCode || null,
             zoneName: poi.zoneName || null,
-            accessStatus: poi.accessStatus || null
+            accessStatus: poi.accessStatus || null,
+            version: poi.version || 1
         };
+
+        if (translations && Array.isArray(translations)) {
+            result.translations = translations; // Already normalized by poiContentService
+        }
+
+        return result;
     }
 
-    async getNearbyPois(lat, lng, radius, limit, page = 1) {
+    async getNearbyPois(lat, lng, radius, limit, page = 1, options = {}) {
+        const { includeTranslations = false } = options;
+        
         // Validation
         if (!lat || !lng) {
             throw new AppError('Latitude and Longitude are required', 400);
@@ -139,8 +148,8 @@ class PoiService {
         const verifiedLimit = Math.min(parseInt(limit) || 10, 50);
         const verifiedPage = Math.max(parseInt(page) || 1, 1);
 
-        // Cache lookup
-        const cacheKey = `nearby:${lat}:${lng}:${radius}:${verifiedLimit}:${verifiedPage}`;
+        // Cache lookup (include translations in cache key if requested)
+        const cacheKey = `nearby:${lat}:${lng}:${radius}:${verifiedLimit}:${verifiedPage}:${includeTranslations}`;
         const cachedData = poiCache.get(cacheKey);
         if (cachedData) {
             console.log(`[CACHE] Hit: ${cacheKey}`);
@@ -148,13 +157,18 @@ class PoiService {
         }
 
         const pois = await poiRepository.findNearby(lng, lat, radius, verifiedLimit, verifiedPage);
-        const mappedPois = pois.map((poi) => {
-            const base = this.mapPoiDto(poi, 'en');
+        
+        const mappedPois = await Promise.all(pois.map(async (poi) => {
+            let translations = null;
+            if (includeTranslations) {
+                translations = await poiContentService.getAllContentForPoi(poi.code);
+            }
+            const base = this.mapPoiDto(poi, 'en', translations);
             return {
                 ...base,
                 contentByLang: base.contentByLang
             };
-        });
+        }));
 
         // Store in cache
         poiCache.set(cacheKey, mappedPois);
@@ -162,10 +176,12 @@ class PoiService {
         return mappedPois;
     }
 
-    async getPoiByCode(code, lang = 'en', userId = null) {
-        // Don't cache if personalized (userId provided)
-        const cacheKey = `poi:${code}:${lang}`;
-        if (!userId) {
+    async getPoiByCode(code, lang = 'en', userId = null, options = {}) {
+        const { includeTranslations = false } = options;
+        
+        // Don't cache if personalized (userId provided) or includes translations
+        const cacheKey = `poi:${code}:${lang}:${includeTranslations}`;
+        if (!userId && !includeTranslations) {
             const cachedPoi = poiCache.get(cacheKey);
             if (cachedPoi) {
                 console.log(`[CACHE] Hit: ${cacheKey}`);
@@ -191,10 +207,15 @@ class PoiService {
             poi.accessStatus = await accessControlService.canAccessPoi(userId, code);
         }
 
-        const result = this.mapPoiDto(poi, lang);
+        let translations = null;
+        if (includeTranslations) {
+            translations = await poiContentService.getAllContentForPoi(code);
+        }
+
+        const result = this.mapPoiDto(poi, lang, translations);
         
-        // Store in cache only if not personalized
-        if (!userId) {
+        // Store in cache only if not personalized and not including translations (or separate cache)
+        if (!userId && !includeTranslations) {
             poiCache.set(cacheKey, result);
         }
 
@@ -247,19 +268,19 @@ class PoiService {
         }
         const poi = await poiRepository.create(doc);
 
-        // PHASE 2B: Dual-write to poi_contents
+        // PRODUCTION-GRADE: Initialize primary translation entry
         try {
-            await poiContentService.createContent({
-                poiCode: poi.code,
-                language: doc.languageCode,
-                title: doc.name,
-                description: doc.summary,
-                narrationShort: doc.narrationShort,
-                narrationLong: doc.narrationLong,
-                version: 1
-            });
+            await poiContentService.upsertContent(poi.code, doc.languageCode, {
+                mode: 'full',
+                content: {
+                    name: doc.name,
+                    summary: doc.summary,
+                    narrationShort: doc.narrationShort,
+                    narrationLong: doc.narrationLong
+                }
+            }, null);
         } catch (error) {
-            console.error('[DUAL-WRITE] Failed to create poi_content:', error);
+            console.error('[TRANSLATION-INIT] Failed to create primary translation:', error);
         }
 
         this._invalidateCache();
@@ -304,35 +325,32 @@ class PoiService {
         }
         const poi = await poiRepository.updateByCode(code, update);
 
-        // PHASE 2B: Dual-write to poi_contents
+        // PRODUCTION-GRADE: Sync to poi_contents and mark others as outdated
         try {
-            const contentUpdate = {};
-            if (body.name !== undefined) contentUpdate.title = update.name;
-            if (body.summary !== undefined) contentUpdate.description = update.summary;
-            if (body.narrationShort !== undefined) contentUpdate.narrationShort = update.narrationShort;
-            if (body.narrationLong !== undefined) contentUpdate.narrationLong = update.narrationLong;
+            const hasContentChanges = body.name !== undefined || body.summary !== undefined || 
+                                    body.narrationShort !== undefined || body.narrationLong !== undefined;
 
-            if (Object.keys(contentUpdate).length > 0) {
+            if (hasContentChanges) {
                 const language = update.languageCode || existing.languageCode || 'vi';
-                const contentExists = await poiContentService.contentExists(code, language);
+                
+                // 1. Sync the primary language entry (Source of Truth)
+                await poiContentService.upsertContent(code, language, {
+                    mode: 'full', // Base language is always considered "full"
+                    content: {
+                        name: update.name !== undefined ? update.name : existing.name,
+                        summary: update.summary !== undefined ? update.summary : existing.summary,
+                        narrationShort: update.narrationShort !== undefined ? update.narrationShort : existing.narrationShort,
+                        narrationLong: update.narrationLong !== undefined ? update.narrationLong : existing.narrationLong
+                    }
+                }, null);
 
-                if (contentExists) {
-                    await poiContentService.updateContent(code, language, contentUpdate);
-                } else {
-                    // Create if doesn't exist
-                    await poiContentService.createContent({
-                        poiCode: code,
-                        language,
-                        title: update.name || existing.name,
-                        description: update.summary || existing.summary || '',
-                        narrationShort: update.narrationShort || existing.narrationShort || '',
-                        narrationLong: update.narrationLong || existing.narrationLong || '',
-                        version: 1
-                    });
+                // 2. Mark ALL OTHER languages as outdated if the base version changed
+                if (poi.version > (existing.version || 0)) {
+                    await poiContentService.markAsOutdated(code, poi.version);
                 }
             }
         } catch (error) {
-            console.error('[DUAL-WRITE] Failed to update poi_content:', error);
+            console.error('[TRANSLATION-SYNC] Failed to sync translation state:', error);
         }
 
         this._invalidateCache();

@@ -320,30 +320,6 @@ export default function IntelligenceDashboard() {
           {role !== 'OWNER' && (
             <>
               <section>
-                <h2 className="mb-4 text-lg font-medium text-slate-800">Tổng quan hệ thống</h2>
-                <OverviewCards />
-              </section>
-
-              <section>
-                <h2 className="mb-4 text-lg font-medium text-slate-800">Thống kê tổng thể (Lifetime)</h2>
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                  {/* Lifetime Stats Cards */}
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-600">Tổng quan người dùng</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600">Tổng người dùng</span>
-                        <span className="text-2xl font-black text-slate-900">{systemOverview.totalUsers.toLocaleString()}</span>
-                      </div>
-                      {/* Premium fields hidden per domain shift */}
-                    </div>
-                  </div>
-
-                  {/* Pie Chart & Bar Chart hidden per domain shift */}
-                </div>
-              </section>
-
-              <section>
                 <h2 className="text-lg font-medium text-slate-800">Heatmap vị trí khách theo POI</h2>
                 <div className="mt-3">
                   <GeoHeatmapMap rows={geoHeatmapRows} fallbackRows={geoFallbackRows} isLoading={loading} />

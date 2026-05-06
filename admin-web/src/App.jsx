@@ -14,6 +14,7 @@ import DashboardLayout from './components/DashboardLayout.jsx';
 import AdminChangeRequestsPage from './pages/AdminChangeRequestsPage.jsx';
 import ZonesManagementPage from './pages/ZonesManagementPage.jsx';
 import AudioAnalyticsPage from './pages/AudioAnalyticsPage.jsx';
+import RevenueAnalyticsPage from './pages/RevenueAnalyticsPage.jsx';
 
 function Protected({ children }) {
   const { isAuthenticated } = useAuth();
@@ -99,6 +100,14 @@ export default function App() {
           element={
             <RequireRole allowedRoles={['ADMIN']}>
               <IntelligenceDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="revenue"
+          element={
+            <RequireRole allowedRoles={['ADMIN']}>
+              <RevenueAnalyticsPage />
             </RequireRole>
           }
         />

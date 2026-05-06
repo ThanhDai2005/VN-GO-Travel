@@ -4,9 +4,9 @@ namespace MauiApp1.Views;
 
 public partial class AboutPage : ContentPage
 {
-    private readonly AudioService _audioService;
+    private readonly IAudioPlayerService _audioService;
 
-    public AboutPage(AudioService audioService)
+    public AboutPage(IAudioPlayerService audioService)
     {
         InitializeComponent();
         _audioService = audioService;
@@ -19,8 +19,8 @@ public partial class AboutPage : ContentPage
         await _audioService.SpeakAsync("intro", text, "vi");
     }
 
-    private void OnStopIntroClicked(object sender, EventArgs e)
+    private async void OnStopIntroClicked(object sender, EventArgs e)
     {
-        _audioService.Stop();
+        await _audioService.StopAsync();
     }
 }

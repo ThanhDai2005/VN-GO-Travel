@@ -42,7 +42,7 @@ public partial class PoiDetailPage : ContentPage
 
     private async void OnPlayClicked(object sender, EventArgs e)
     {
-        await _vm.PlayAsync();
+        await _vm.PlayShortNarrationAsync();
     }
 
     private async void OnOpenOnMapClicked(object sender, EventArgs e)

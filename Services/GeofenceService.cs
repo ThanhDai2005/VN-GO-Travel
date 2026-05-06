@@ -196,8 +196,8 @@ public class GeofenceService : IGeofenceService
                 detail: $"entry;poi={poi.Code};dist={best.Distance:0.0}m"));
 
             // TODO: Move to UseCase (Stage 4) — proximity selection, cooldown, and narration policy.
-            var text = !string.IsNullOrWhiteSpace(poi.Localization?.NarrationShort) ? poi.Localization.NarrationShort : (poi.Localization?.Name ?? "");
-            Debug.WriteLine($"[GEOFENCE] Triggering POI id={poi.Id} code={poi.Code} textLen={text?.Length ?? 0}");
+            var text = poi.Localization?.NarrationShort ?? poi.Localization?.Name ?? string.Empty;
+            Debug.WriteLine($"[GEOFENCE] Triggering POI id={poi.Id} code={poi.Code} textLen={text.Length}");
 
             // Use global language from AppState
             await _audioService.SpeakAsync(poi.Code, text, _appState.CurrentLanguage, cancellationToken).ConfigureAwait(false);

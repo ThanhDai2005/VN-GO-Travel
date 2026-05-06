@@ -37,7 +37,7 @@ public partial class MapPage : ContentPage, IQueryAttributable
     private string? _lastAutoPoiId;
     private bool _isUserSelecting;
 
-    public MapPage(MapViewModel vm, LanguageSelectorViewModel langSelectorVm, AppState appState, INavigationService navService, AuthService auth, IMapUiStateArbitrator mapUi)
+    public MapPage(MapViewModel vm, LanguageSelectorViewModel langSelectorVm, AppState appState, INavigationService navService, AuthService auth, IMapUiStateArbitrator mapUi, IZoneAccessService zoneAccess)
     {
         InitializeComponent();
         BindingContext = _vm = vm;

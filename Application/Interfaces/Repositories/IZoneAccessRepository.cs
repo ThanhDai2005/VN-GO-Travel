@@ -1,4 +1,7 @@
-using MauiApp1.Models;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using MauiApp1.Models.Entities;
 
 namespace MauiApp1.ApplicationContracts.Repositories;
 

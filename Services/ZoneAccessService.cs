@@ -8,6 +8,8 @@ namespace MauiApp1.Services;
 
 public sealed class ZoneAccessService : IZoneAccessService
 {
+    public event EventHandler<string>? AccessRevoked;
+
     private const string SyncEntityType = "ZonePurchase";
     private const int MaxRetryCount = 5;
     

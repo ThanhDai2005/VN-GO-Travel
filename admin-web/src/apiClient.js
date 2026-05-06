@@ -102,6 +102,51 @@ export async function deletePoiByCode(code) {
   });
 }
 
+export async function fetchPoiTranslations(code) {
+  return apiRequest(`/api/v1/pois/code/${encodeURIComponent(code)}/translations`);
+}
+
+export async function upsertPoiTranslation(code, langCode, body) {
+  return apiRequest(`/api/v1/pois/code/${encodeURIComponent(code)}/translations/${encodeURIComponent(langCode)}`, {
+    method: "PUT",
+    body, // Now includes expectedBaseVersion, overwrite, overwriteReason
+  });
+}
+
+export async function deletePoiTranslation(code, langCode) {
+  return apiRequest(`/api/v1/pois/code/${encodeURIComponent(code)}/translations/${encodeURIComponent(langCode)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function lockPoiTranslation(code, langCode) {
+  return apiRequest(`/api/v1/pois/code/${encodeURIComponent(code)}/translations/${encodeURIComponent(langCode)}/lock`, {
+    method: "POST",
+  });
+}
+
+export async function unlockPoiTranslation(code, langCode) {
+  return apiRequest(`/api/v1/pois/code/${encodeURIComponent(code)}/translations/${encodeURIComponent(langCode)}/unlock`, {
+    method: "POST",
+  });
+}
+
+export async function heartbeatPoiTranslation(code, langCode) {
+  return apiRequest(`/api/v1/pois/code/${encodeURIComponent(code)}/translations/${encodeURIComponent(langCode)}/heartbeat`, {
+    method: "POST",
+  });
+}
+
+export async function rollbackPoiTranslation(code, langCode, version) {
+  return apiRequest(`/api/v1/pois/code/${encodeURIComponent(code)}/translations/${encodeURIComponent(langCode)}/rollback/${encodeURIComponent(version)}`, {
+    method: "POST",
+  });
+}
+
+export async function fetchPoiTranslationHistory(code, langCode) {
+  return apiRequest(`/api/v1/pois/code/${encodeURIComponent(code)}/translations/${encodeURIComponent(langCode)}/history`);
+}
+
 /** Short-lived scan JWT + full URL for QR (ADMIN). */
 export async function fetchPoiQrToken(poiId) {
   return apiRequest(`/api/v1/admin/pois/${encodeURIComponent(poiId)}/qr-token`);
@@ -230,6 +275,11 @@ export async function fetchSystemOverview() {
 export async function fetchIntelligenceHeatmap(start, end) {
   const q = new URLSearchParams({ start, end });
   return apiRequest(`/api/v1/admin/intelligence/heatmap?${q}`);
+}
+
+export async function fetchRevenueAnalytics(start, end) {
+  const q = new URLSearchParams({ start, end });
+  return apiRequest(`/api/v1/admin/intelligence/metrics/revenue?${q}`);
 }
 
 /** Owner heatmap: APPROVED POIs submitted by current owner only. */
