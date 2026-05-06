@@ -77,6 +77,8 @@ public class PoiApiRepository : IPoiQueryRepository
             Version = dto.Version,
             Translations = dto.Translations?.Select(t => new MauiApp1.Models.PoiTranslationDto
             {
+                lang_code = t.lang_code,
+                mode = t.mode,
                 translationSource = t.translationSource,
                 content = t.content != null ? new MauiApp1.Models.PoiTranslationContentDto
                 {
@@ -84,7 +86,16 @@ public class PoiApiRepository : IPoiQueryRepository
                     summary = t.content.summary,
                     narrationShort = t.content.narrationShort,
                     narrationLong = t.content.narrationLong
-                } : null
+                } : new MauiApp1.Models.PoiTranslationContentDto(),
+                metadata = t.metadata != null ? new MauiApp1.Models.PoiTranslationMetadataDto
+                {
+                    isComplete = t.metadata.isComplete,
+                    isOutdated = t.metadata.isOutdated,
+                    baseVersion = t.metadata.baseVersion,
+                    translatedVersion = t.metadata.translatedVersion,
+                    confidenceScore = t.metadata.confidenceScore,
+                    updatedAt = t.metadata.updatedAt
+                } : new MauiApp1.Models.PoiTranslationMetadataDto()
             }).ToList()
         };
 

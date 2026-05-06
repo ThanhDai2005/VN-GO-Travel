@@ -125,7 +125,7 @@ public class TranslationResolverService : ITranslationResolverService
         fieldSources["NarrationShort"] = nsSource;
         fieldSources["NarrationLong"] = nlSource;
 
-        PopulateResultMetadata(result, fieldSources, translations, lang, isOffline, traceId);
+        PopulateResultMetadata(result, poi, fieldSources, translations, lang, isOffline, traceId);
         
         int transVersion = translations.Any() ? translations.Max(t => t.metadata.translatedVersion) : 0;
         await _cache.SetAsync(poi.Code, lang, result, poi.Version, transVersion, "partial", traceId);
@@ -216,7 +216,7 @@ public class TranslationResolverService : ITranslationResolverService
         return baseValue ?? "";
     }
 
-    private void PopulateResultMetadata(ResolvedPoiContent result, Dictionary<string, string> fieldSources, List<PoiTranslationDto> translations, string lang, bool isOffline, string traceId)
+    private void PopulateResultMetadata(ResolvedPoiContent result, PoiDto poi, Dictionary<string, string> fieldSources, List<PoiTranslationDto> translations, string lang, bool isOffline, string traceId)
     {
         var sources = fieldSources.Values.ToList();
         result.UsedManual = sources.Any(s => s == "manual");
@@ -249,7 +249,7 @@ public class TranslationResolverService : ITranslationResolverService
 
         // 10. FINAL LOG COMPLETENESS
         _logger.LogInformation("TRANSLATION_RESOLVED | traceId: {TraceId} | poiCode: {Code} | lang: {Lang} | source: {Source} | confidence: {Conf:F2} | mixed: {Mixed} | offline: {Offline}",
-            traceId, null, lang, result.DominantSource, result.ConfidenceScore, result.UsedMixedSources, isOffline);
+            traceId, poi.Code, lang, result.DominantSource, result.ConfidenceScore, result.UsedMixedSources, isOffline);
     }
 
     private void LogFieldResolution(string field, string source, string reason, string traceId)

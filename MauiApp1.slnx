@@ -3,5 +3,7 @@
   <Project Path="ContractObservability/ContractObservability.csproj" />
   <Project Path="Contracts.Generated/Contracts.Generated.csproj" />
   <Project Path="ContractSourceGenerator/ContractSourceGenerator.csproj" />
-  <Project Path="MauiApp1.csproj" />
+  <Project Path="MauiApp1.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
 </Solution>

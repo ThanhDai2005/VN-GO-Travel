@@ -48,7 +48,17 @@ public sealed class AudioPlayerService : IAudioPlayerService
 
         try
         {
-            await TextToSpeech.Default.SpeakAsync(text, cancelToken: _ttsCts.Token).ConfigureAwait(false);
+            var locales = await TextToSpeech.Default.GetLocalesAsync().ConfigureAwait(false);
+            var locale = locales.FirstOrDefault(l => l.Language.StartsWith(languageCode, StringComparison.OrdinalIgnoreCase));
+            
+            var options = new SpeechOptions
+            {
+                Locale = locale,
+                Pitch = 1.0f,
+                Volume = 1.0f
+            };
+
+            await TextToSpeech.Default.SpeakAsync(text, options, cancelToken: _ttsCts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)

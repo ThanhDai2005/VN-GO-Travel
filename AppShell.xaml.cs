@@ -69,6 +69,7 @@ public partial class AppShell : Shell
 
         Routing.RegisterRoute("poidetail", typeof(PoiDetailPage));
         Routing.RegisterRoute("register", typeof(RegisterPage));
+        Routing.RegisterRoute("login", typeof(LoginPage));
         Routing.RegisterRoute("zonepois", typeof(ZonePoisPage));
 
         _auth.SessionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(UpdateRoleTabs);

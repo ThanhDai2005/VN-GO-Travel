@@ -324,6 +324,31 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
 
     // ── Audio ─────────────────────────────────────────────────────────────────
 
+    public async Task PlayShortNarrationAsync()
+    {
+        if (Poi == null) return;
+        if (IsBusy) return;
+
+        IsBusy = true;
+        try
+        {
+            // Use narration service for TTS short narration
+            var lang = _languagePrefs.GetStoredOrDefault();
+            await _narrationService.PlayPoiAsync(Poi, lang).ConfigureAwait(false);
+            
+            OnPropertyChanged(nameof(IsPlaying));
+            OnPropertyChanged(nameof(IsBuffering));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("VM_PLAY_SHORT_FAILED", ex);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     public async Task PlayDetailedAsync()
     {
         if (Poi == null) return;
@@ -350,18 +375,16 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
         IsBusy = true;
         try
         {
-            _narrationService.Stop();
-            await _audioPlayer.StopAsync().ConfigureAwait(false);
-
-            var audioUrl = $"https://api.vngo.travel/audio/{Poi.Code}.mp3"; 
-            await _audioPlayer.PlayAsync(audioUrl, Poi.ZoneCode ?? "").ConfigureAwait(false);
+            // Use narration service for TTS detailed narration
+            var lang = _languagePrefs.GetStoredOrDefault();
+            await _narrationService.PlayPoiDetailedAsync(Poi, lang).ConfigureAwait(false);
             
             OnPropertyChanged(nameof(IsPlaying));
             OnPropertyChanged(nameof(IsBuffering));
         }
         catch (Exception ex)
         {
-            _logger.LogError("VM_PLAY_FAILED", ex);
+            _logger.LogError("VM_PLAY_LONG_FAILED", ex);
         }
         finally
         {
@@ -412,6 +435,29 @@ public class PoiDetailViewModel : INotifyPropertyChanged, IQueryAttributable
                 if (page != null)
                 {
                     await page.DisplayAlertAsync("Thông báo", "Địa danh này hiện chưa thuộc khu vực thanh toán nào.", "OK");
+                }
+            });
+            return;
+        }
+
+        // STEP 1: AUTH CHECK (BUG FIX)
+        if (!_auth.IsAuthenticated)
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                var page = ResolveAlertPage();
+                if (page != null)
+                {
+                    bool login = await page.DisplayAlertAsync(
+                        "Yêu cầu đăng nhập", 
+                        "Bạn cần đăng nhập tài khoản để thực hiện mua khu vực và mở khóa nội dung.", 
+                        "Đăng nhập", 
+                        "Để sau");
+                    
+                    if (login)
+                    {
+                        await Shell.Current.GoToAsync("//login");
+                    }
                 }
             });
             return;

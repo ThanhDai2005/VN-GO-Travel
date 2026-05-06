@@ -47,7 +47,7 @@ public class SmartCacheManager : ISmartCacheManager
                     // Move to front of LRU (Promotion)
                     _l1Order.Remove(key);
                     _l1Order.AddFirst(key);
-                    _logger.LogInformation("CACHE_HIT_L1 | traceId: {TraceId} | Key: {Key}", traceId, key);
+                    _logger.LogDebug("CACHE_HIT_L1 | traceId: {TraceId} | Key: {Key}", traceId, key);
                     return cached.Content;
                 }
                 else
