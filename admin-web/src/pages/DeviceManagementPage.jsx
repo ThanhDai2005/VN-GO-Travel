@@ -100,9 +100,8 @@ export default function DeviceManagementPage() {
                   <tr key={row.id || row.deviceId} className="border-t border-slate-100">
                     <td className="px-4 py-3">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          row.isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                        }`}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${row.isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                          }`}
                       >
                         {row.isOnline ? 'Online' : 'Offline'}
                       </span>

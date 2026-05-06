@@ -6,6 +6,10 @@
         <Setter Property="BackgroundColor" Value="{StaticResource SurfaceBackground}" />
     </Style>
 
+    <Style TargetType="Label">
+        <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+    </Style>
+
     <Style x:Key="HeroTitleLabel" TargetType="Label">
         <Setter Property="FontSize" Value="34" />
         <Setter Property="FontAttributes" Value="Bold" />

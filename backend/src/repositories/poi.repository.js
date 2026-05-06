@@ -95,15 +95,15 @@ class PoiRepository {
         return await Poi.countDocuments({ status: POI_STATUS.PENDING });
     }
 
-    async findAllForAdmin({ limit, skip }) {
-        return await Poi.find({})
-            .sort({ updatedAt: -1 })
+    async findAllForAdmin({ limit, skip, filter = {}, sort = { updatedAt: -1 } }) {
+        return await Poi.find(filter)
+            .sort(sort)
             .skip(skip)
             .limit(limit);
     }
 
-    async countAll() {
-        return await Poi.countDocuments({});
+    async countAll(filter = {}) {
+        return await Poi.countDocuments(filter);
     }
 
     async transitionPendingToApproved(id, options = {}) {

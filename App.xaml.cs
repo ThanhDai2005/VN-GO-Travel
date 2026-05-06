@@ -79,6 +79,7 @@ public partial class App : Microsoft.Maui.Controls.Application
             try
             {
                 _ = services.GetRequiredService<MauiApp1.Infrastructure.AudioQueueConnectionManager>();
+                _ = services.GetRequiredService<PurchaseAudioBackfillService>();
                 System.Diagnostics.Debug.WriteLine("[AUDIO-QUEUE] Connection manager initialized");
             }
             catch (Exception ex)

@@ -72,4 +72,7 @@ public sealed class UserDto
 
     [JsonPropertyName("purchasedZones")]
     public List<string> PurchasedZones { get; set; } = new();
+
+    [JsonPropertyName("walletBalance")]
+    public decimal WalletBalance { get; set; }
 }

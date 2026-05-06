@@ -32,11 +32,13 @@ public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslat
         await _db.CreateTableAsync<PoiTranslationCacheEntry>().ConfigureAwait(false);
         await _db.CreateTableAsync<ZonePurchase>().ConfigureAwait(false);
         await _db.CreateTableAsync<ZoneDownload>().ConfigureAwait(false);
+        await _db.CreateTableAsync<DownloadedAudio>().ConfigureAwait(false);
         await _db.CreateTableAsync<SyncQueueEntry>().ConfigureAwait(false);
 
         // Ensure indices
         await _db.ExecuteAsync("CREATE INDEX IF NOT EXISTS IX_pois_Code ON pois(Code)").ConfigureAwait(false);
         await _db.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_zone_purchases_user_zone ON zone_purchases(UserId, ZoneId)").ConfigureAwait(false);
+        await _db.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_downloaded_audio_poi_lang ON downloaded_audio(PoiCode, Lang)").ConfigureAwait(false);
         await _db.ExecuteAsync("CREATE INDEX IF NOT EXISTS IX_sync_queue_entity ON sync_queue(EntityType)").ConfigureAwait(false);
 
         _inited = true;
@@ -167,6 +169,54 @@ public class PoiDatabase : IPoiQueryRepository, IPoiCommandRepository, ITranslat
     {
         var dl = await _db.Table<ZoneDownload>().Where(d => d.ZoneId == zoneId).FirstOrDefaultAsync().ConfigureAwait(false);
         return dl?.IsComplete == 1;
+    }
+
+    public Task UpsertDownloadedAudioAsync(DownloadedAudio audio, CancellationToken ct = default)
+    {
+        return _db.InsertOrReplaceAsync(audio);
+    }
+
+    public Task<DownloadedAudio?> GetDownloadedAudioAsync(string poiCode, string lang, CancellationToken ct = default)
+    {
+        var normalizedCode = poiCode.Trim().ToUpperInvariant();
+        var normalizedLang = lang.Trim().ToLowerInvariant();
+        return _db.Table<DownloadedAudio>()
+            .Where(x => x.PoiCode == normalizedCode && x.Lang == normalizedLang)
+            .FirstOrDefaultAsync()
+            .ContinueWith(t => (DownloadedAudio?)t.Result, ct);
+    }
+
+    public Task<List<DownloadedAudio>> GetDownloadedAudioByZoneAsync(string zoneId, CancellationToken ct = default)
+    {
+        var normalized = zoneId.Trim().ToUpperInvariant();
+        return _db.Table<DownloadedAudio>()
+            .Where(x => x.ZoneId == normalized)
+            .ToListAsync();
+    }
+
+    public Task<List<DownloadedAudio>> GetAllDownloadedAudioAsync(CancellationToken ct = default)
+    {
+        return _db.Table<DownloadedAudio>().ToListAsync();
+    }
+
+    public async Task DeleteDownloadedAudioByZoneAsync(string zoneId, CancellationToken ct = default)
+    {
+        var normalized = zoneId.Trim().ToUpperInvariant();
+        var rows = await _db.Table<DownloadedAudio>().Where(x => x.ZoneId == normalized).ToListAsync().ConfigureAwait(false);
+        foreach (var row in rows)
+            await _db.DeleteAsync(row).ConfigureAwait(false);
+    }
+
+    public async Task DeleteDownloadedAudioByPoiAsync(string poiCode, string lang, CancellationToken ct = default)
+    {
+        var normalizedCode = poiCode.Trim().ToUpperInvariant();
+        var normalizedLang = lang.Trim().ToLowerInvariant();
+        var row = await _db.Table<DownloadedAudio>()
+            .Where(x => x.PoiCode == normalizedCode && x.Lang == normalizedLang)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+        if (row != null)
+            await _db.DeleteAsync(row).ConfigureAwait(false);
     }
 
     public Task<List<ZonePurchase>> GetUnsyncedPurchasesAsync(string userId, CancellationToken ct = default)

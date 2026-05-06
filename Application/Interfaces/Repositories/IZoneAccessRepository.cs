@@ -26,6 +26,12 @@ public interface IZoneAccessRepository
     // --- Downloads ---
     Task SaveDownloadAsync(string zoneId, bool isComplete, CancellationToken ct = default);
     Task<bool> IsZoneDownloadedAsync(string zoneId, CancellationToken ct = default);
+    Task UpsertDownloadedAudioAsync(DownloadedAudio audio, CancellationToken ct = default);
+    Task<DownloadedAudio?> GetDownloadedAudioAsync(string poiCode, string lang, CancellationToken ct = default);
+    Task<List<DownloadedAudio>> GetDownloadedAudioByZoneAsync(string zoneId, CancellationToken ct = default);
+    Task<List<DownloadedAudio>> GetAllDownloadedAudioAsync(CancellationToken ct = default);
+    Task DeleteDownloadedAudioByZoneAsync(string zoneId, CancellationToken ct = default);
+    Task DeleteDownloadedAudioByPoiAsync(string poiCode, string lang, CancellationToken ct = default);
     
     // --- Sync Queue ---
     Task<List<SyncQueueEntry>> GetSyncQueueEntriesAsync(int maxItems, CancellationToken ct = default);

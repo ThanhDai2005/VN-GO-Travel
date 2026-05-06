@@ -1,11 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import {
+  fetchOwnerGeoHeatmap,
   fetchOwnerIntelligenceHeatmap,
+  fetchOwnerIntelligenceTimeline,
   fetchOwnerSubmissions,
   requestOwnerPoiUpdate,
   requestOwnerPoiDelete,
 } from '../apiClient.js';
-import ContributionHeatmap from '../components/ContributionHeatmap.jsx';
+import TableScrollWrapper from '../components/TableScrollWrapper.jsx';
+import Heatmap, { defaultUtcRange7d } from './intelligence/Heatmap.jsx';
+import GeoHeatmapMap from './intelligence/GeoHeatmapMap.jsx';
 
 function contentPreview(content) {
   if (!content || typeof content !== 'object') return '—';
@@ -30,10 +43,14 @@ export default function OwnerSubmissionsPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
-  const [heatmapRows, setHeatmapRows] = useState([]);
+  const [selectedPoiId, setSelectedPoiId] = useState('');
+  const [geoRows, setGeoRows] = useState([]);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [timelineRows, setTimelineRows] = useState([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [fixedHeatmapRows, setFixedHeatmapRows] = useState([]);
   const [heatmapLoading, setHeatmapLoading] = useState(true);
   const [heatmapErr, setHeatmapErr] = useState('');
-  const [selectedPoiId, setSelectedPoiId] = useState('');
 
   const [range, setRange] = useState(() => {
     const end = new Date();
@@ -74,19 +91,47 @@ export default function OwnerSubmissionsPage() {
     setHeatmapErr('');
     setHeatmapLoading(true);
     try {
-      const result = await fetchOwnerIntelligenceHeatmap(startIso, endIso, selectedPoiId || undefined);
-      setHeatmapRows(Array.isArray(result) ? result : []);
+      // Fixed 7-day range for calendar heatmap per user request
+      const { start: fStart, end: fEnd } = defaultUtcRange7d();
+      const result = await fetchOwnerIntelligenceHeatmap(fStart.toISOString(), fEnd.toISOString(), selectedPoiId || undefined);
+      setFixedHeatmapRows(Array.isArray(result) ? result : []);
     } catch (e) {
       setHeatmapErr(e.message || 'Không thể tải heatmap hoạt động POI của bạn');
-      setHeatmapRows([]);
+      setFixedHeatmapRows([]);
     } finally {
       setHeatmapLoading(false);
+    }
+  }, [selectedPoiId]);
+
+  const loadTimeline = useCallback(async () => {
+    setTimelineLoading(true);
+    try {
+      const res = await fetchOwnerIntelligenceTimeline(startIso, endIso, 'daily');
+      setTimelineRows(Array.isArray(res) ? res : []);
+    } catch (e) {
+      console.error("Failed to load timeline", e);
+    } finally {
+      setTimelineLoading(false);
+    }
+  }, [startIso, endIso, selectedPoiId]);
+
+  const loadGeoHeatmap = useCallback(async () => {
+    setGeoLoading(true);
+    try {
+      const res = await fetchOwnerGeoHeatmap(startIso, endIso, selectedPoiId || undefined);
+      setGeoRows(Array.isArray(res) ? res : []);
+    } catch (e) {
+      console.error("Failed to load owner geo heatmap", e);
+    } finally {
+      setGeoLoading(false);
     }
   }, [startIso, endIso, selectedPoiId]);
 
   useEffect(() => {
     loadHeatmap();
-  }, [loadHeatmap]);
+    loadGeoHeatmap();
+    loadTimeline();
+  }, [loadHeatmap, loadGeoHeatmap, loadTimeline]);
 
   const toDateValue = (d) => d.toISOString().slice(0, 10);
   const approvedOptions = rows.filter((x) => x?.status === 'APPROVED');
@@ -160,90 +205,178 @@ export default function OwnerSubmissionsPage() {
         </button>
       </div>
 
-      <section className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Heatmap lượt khách tại POI của tôi</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Chỉ tính các POI đã được duyệt do bạn quản lý. Owner khác sẽ có biểu đồ khác.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="text-xs text-slate-600">
-              POI
+      {/* Intelligence Section - New Premium Design matching Admin Hub */}
+      <section className="mb-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
+        <div className="flex flex-col gap-1 mb-6">
+          <h2 className="text-3xl font-black tracking-tight text-slate-900">
+            Intelligence <span className="text-emerald-600">Owner Hub</span>
+          </h2>
+          <p className="text-sm font-medium text-slate-500">
+            Phân tích lưu lượng khách tại các địa danh bạn quản lý.
+          </p>
+        </div>
+
+        {/* Filters Bar */}
+        <div className="mb-8 flex flex-wrap items-center gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* POI Selector */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Địa danh (POI)</span>
               <select
-                className="mt-1 block rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-900"
+                className="rounded-xl bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 ring-1 ring-slate-200 outline-none focus:ring-emerald-500"
                 value={selectedPoiId}
                 onChange={(e) => setSelectedPoiId(e.target.value)}
               >
                 <option value="">Tất cả POI đã duyệt của tôi</option>
                 {approvedOptions.map((poi) => (
-                  <option key={String(poi.id)} value={String(poi.id)}>
+                  <option key={String(poi.id || poi._id)} value={String(poi.id || poi._id)}>
                     {poi.name || poi.code}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="text-xs text-slate-600">
-              Từ ngày
-              <input
-                type="date"
-                className="mt-1 block rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-900"
-                value={toDateValue(range.start)}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (!v) return;
-                  const d = new Date(`${v}T00:00:00.000Z`);
-                  setRange((prev) => ({ ...prev, start: d }));
-                }}
-              />
-            </label>
-            <label className="text-xs text-slate-600">
-              Đến ngày
-              <input
-                type="date"
-                className="mt-1 block rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-900"
-                value={toDateValue(range.end)}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (!v) return;
-                  const d = new Date(`${v}T23:59:59.999Z`);
-                  setRange((prev) => ({ ...prev, end: d }));
-                }}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={loadHeatmap}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              Tải lại heatmap
-            </button>
+            </div>
+
+            {/* Date Range */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Tùy chỉnh thời gian</span>
+              <div className="flex items-center gap-2 rounded-xl bg-slate-50 p-1.5 ring-1 ring-slate-200">
+                <input
+                  type="date"
+                  className="bg-transparent px-2 py-1 text-xs font-bold text-slate-700 outline-none"
+                  value={toDateValue(range.start)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (!v) return;
+                    const d = new Date(`${v}T00:00:00.000Z`);
+                    setRange((prev) => ({ ...prev, start: d }));
+                  }}
+                />
+                <span className="text-slate-300">/</span>
+                <input
+                  type="date"
+                  className="bg-transparent px-2 py-1 text-xs font-bold text-slate-700 outline-none"
+                  value={toDateValue(range.end)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (!v) return;
+                    const d = new Date(`${v}T23:59:59.999Z`);
+                    setRange((prev) => ({ ...prev, end: d }));
+                  }}
+                />
+              </div>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => { loadHeatmap(); loadGeoHeatmap(); }}
+            disabled={heatmapLoading || geoLoading}
+            className="ml-auto flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-bold text-white transition-all hover:bg-emerald-600 disabled:opacity-50"
+          >
+            {heatmapLoading || geoLoading ? (
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" fill="none" />
+                <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" fill="none" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+            )}
+            REFRESH HEATMAP
+          </button>
         </div>
 
-        {heatmapErr ? (
-          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {heatmapErr}
-          </div>
-        ) : null}
+        {/* Heatmap Visualizations */}
+        <div className="space-y-10">
+          <section>
+            <h3 className="text-lg font-medium text-slate-800 mb-4">Heatmap vị trí khách tại POI của tôi</h3>
+            <GeoHeatmapMap 
+              rows={geoRows} 
+              fallbackRows={approvedOptions
+                .filter(p => p.location)
+                .map(p => ({
+                  lat: Number(p.location.lat),
+                  lng: Number(p.location.lng),
+                  total_events: 0,
+                  poi_id: String(p.id || p._id),
+                  name: p.name || p.code
+                }))
+              }
+              isLoading={geoLoading} 
+            />
+          </section>
 
-        {heatmapLoading ? (
-          <p className="mt-4 text-sm text-slate-600">Đang tải heatmap...</p>
-        ) : (
-          <div className="mt-4">
-            <ContributionHeatmap
-              rows={heatmapRows}
-              startIso={startIso}
-              endIso={endIso}
-              title="Lịch sử lượt khách theo ngày"
+          {/* Timeline Chart - Affected by global filters */}
+          <section className="rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mb-6">
+              <h3 className="text-xl font-black text-slate-800">Xu hướng lưu lượng khách</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">
+                Dữ liệu dựa trên bộ lọc thời gian và địa danh phía trên
+              </p>
+            </div>
+            <div className="h-[300px] w-full">
+              {timelineLoading ? (
+                <div className="flex h-full items-center justify-center text-sm text-slate-400 italic">Đang tải biểu đồ...</div>
+              ) : timelineRows.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-slate-400 italic">Không có dữ liệu xu hướng cho khoảng thời gian này</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={timelineRows}>
+                    <defs>
+                      <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="bucket_start" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                      tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                    />
+                    <YAxis 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                    />
+                    <RechartsTooltip 
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      labelFormatter={(val) => new Date(val).toLocaleDateString(undefined, { dateStyle: 'full' })}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="total_events" 
+                      stroke="#10b981" 
+                      strokeWidth={3}
+                      fillOpacity={1} 
+                      fill="url(#colorVisits)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <Heatmap
+              cells={fixedHeatmapRows}
+              rangeStartIso={defaultUtcRange7d().start.toISOString()}
+              rangeEndIso={defaultUtcRange7d().end.toISOString()}
+              title="Bản đồ nhiệt hoạt động (UTC)"
               subtitle={
                 selectedPoiId
-                  ? 'Nguồn: events của POI đã chọn (đã duyệt, thuộc owner hiện tại).'
-                  : 'Nguồn: events vào tất cả POI đã duyệt của owner hiện tại.'
+                  ? 'Cố định 7 ngày gần nhất • Nguồn: events của POI đã chọn.'
+                  : 'Cố định 7 ngày gần nhất • Nguồn: events vào tất cả POI đã duyệt.'
               }
             />
-          </div>
+          </section>
+        </div>
+
+        {heatmapErr && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{heatmapErr}</div>
         )}
       </section>
 
@@ -258,7 +391,7 @@ export default function OwnerSubmissionsPage() {
           Bạn chưa gửi POI nào. Hãy dùng mục <strong>Gửi POI mới</strong> trong thanh bên.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+        <TableScrollWrapper>
           <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
             <thead className="bg-slate-100 text-slate-600">
               <tr>
@@ -322,7 +455,7 @@ export default function OwnerSubmissionsPage() {
               })}
             </tbody>
           </table>
-        </div>
+        </TableScrollWrapper>
       )}
 
       {/* Edit Modal */}

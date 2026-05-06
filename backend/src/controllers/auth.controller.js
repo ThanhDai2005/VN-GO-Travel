@@ -38,6 +38,9 @@ exports.getMe = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
+        const walletRepository = require('../repositories/user-wallet.repository');
+        const wallet = await walletRepository.getOrCreate(userId);
+
         res.status(200).json({
             success: true,
             data: {
@@ -45,7 +48,8 @@ exports.getMe = async (req, res, next) => {
                 email: user.email,
                 fullName: user.fullName,
                 role: user.role,
-                isPremium: user.isPremium
+                isPremium: user.isPremium,
+                walletBalance: wallet ? wallet.balance : 0
             }
         });
     } catch (error) {

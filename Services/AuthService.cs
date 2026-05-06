@@ -11,6 +11,7 @@ public sealed class AuthService : INotifyPropertyChanged
     public const string StorageKeyEmail = "vngo_auth_email";
     public const string StorageKeyRole = "vngo_auth_role";
     public const string StorageKeyUserId = "vngo_auth_userid";
+    public const string StorageKeyBalance = "vngo_auth_balance";
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -21,6 +22,7 @@ public sealed class AuthService : INotifyPropertyChanged
     private string? _email;
     private string _role = "USER";
     private string? _userId;
+    private decimal _walletBalance;
     private bool _isAuthenticated;
 
     public AuthService(HttpClient loginHttpClient, AuthTokenStore tokenStore)
@@ -84,6 +86,17 @@ public sealed class AuthService : INotifyPropertyChanged
         }
     }
 
+    public decimal WalletBalance
+    {
+        get => _walletBalance;
+        private set
+        {
+            if (_walletBalance == value) return;
+            _walletBalance = value;
+            OnPropertyChanged(nameof(WalletBalance));
+        }
+    }
+
     public bool IsOwner => string.Equals(Role, "OWNER", StringComparison.OrdinalIgnoreCase);
     public bool IsAdmin => string.Equals(Role, "ADMIN", StringComparison.OrdinalIgnoreCase);
 
@@ -102,7 +115,10 @@ public sealed class AuthService : INotifyPropertyChanged
             var email = await SecureStorage.Default.GetAsync(StorageKeyEmail).ConfigureAwait(false);
             var role = await SecureStorage.Default.GetAsync(StorageKeyRole).ConfigureAwait(false) ?? "USER";
             var userId = await SecureStorage.Default.GetAsync(StorageKeyUserId).ConfigureAwait(false);
-            ApplySession(token, email, role, userId, raiseSessionChanged: true);
+            var balanceStr = await SecureStorage.Default.GetAsync(StorageKeyBalance).ConfigureAwait(false);
+            decimal.TryParse(balanceStr, out decimal balance);
+            
+            ApplySession(token, email, role, userId, balance, raiseSessionChanged: true);
         }
         catch (Exception ex)
         {
@@ -136,7 +152,7 @@ public sealed class AuthService : INotifyPropertyChanged
                 return (false, "Phan hoi may chu khong hop le.");
 
             await PersistSessionAsync(dto.Token, dto.User, cancellationToken).ConfigureAwait(false);
-            ApplySession(dto.Token, dto.User.Email, dto.User.Role ?? "USER", dto.User.Id, raiseSessionChanged: true);
+            ApplySession(dto.Token, dto.User.Email, dto.User.Role ?? "USER", dto.User.Id, dto.User.WalletBalance, raiseSessionChanged: true);
             return (true, null);
         }
         catch (HttpRequestException ex)
@@ -182,7 +198,7 @@ public sealed class AuthService : INotifyPropertyChanged
                 return (false, "Phan hoi may chu khong hop le.");
 
             await PersistSessionAsync(dto.Token, dto.User, cancellationToken).ConfigureAwait(false);
-            ApplySession(dto.Token, dto.User.Email, dto.User.Role ?? "USER", dto.User.Id, raiseSessionChanged: true);
+            ApplySession(dto.Token, dto.User.Email, dto.User.Role ?? "USER", dto.User.Id, dto.User.WalletBalance, raiseSessionChanged: true);
             return (true, null);
         }
         catch (HttpRequestException ex)
@@ -218,6 +234,7 @@ public sealed class AuthService : INotifyPropertyChanged
             SecureStorage.Default.Remove(StorageKeyEmail);
             SecureStorage.Default.Remove(StorageKeyRole);
             SecureStorage.Default.Remove(StorageKeyUserId);
+            SecureStorage.Default.Remove(StorageKeyBalance);
         }
         catch (Exception ex)
         {
@@ -227,6 +244,7 @@ public sealed class AuthService : INotifyPropertyChanged
         Email = null;
         Role = "USER";
         UserId = null;
+        WalletBalance = 0;
         IsAuthenticated = false;
 
         if (notify)
@@ -243,14 +261,16 @@ public sealed class AuthService : INotifyPropertyChanged
         await SecureStorage.Default.SetAsync(StorageKeyRole, user.Role ?? "USER").ConfigureAwait(false);
         if (!string.IsNullOrEmpty(user.Id))
             await SecureStorage.Default.SetAsync(StorageKeyUserId, user.Id).ConfigureAwait(false);
+        await SecureStorage.Default.SetAsync(StorageKeyBalance, user.WalletBalance.ToString()).ConfigureAwait(false);
     }
 
-    private void ApplySession(string token, string? email, string role, string? userId, bool raiseSessionChanged)
+    private void ApplySession(string token, string? email, string role, string? userId, decimal balance, bool raiseSessionChanged)
     {
         _tokenStore.SetToken(token);
         Email = email;
         Role = role;
         UserId = userId;
+        WalletBalance = balance;
         IsAuthenticated = true;
 
         if (raiseSessionChanged)

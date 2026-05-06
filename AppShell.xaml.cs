@@ -71,6 +71,8 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("register", typeof(RegisterPage));
         Routing.RegisterRoute("login", typeof(LoginPage));
         Routing.RegisterRoute("zonepois", typeof(ZonePoisPage));
+        Routing.RegisterRoute("purchasehistory", typeof(PurchaseHistoryPage));
+        Routing.RegisterRoute("downloadmanager", typeof(DownloadManagerPage));
 
         _auth.SessionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(UpdateRoleTabs);
         _auth.PropertyChanged += (_, e) =>

@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using MauiApp1.Models.Auth;
 using MauiApp1.Services;
 using MauiApp1.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +24,9 @@ public sealed class ProfileViewModel : INotifyPropertyChanged
 
         LoginCommand = new Command(() => _ = OpenLoginAsync());
         LogoutCommand = new Command(() => _ = LogoutCoreAsync(), () => _auth.IsAuthenticated);
+        OpenPurchaseHistoryCommand = new Command(async () => await OpenPurchaseHistoryAsync(), () => _auth.IsAuthenticated);
+        OpenDownloadManagerCommand = new Command(async () => await OpenDownloadManagerAsync(), () => _auth.IsAuthenticated);
+        RefreshWalletCommand = new Command(async () => await RefreshWalletAsync(), () => _auth.IsAuthenticated);
 
 
         _auth.SessionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RefreshFromAuth);
@@ -42,6 +47,8 @@ public sealed class ProfileViewModel : INotifyPropertyChanged
 
     public string RoleDisplay => _auth.IsAuthenticated ? _auth.Role : "-";
 
+    public string DisplayBalance => _auth.IsAuthenticated ? $"{_auth.WalletBalance:N0} xu" : "0 xu";
+
     public bool IsLoggedIn => _auth.IsAuthenticated;
 
     public bool IsNotLoggedIn => !_auth.IsAuthenticated;
@@ -53,6 +60,9 @@ public sealed class ProfileViewModel : INotifyPropertyChanged
     public ICommand LoginCommand { get; }
 
     public ICommand LogoutCommand { get; }
+    public ICommand OpenPurchaseHistoryCommand { get; }
+    public ICommand OpenDownloadManagerCommand { get; }
+    public ICommand RefreshWalletCommand { get; }
 
     public void RefreshFromAuth()
     {
@@ -62,7 +72,10 @@ public sealed class ProfileViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsNotLoggedIn));
         OnPropertyChanged(nameof(ShowOwnerSection));
         OnPropertyChanged(nameof(ShowAdminSection));
+        OnPropertyChanged(nameof(DisplayBalance));
         (LogoutCommand as Command)?.ChangeCanExecute();
+        (OpenPurchaseHistoryCommand as Command)?.ChangeCanExecute();
+        (OpenDownloadManagerCommand as Command)?.ChangeCanExecute();
     }
 
     private async Task OpenLoginAsync()
@@ -80,6 +93,35 @@ public sealed class ProfileViewModel : INotifyPropertyChanged
             if (Shell.Current != null)
                 await _nav.NavigateToAsync("//profile");
         });
+    }
+
+    private Task OpenPurchaseHistoryAsync()
+        => _nav.NavigateToAsync("purchasehistory");
+
+    private Task OpenDownloadManagerAsync()
+        => _nav.NavigateToAsync("downloadmanager");
+
+    private async Task RefreshWalletAsync()
+    {
+        // Simple strategy: just re-fetch profile which includes balance
+        // We could also have a dedicated wallet endpoint
+        try
+        {
+            var api = _services.GetRequiredService<ApiService>();
+            using var resp = await api.GetAsync("auth/me").ConfigureAwait(false);
+            if (resp.IsSuccessStatusCode)
+            {
+                var envelope = await resp.Content.ReadFromJsonAsync<MeApiEnvelope>().ConfigureAwait(false);
+                if (envelope?.Data != null)
+                {
+                    // Update balance through AuthService if possible, or just refresh here
+                    // Since we want it to persist, better update AuthService
+                    // For now, let's just trigger a session restore or similar
+                    await _auth.RestoreSessionAsync().ConfigureAwait(false);
+                }
+            }
+        }
+        catch { /* ignore */ }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null)

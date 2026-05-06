@@ -182,6 +182,9 @@ public static class MauiProgram
             return new AuthService(loginClient, sp.GetRequiredService<AuthTokenStore>());
         });
         builder.Services.AddSingleton<IZoneAccessService, ZoneAccessService>();
+        builder.Services.AddSingleton<IUserEntitlementService, UserEntitlementService>();
+        builder.Services.AddSingleton<IAudioDownloadService, AudioDownloadService>();
+        builder.Services.AddSingleton<PurchaseAudioBackfillService>();
         builder.Services.AddSingleton<IZoneAccessRepository>(sp => sp.GetRequiredService<PoiDatabase>());
         builder.Services.AddSingleton<IDeviceIdProvider, DeviceIdProvider>();
         builder.Services.AddSingleton<IUserContextSnapshotProvider, UserContextSnapshotProvider>();
@@ -280,6 +283,11 @@ public static class MauiProgram
         builder.Services.AddTransient<AuthStartupPage>();
         builder.Services.AddSingleton<ViewModels.ProfileViewModel>();
         builder.Services.AddTransient<ProfilePage>();
+        builder.Services.AddTransient<ViewModels.PurchaseHistoryViewModel>();
+        builder.Services.AddTransient<ViewModels.DownloadManagerViewModel>();
+        builder.Services.AddTransient<PurchaseHistoryPage>();
+        builder.Services.AddTransient<DownloadManagerPage>();
+        builder.Services.AddTransient<DownloadProgressPage>();
         builder.Services.AddTransient<AdminToolsPage>();
 
         builder.Services.AddTransient<MauiApp1.Application.UseCases.GetNearbyPoisUseCase>();

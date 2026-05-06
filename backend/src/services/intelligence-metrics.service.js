@@ -11,6 +11,7 @@ const PoiHourlyStats = require('../models/poi-hourly-stats.model');
 const Poi = require('../models/poi.model');
 const User = require('../models/user.model');
 const DeviceSession = require('../models/device-session.model');
+const UserUnlockZone = require('../models/user-unlock-zone.model');
 const { POI_STATUS } = require('../constants/poi-status');
 
 /** Metrics API: max window between start and end (inclusive span). */
@@ -468,20 +469,124 @@ module.exports = {
         const ONLINE_GRACE_MS = 10 * 1000; // 10 seconds grace for online status
         const threshold = new Date(Date.now() - ONLINE_GRACE_MS);
 
-        const [totalUsers, totalPremiumUsers, onlineUsers] = await Promise.all([
+        const [totalUsers, totalPremiumUsers, onlineUsers, totalZonePurchasers] = await Promise.all([
             User.countDocuments({}),
             User.countDocuments({ isPremium: true }),
             DeviceSession.countDocuments({
                 isOnline: true,
                 lastSeenAt: { $gte: threshold }
-            })
+            }),
+            UserUnlockZone.distinct('userId').then(res => res.length)
         ]);
 
         return {
             totalUsers,
             totalPremiumUsers,
-            onlineUsers
+            onlineUsers,
+            totalZonePurchasers
         };
+    },
+    /**
+     * @param {string} userId
+     * @param {{ start: string, end: string, poiId?: string }} params
+     */
+    async getOwnerGeoHeatmap(userId, params) {
+        const { start, end } = parseIsoRange(params.start, params.end);
+        const poiId = params.poiId;
+        const mongoose = require('mongoose');
+
+        // Step 1: Aggregate range totals from PoiHourlyStats
+        const match = {
+            hour_bucket: { $gte: start, $lte: end }
+        };
+        if (poiId && mongoose.Types.ObjectId.isValid(poiId)) {
+            match.poi_id = new mongoose.Types.ObjectId(poiId);
+        }
+
+        // Fetch owner POIs first to ensure we only query stats for them
+        const ownerPoiFilter = { submittedBy: new mongoose.Types.ObjectId(String(userId)) };
+        if (poiId && mongoose.Types.ObjectId.isValid(poiId)) {
+            ownerPoiFilter._id = new mongoose.Types.ObjectId(poiId);
+        }
+        const ownerPoisList = await Poi.find(ownerPoiFilter).select('_id').lean();
+        const ownerPoiIds = ownerPoisList.map(p => p._id);
+
+        if (ownerPoiIds.length === 0) return [];
+
+        match.poi_id = { $in: ownerPoiIds };
+
+        const statsAggregation = await PoiHourlyStats.aggregate([
+            { $match: match },
+            {
+                $group: {
+                    _id: '$poi_id',
+                    total_visitors: { $sum: { $size: { $ifNull: ["$unique_devices", []] } } }
+                }
+            }
+        ]).option({ maxTimeMS: MAX_TIME_MS });
+
+        const visitorsByPoi = new Map(statsAggregation.map(s => [String(s._id), s.total_visitors]));
+
+        // Step 2: Fetch recent history for prediction
+        const predictionWindowStart = new Date(Date.now() - 6 * 3600000);
+        const historyStats = await PoiHourlyStats.aggregate([
+            { 
+                $match: { 
+                    hour_bucket: { $gte: predictionWindowStart },
+                    poi_id: { $in: ownerPoiIds }
+                } 
+            },
+            { $sort: { hour_bucket: 1 } },
+            {
+                $project: {
+                    poi_id: 1,
+                    hour_bucket: 1,
+                    total_visitors: { $size: { $ifNull: ["$unique_devices", []] } }
+                }
+            }
+        ]).option({ maxTimeMS: MAX_TIME_MS });
+
+        const historyByPoi = new Map();
+        for (const s of historyStats) {
+            const pid = String(s.poi_id);
+            if (!historyByPoi.has(pid)) historyByPoi.set(pid, []);
+            historyByPoi.get(pid).push(s.total_visitors);
+        }
+
+        // Step 3: Fetch POI details
+        const pois = await Poi.find({
+            _id: { $in: ownerPoiIds },
+            status: POI_STATUS.APPROVED
+        }).select('_id code name location').lean();
+
+        // Step 4: Format output
+        return pois
+            .map((poi) => {
+                const pidStr = String(poi._id);
+                if (!poi.location || !Array.isArray(poi.location.coordinates)) return null;
+
+                const lng = Number(poi.location.coordinates[0]);
+                const lat = Number(poi.location.coordinates[1]);
+                if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+                const current = visitorsByPoi.get(pidStr) || 0;
+                const history = historyByPoi.get(pidStr) || [0];
+                const predicted = Math.round(predictNext(history));
+                const level = classifyTraffic(predicted);
+
+                return {
+                    poi_id: pidStr,
+                    code: String(poi.code || ''),
+                    name: String(poi.name || ''),
+                    lat,
+                    lng,
+                    total_events: current,
+                    current,
+                    predicted,
+                    level
+                };
+            })
+            .filter(Boolean);
     },
     getRevenueAnalytics,
     MAX_RANGE_MS,

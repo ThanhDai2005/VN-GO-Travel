@@ -2,6 +2,7 @@
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:MauiApp1.Views"
     x:Class="MauiApp1.Views.PoiDetailPage"
     Title="Chi tiết địa danh"
     BackgroundColor="{StaticResource SurfaceBackground}">
@@ -98,7 +99,7 @@
                         </HorizontalStackLayout>
 
                         <!-- ZONE PURCHASE BANNER -->
-                        <Border IsVisible="{Binding DoesNotHaveZoneAccess}"
+                        <Border IsVisible="{Binding ShowPurchaseBanner}"
                                 BackgroundColor="{StaticResource SurfaceSoft}"
                                 StrokeThickness="0"
                                 Padding="16,12"
@@ -107,11 +108,11 @@
                             <HorizontalStackLayout Spacing="12">
                                 <Label Text="🏷️" FontSize="20" VerticalOptions="Center" />
                                 <VerticalStackLayout VerticalOptions="Center">
-                                    <Label Text="Mua khu vực để mở khóa" 
+                                    <Label Text="{Binding PurchaseBannerTitle}" 
                                            TextColor="{StaticResource BrandPrimary}" 
                                            FontAttributes="Bold" 
                                            FontSize="14"/>
-                                    <Label Text="Sở hữu khu vực này để nghe thuyết minh chi tiết." 
+                                    <Label Text="{Binding PurchaseBannerDescription}" 
                                            TextColor="{StaticResource TextSecondary}" 
                                            FontSize="12"/>
                                 </VerticalStackLayout>
@@ -130,7 +131,8 @@
                             <Button Text="🔊 Nghe tóm tắt" 
                                     Style="{StaticResource PrimaryButton}"
                                     Clicked="OnPlayClicked"
-                                    Grid.Column="0" />
+                                    Grid.Column="0"
+                                    IsVisible="{Binding ShowSummaryButton}" />
 
                             <Button Text="⏹ Dừng" 
                                     Style="{StaticResource SecondaryButton}"
@@ -138,18 +140,16 @@
                                     Grid.Column="1" />
 
                             <!-- DETAILED NARRATION BUTTON -->
-                            <Button Text="🎧 Nghe chi tiết"
+                            <Button Text="{Binding DetailedActionButtonText}"
                                     Style="{StaticResource CTAButton}"
                                     Clicked="OnPlayDetailedClicked"
                                     Grid.Row="1"
-                                    Grid.ColumnSpan="2">
-                                <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding HasZoneAccess}" Value="False">
-                                        <Setter Property="Text" Value="🔒 Mua khu vực để nghe chi tiết" />
-                                        <Setter Property="BackgroundColor" Value="{StaticResource BrandAccent}" />
-                                    </DataTrigger>
-                                </Button.Triggers>
-                            </Button>
+                                    Grid.ColumnSpan="2"
+                                    IsVisible="{Binding ShowDetailedCTA}" />
+
+                            <views:AudioPlayerComponent Grid.Row="1"
+                                                        Grid.ColumnSpan="2"
+                                                        IsVisible="{Binding ShowPurchasedAudioPlayer}" />
 
                             <Button Text="🗺 Xem trên bản đồ" 
                                     Style="{StaticResource SecondaryButton}"

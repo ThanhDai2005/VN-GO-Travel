@@ -110,34 +110,21 @@ class UnlockRepository {
      * Get user's purchase history
      */
     async getUserPurchaseHistory(userId, limit = 50) {
-        const [poiUnlocks, zoneUnlocks] = await Promise.all([
-            UserUnlockPoi.find({ userId })
-                .sort({ purchasedAt: -1 })
-                .limit(limit),
-            UserUnlockZone.find({ userId })
-                .sort({ purchasedAt: -1 })
-                .limit(limit)
-        ]);
+        const CreditTransaction = require('../models/credit-transaction.model');
+        const transactions = await CreditTransaction.find({
+            userId,
+            type: { $in: ['purchase_poi', 'purchase_zone'] }
+        })
+        .sort({ createdAt: -1 })
+        .limit(limit);
 
-        // Combine and sort by purchase date
-        const combined = [
-            ...poiUnlocks.map(u => ({
-                type: 'poi',
-                code: u.poiCode,
-                price: u.purchasePrice,
-                purchasedAt: u.purchasedAt
-            })),
-            ...zoneUnlocks.map(u => ({
-                type: 'zone',
-                code: u.zoneCode,
-                price: u.purchasePrice,
-                purchasedAt: u.purchasedAt
-            }))
-        ];
-
-        combined.sort((a, b) => b.purchasedAt - a.purchasedAt);
-
-        return combined.slice(0, limit);
+        return transactions.map(t => ({
+            type: t.type === 'purchase_poi' ? 'poi' : 'zone',
+            code: t.relatedEntity,
+            price: Math.abs(t.amount),
+            purchasedAt: t.createdAt,
+            metadata: t.metadata
+        }));
     }
 
     /**

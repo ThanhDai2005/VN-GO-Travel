@@ -6,6 +6,7 @@ namespace MauiApp1.Views;
 public partial class PoiDetailPage : ContentPage
 {
     private readonly PoiDetailViewModel _vm;
+    private CancellationTokenSource? _uiTickerCts;
 
     public PoiDetailPage(PoiDetailViewModel vm)
     {
@@ -18,6 +19,8 @@ public partial class PoiDetailPage : ContentPage
     {
         base.OnAppearing();
         _vm.AttachPreferredLanguageListener();
+        await _vm.ReEvaluateAccessAsync();
+        StartUiTicker();
         Debug.WriteLine($"[QR-LIFE] PoiDetailPage OnAppearing Poi null?={_vm.Poi == null}");
 
         var content = this.Content;
@@ -35,9 +38,30 @@ public partial class PoiDetailPage : ContentPage
 
     protected override void OnDisappearing()
     {
+        _uiTickerCts?.Cancel();
         _vm.DetachPreferredLanguageListener();
         base.OnDisappearing();
         Debug.WriteLine("[QR-LIFE] PoiDetailPage OnDisappearing");
+    }
+
+    private void StartUiTicker()
+    {
+        _uiTickerCts?.Cancel();
+        _uiTickerCts = new CancellationTokenSource();
+        var cts = _uiTickerCts;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!cts.IsCancellationRequested)
+                {
+                    await Task.Delay(500, cts.Token);
+                    await MainThread.InvokeOnMainThreadAsync(_vm.RefreshAudioUiState);
+                }
+            }
+            catch (OperationCanceledException) { }
+        }, cts.Token);
     }
 
     private async void OnPlayClicked(object sender, EventArgs e)

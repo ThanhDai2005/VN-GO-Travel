@@ -12,7 +12,7 @@
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0"
-               BackgroundColor="#2196F3"
+               BackgroundColor="#F8BBD0"
                Padding="20"
                Margin="0">
             <Border.StrokeShape>
@@ -23,18 +23,18 @@
                        Text="Zone Name"
                        FontSize="24"
                        FontAttributes="Bold"
-                       TextColor="White"
+                       TextColor="#880E4F"
                        HorizontalOptions="Center"/>
                 <Label x:Name="ZoneDescriptionLabel"
                        Text=""
                        FontSize="14"
-                       TextColor="White"
+                       TextColor="#AD1457"
                        HorizontalOptions="Center"
                        Margin="0,5,0,0"/>
                 <Label x:Name="PoiCountLabel"
                        Text="0 locations"
                        FontSize="12"
-                       TextColor="White"
+                       TextColor="#AD1457"
                        HorizontalOptions="Center"
                        Margin="0,5,0,0"/>
             </StackLayout>
@@ -109,14 +109,14 @@
             <ActivityIndicator x:Name="LoadingIndicator"
                                IsRunning="False"
                                IsVisible="False"
-                               Color="#2196F3"
+                               Color="#E91E63"
                                VerticalOptions="Center"
                                HorizontalOptions="Center"/>
         </Grid>
 
         <Border x:Name="AccessFrame"
                Grid.Row="2"
-               BackgroundColor="#FFF3E0"
+               BackgroundColor="#FCE4EC"
                Padding="20"
                Margin="0"
                IsVisible="False">
@@ -127,11 +127,11 @@
                 <Label x:Name="AccessMessageLabel"
                        Text="Purchase this zone to unlock all locations"
                        FontSize="14"
-                       TextColor="#E65100"
+                       TextColor="#C2185B"
                        HorizontalOptions="Center"/>
                 <Button x:Name="PurchaseButton"
                         Text="Purchase Zone"
-                        BackgroundColor="#FF9800"
+                        BackgroundColor="#E91E63"
                         TextColor="White"
                         CornerRadius="8"
                         Margin="0,10,0,0"

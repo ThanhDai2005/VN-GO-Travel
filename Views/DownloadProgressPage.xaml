@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiApp1.Views.DownloadProgressPage"
+             Title="Offline download">
+    <Grid Padding="20" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="14">
+        <Label Text="Đang tải nội dung offline..."
+               FontSize="18"
+               FontAttributes="Bold" />
+        <ProgressBar x:Name="ProgressBar" Grid.Row="1" Progress="0" />
+        <Label x:Name="CounterLabel" Grid.Row="2" Text="0/0" />
+        <Button Grid.Row="3" Text="Bỏ qua" Clicked="OnSkipClicked" />
+    </Grid>
+</ContentPage>

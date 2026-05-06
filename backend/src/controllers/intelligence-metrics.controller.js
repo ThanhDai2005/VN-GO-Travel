@@ -82,6 +82,20 @@ exports.getOwnerEventsByFamily = async (req, res, next) => {
     }
 };
 
+exports.getOwnerGeoHeatmap = async (req, res, next) => {
+    try {
+        const { start, end, poiId } = req.query;
+        const rows = await intelligenceMetricsService.getOwnerGeoHeatmap(req.user._id, {
+            start,
+            end,
+            poiId
+        });
+        res.status(200).json(rows);
+    } catch (e) {
+        next(e);
+    }
+};
+
 exports.getOverview = async (req, res, next) => {
     try {
         const { start, end } = req.query;
