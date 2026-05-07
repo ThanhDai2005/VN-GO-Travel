@@ -22,22 +22,15 @@
 
 ## Main Sequence
 
-1. ViewModel/Coordinator yêu cầu navigate (`NavigateToAsync`, `PushModalAsync`, `GoBackAsync`).
-
-> *Vị trí: `NavigateToAsync` nằm ở file `Services/Observability/ObservingNavigationService.cs`, dòng `47`*
-> *Vị trí: `PushModalAsync` nằm ở file `Services/Observability/ObservingNavigationService.cs`, dòng `18`*
-> *Vị trí: `GoBackAsync` nằm ở file `Services/Observability/ObservingNavigationService.cs`, dòng `57`*
-2. `NavigationService.StartNavigationAsync` check `_isNavigating`.
-
-> *Vị trí: `NavigationService.StartNavigationAsync` nằm ở file `Services/NavigationService.cs`, dòng `142`*
-3. Nếu pass:
-   - acquire `_navGate`.
-   - execute navigation trên MainThread.
-4. Cập nhật modal count trong AppState (với modal operations).
-5. (Luồng Audio): `AudioQueueService` / `PoiNarrationService` tiếp tục duy trì trạng thái phát background, không bị gián đoạn (interrupt) trừ khi người dùng chủ động gọi `Stop()`.
-
-> *Vị trí: `PoiNarrationService` nằm ở file `Services/PoiNarrationService.cs`, dòng `42`*
-6. Release `_navGate`, reset `_isNavigating`.
+1. ViewModel/Coordinator yêu cầu điều hướng (`NavigateToAsync`).
+2. `NavigationService` kiểm tra cờ `_isNavigating`.
+3. **Luồng Reject**: Nếu `_isNavigating == true`, request bị từ chối ngay để tránh lỗi Race Condition (vùng màu vàng trong sơ đồ).
+4. **Luồng Chấp nhận**: Nếu `false`, thực hiện:
+   - Acquire Semaphore `_navGate`.
+   - Set `_isNavigating = true`.
+   - Thực thi `Shell.Current.GoToAsync` trên MainThread.
+5. **Đặc điểm quan trọng**: Hệ thống Audio (Narration) tiếp tục chạy ngầm (Background), không bị ngắt quãng khi chuyển trang.
+6. Kết thúc: Giải phóng Semaphore và reset cờ trạng thái.
 
 ## Thread Context
 

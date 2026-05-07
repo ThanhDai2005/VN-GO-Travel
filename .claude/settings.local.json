@@ -23,7 +23,8 @@
       "Bash(node -e \"const data = require\\('./vngo_travel.pois.json'\\); console.log\\('POI Codes in DB:'\\); data.slice\\(0, 10\\).forEach\\(p => console.log\\('-', p.code, '| Status:', p.status\\)\\);\")",
       "Bash(awk '{print $9, $5}')",
       "Bash(node -e ' *)",
-      "Bash(node -e \"const pois = require\\('./vngo_travel.pois.json'\\); console.log\\('Available POI Codes:'\\); pois.filter\\(p => p.status === 'APPROVED'\\).forEach\\(p => console.log\\(p.code, '|', p.name, '| Lat:', p.location.coordinates[1], 'Lng:', p.location.coordinates[0]\\)\\);\")"
+      "Bash(node -e \"const pois = require\\('./vngo_travel.pois.json'\\); console.log\\('Available POI Codes:'\\); pois.filter\\(p => p.status === 'APPROVED'\\).forEach\\(p => console.log\\(p.code, '|', p.name, '| Lat:', p.location.coordinates[1], 'Lng:', p.location.coordinates[0]\\)\\);\")",
+      "Bash(grep -nC 2 \"Nghe thuyết minh ngắn/dài\" \"d:\\\\DoAnC\\\\VN-GO-Travel\\\\prd \\(1\\)\\\\03_usecase\\\\usecase_overview.md\")"
     ]
   }
 }

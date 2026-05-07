@@ -11,18 +11,20 @@
    - QR flow (manual/camera),
    - map flow,
    - geofence auto flow.
+7. Mobile định kỳ gửi Intelligence Events (Telemetry) về Backend.
+8. Backend Ingestion nhận Event, lưu Raw và thực hiện Rollup Worker để cập nhật Metric Stats.
 
 ## 5.2 Main Participants For Detailed Sequences
 
-- **Actors**: Tourist/User, Admin, System.
-- **UI layer**: Page/View.
+- **Actors**: Tourist/User, Owner, Admin, System.
+- **UI layer**: Page/View, Admin Web Dashboard.
 - **Presentation**: ViewModel.
-- **Domain/Service**: Coordinator, Geofence, Narration, Translation, Navigation.
-- **Persistence**: SQLite, MongoDB.
+- **Domain/Service**: Coordinator, Geofence, Narration, Translation, Navigation, Intelligence Ingestion.
+- **Persistence**: SQLite, MongoDB, Redis (Cache).
 - **External**: API endpoint, translation provider, OS TTS/location stack.
 
 ## 5.3 Thread Context Conventions
 
 - **MainThread**: UI binding mutation, Shell navigation, AppState collection/property changes quan trọng.
-- **Background**: network call, DB IO, translation call, timer loop body.
+- **Background**: network call, DB IO, translation call, timer loop body, Intelligence telemetry.
 - **Mixed**: map tracking loop thực hiện logic nền nhưng nhảy về MainThread cho UI draw/selection.
